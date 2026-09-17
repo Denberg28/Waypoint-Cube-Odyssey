@@ -1,7 +1,7 @@
 {
-  "enabled": false,
+  "enabled": true,
   "require_opt_in": true,
   "allow_desktop_debug": false,
-  "supabase_url": "https://REPLACE_PROJECT_REF.supabase.co",
-  "supabase_publishable_key": "REPLACE_WITH_SB_PUBLISHABLE_KEY"
+  "supabase_url": "https://ufnhmxnlxmhaynmkaynz.supabase.co",
+  "supabase_publishable_key": "sb_publishable_WjWUAet6mJ_YjhByggeY2A_ej6zJWn0"
 }
