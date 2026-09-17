@@ -26,12 +26,9 @@ jobs:
           AI_MAX_DAILY_CYCLES: ${{ vars.AI_MAX_DAILY_CYCLES || '8' }}
         run: |
           python ai_lab/should_run.py && echo "run_cycle=true" >> "$GITHUB_OUTPUT" || echo "run_cycle=false" >> "$GITHUB_OUTPUT"
-      - name: Sync real public playtest telemetry
+      - name: Sync aggregate public playtest telemetry
         if: steps.budget.outputs.run_cycle == 'true'
         continue-on-error: true
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python -m ai_lab.sync_public_telemetry
       - name: Run Gemini GM + beta-informed development analysis
         if: steps.budget.outputs.run_cycle == 'true'
