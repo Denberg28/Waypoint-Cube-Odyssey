@@ -6,7 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
-from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches
+from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches, request_rollback
 
 ROOT = Path(__file__).resolve().parent
 GODOT_WEB_URL = "https://denberg28.github.io/Waypoint-Cube-Odyssey/"
@@ -284,6 +284,39 @@ with review_tab:
                 else:
                     st.warning("Held. This prepared bundle is not authorized for source implementation.")
                     st.rerun()
+
+        if same_gate and str(gate.get("decision", "")) == "accepted":
+            st.divider()
+            st.write("### Rollback protection")
+            checkpoint = str(gate.get("rollback_checkpoint_sha", ""))
+            manifest = [str(x) for x in gate.get("implementation_changed_files", [])]
+            st.caption(
+                f"Checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'} · "
+                f"Implementation files recorded: {len(manifest)}"
+            )
+            if not manifest:
+                st.info("Rollback checkpoint is armed. The implementation worker must record its exact changed-file manifest before source changes are considered rollback-ready.")
+            rollback_reason = st.text_input(
+                "Rollback reason",
+                placeholder="Example: accepted update causes crash on route start",
+                key=f"rollback-reason-{bundle_id}",
+            )
+            if st.button(
+                "ROLL BACK accepted update",
+                use_container_width=True,
+                disabled=not controls_ready or not bool(checkpoint) or not bool(manifest),
+                key=f"rollback-{bundle_id}",
+            ):
+                if not pin_matches(review_pin, expected_pin):
+                    st.error("Owner passphrase is incorrect.")
+                else:
+                    try:
+                        request_rollback(token=github_token, gate=gate, reason=rollback_reason)
+                    except ReviewGateError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.warning("Rollback requested. The recovery worker will restore only the recorded implementation files from the pre-implementation checkpoint, preserve a backup branch, and flag the rolled-back features.")
+                        st.rerun()
 
 
 with music:
