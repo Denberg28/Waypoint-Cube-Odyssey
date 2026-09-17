@@ -1,0 +1,33 @@
+name: Normalize Web UI Icons
+
+on:
+  push:
+    branches:
+      - ai-development
+    paths:
+      - "tools/normalize_ui_icons.py"
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ai-development
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Replace fragile Unicode-only controls
+        run: python tools/normalize_ui_icons.py
+      - name: Commit normalized controls
+        run: |
+          git config user.name "waypoint-ui-fix[bot]"
+          git config user.email "waypoint-ui-fix[bot]@users.noreply.github.com"
+          git add scripts/main.gd
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: replace fragile UI glyph controls with web-safe labels"
+          git push origin ai-development
