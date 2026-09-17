@@ -2,6 +2,7 @@ extends Node3D
 ## Procedural low-poly diorama. No downloaded assets or external plugins.
 signal route_clicked(route_id: String)
 signal marketplace_clicked
+signal camp_clicked
 const Catalog = preload("res://scripts/catalog.gd")
 const State = preload("res://scripts/state.gd")
 const LANE_SPACING: float = 2.8
@@ -67,7 +68,7 @@ func cone(parent: Node3D, pos: Vector3, radius: float, height: float, color: Col
 	parent.add_child(node)
 	return node
 
-func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false) -> Area3D:
+func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false, camp_return: bool = false) -> Area3D:
 	var area = Area3D.new()
 	area.position = pos
 	area.input_ray_pickable = true
@@ -88,6 +89,8 @@ func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, 
 			return
 		if marketplace:
 			marketplace_clicked.emit()
+		elif camp_return:
+			camp_clicked.emit()
 		elif route_id != "":
 			route_clicked.emit(route_id)
 	)
@@ -336,7 +339,8 @@ func build() -> void:
 	add_child(props)
 	var is_trail: bool = not entrance and state.data.mode in ["travel", "campfire", "fishing", "reward", "shrine", "traveler"]
 	var is_boss: bool = not entrance and state.data.mode in ["boss", "boss_intro", "victory"]
-	var count: int = State.STAGE_STEPS + 1 if is_trail else 5
+	var is_crossroads: bool = not entrance and state.data.mode == "choice"
+	var count: int = State.STAGE_STEPS + 1 if is_trail else (6 if is_crossroads else 5)
 	var local_rng = RandomNumberGenerator.new()
 	local_rng.seed = int(state.data.seed)
 	var center_z: float = -float(count - 1) * ROW_SPACING * 0.5
@@ -373,13 +377,18 @@ func build() -> void:
 		floating_text(scenery, "WAYPOINT", Vector3(0, 3.3, finish_z), active_theme.text, 42)
 	elif is_boss:
 		guardian()
+	elif is_crossroads:
+		var finish_z: float = -float(count - 1) * ROW_SPACING
+		crossroads(finish_z)
 	else:
 		camp()
-		if not entrance and state.data.mode == "choice":
-			crossroads()
 	actor.position = Vector3(int(state.data.lane) * LANE_SPACING, 0.16, -int(state.data.row) * ROW_SPACING) if is_trail else Vector3(0, 0.16, 0)
 	if is_boss:
 		actor.position = Vector3(int(state.data.lane) * LANE_SPACING, 0.16, 0)
+	elif is_crossroads:
+		actor.position = Vector3(0, 0.16, -float(count - 1) * ROW_SPACING + ROW_SPACING * 1.35)
+	elif not entrance and state.data.mode == "camp":
+		pose_actor_at_camp()
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	update_camera()
 	refresh_props()
@@ -433,15 +442,29 @@ func camp() -> void:
 	canvas.position = Vector3(-3.8, 1.1, -5)
 	scenery.add_child(canvas)
 	box(scenery, Vector3(-3.8, 0.4, -3.49), Vector3(0.65, 1.0, 0.06), Color("344a42"))
-	for i in range(7):
-		var angle: float = i * TAU / 7
-		cone(scenery, Vector3(cos(angle) * 0.7, 0.15, -4 + sin(angle) * 0.7), 0.23, 0.35, Color("7f857f"), 0.15)
-	cone(scenery, Vector3(0, 0.5, -4), 0.38, 1.1, Color("ffb65c"))
-	box(scenery, Vector3(2.4, 0.3, -4), Vector3(0.5, 0.7, 2.0), active_theme.post)
+
+	# The old crossroads location is now the camp's visual heart: a larger bonfire.
+	var fire_z: float = -5.15
+	for i in range(8):
+		var angle: float = i * TAU / 8
+		cone(scenery, Vector3(cos(angle) * 0.78, 0.15, fire_z + sin(angle) * 0.78), 0.24, 0.34, Color("7f857f"), 0.15)
+	box(scenery, Vector3(-0.34, 0.24, fire_z), Vector3(1.15, 0.16, 0.22), Color("6f4a32"))
+	box(scenery, Vector3(0.34, 0.24, fire_z), Vector3(1.15, 0.16, 0.22), Color("6f4a32"))
+	cone(scenery, Vector3(0, 0.58, fire_z), 0.46, 1.28, Color("ffb65c"), 0.06)
+	cone(scenery, Vector3(0, 0.82, fire_z), 0.26, 0.72, Color("ffe08a"), 0.03)
+
+	# Bench faces the bonfire. The actor is posed onto this seat in build().
+	var bench_z: float = -2.85
+	box(scenery, Vector3(0, 0.36, bench_z), Vector3(2.35, 0.22, 0.76), active_theme.post)
+	box(scenery, Vector3(0, 0.86, bench_z + 0.34), Vector3(2.35, 0.82, 0.18), active_theme.post)
+	for x in [-0.85, 0.85]:
+		box(scenery, Vector3(x, 0.16, bench_z), Vector3(0.18, 0.55, 0.18), active_theme.post)
+
 	box(scenery, Vector3(3.8, 1.3, -7), Vector3(0.2, 2.8, 0.2), active_theme.post)
 	box(scenery, Vector3(3.8, 2.7, -7), Vector3(0.7, 0.8, 0.7), active_theme.text, true)
 	floating_text(scenery, "LANTERN CAMP", Vector3(0, 3.5, -8), active_theme.text, 48)
-	# Clickable camp market stall. This remains visible at camp and crossroads.
+
+	# Clickable camp market stall.
 	box(scenery, Vector3(4.9, 0.55, -4.8), Vector3(2.2, 1.0, 1.45), Color("6f5b45"))
 	box(scenery, Vector3(4.9, 1.42, -4.8), Vector3(2.55, 0.18, 1.65), Color("b78b57"))
 	clickable_board(scenery, Vector3(4.9, 2.02, -4.72), Vector3(2.35, 0.58, 0.22), Color("c6a66d"), "", true)
@@ -449,13 +472,30 @@ func camp() -> void:
 	for i in range(int(state.data.camp_level)):
 		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
 
-func crossroads() -> void:
-	box(scenery, Vector3(0, 1.55, -5.2), Vector3(0.30, 3.4, 0.30), Color("8f6848"))
+func pose_actor_at_camp() -> void:
+	actor.position = Vector3(0, 0.52, -2.86)
+	actor.rotation = Vector3(0, PI, 0)
+	if is_instance_valid(left_foot):
+		left_foot.position = Vector3(-0.24, -0.22, 0.34)
+		left_foot.rotation.x = -0.35
+	if is_instance_valid(right_foot):
+		right_foot.position = Vector3(0.24, -0.22, 0.34)
+		right_foot.rotation.x = -0.35
+	if is_instance_valid(left_arm):
+		left_arm.position.y = 0.22
+		left_arm.rotation.x = -0.18
+	if is_instance_valid(right_arm):
+		right_arm.position.y = 0.22
+		right_arm.rotation.x = -0.18
+
+func crossroads(finish_z: float) -> void:
+	# Road-end crossroads: route selection no longer happens inside Lantern Camp.
+	box(scenery, Vector3(0, 1.55, finish_z), Vector3(0.30, 3.4, 0.30), Color("8f6848"))
 	var options: Array = route_options_for_stage()
 	var board_layout: Array = [
-		{"pos":Vector3(-1.05, 2.45, -5.2), "size":Vector3(2.55, 0.52, 0.24)},
-		{"pos":Vector3(1.05, 1.78, -5.2), "size":Vector3(2.55, 0.52, 0.24)},
-		{"pos":Vector3(-0.85, 1.10, -5.2), "size":Vector3(2.35, 0.52, 0.24)}
+		{"pos":Vector3(-1.05, 2.45, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
+		{"pos":Vector3(1.05, 1.78, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
+		{"pos":Vector3(-0.85, 1.10, finish_z), "size":Vector3(2.35, 0.52, 0.24)}
 	]
 	for i in range(options.size()):
 		var route_id: String = str(options[i])
@@ -464,9 +504,14 @@ func crossroads() -> void:
 		var board_color: Color = Color(str(route.get("color", "c59b61"))).darkened(0.12)
 		clickable_board(scenery, board.pos, board.size, board_color, route_id)
 		floating_text(scenery, str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 22)
-	floating_text(scenery, "CLICK A SIGN", Vector3(0, 3.25, -5.1), active_theme.text, 22)
+
+	# Optional return marker keeps the expedition flowing without forcing camp.
+	var camp_pos := Vector3(2.55, 0.66, finish_z + 0.15)
+	clickable_board(scenery, camp_pos, Vector3(2.55, 0.50, 0.24), Color("6b806b"), "", false, true)
+	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
+	floating_text(scenery, "NEXT ADVENTURE  •  CLICK A SIGN", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 21)
 	for x in [-2.2, 0.0, 2.2]:
-		box(scenery, Vector3(x, 0.08, -3.9), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
+		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 
 func guardian() -> void:
 	var root = Node3D.new()
