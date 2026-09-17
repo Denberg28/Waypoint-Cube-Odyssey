@@ -3,8 +3,8 @@
 ; since the parameters that go here are not all obvious.
 ;
 ; Format:
-;   [section] ; section goes between []
-;   param=value ; assign values to parameters
+;   [section] ; section between []
+;   param=value
 
 config_version=5
 
@@ -23,6 +23,7 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 [autoload]
 
 MusicDirector="*res://scripts/music_director.gd"
+UIIconFallback="*res://scripts/ui_icon_fallback.gd"
 
 [display]
 
