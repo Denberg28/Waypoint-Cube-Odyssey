@@ -79,6 +79,11 @@ jobs:
             python ai_lab/autonomy_guard.py --success || true
           else
             python ai_lab/autonomy_guard.py --failure "Gemini development request failed" || true
+            git config user.name "waypoint-autonomy-guard[bot]"
+            git config user.email "waypoint-autonomy-guard[bot]@users.noreply.github.com"
+            git add runtime/autonomy_guard.json
+            git diff --cached --quiet || git commit -m "guard: record autonomous request failure"
+            git push origin ai-development
             exit 1
           fi
       - name: Refresh milestone governance
