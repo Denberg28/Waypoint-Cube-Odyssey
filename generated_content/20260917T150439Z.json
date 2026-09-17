@@ -1,0 +1,21 @@
+{
+  "id": "ai-20260917T150439Z",
+  "created_utc": "20260917T150439Z",
+  "kind": "route_modifier",
+  "title": "Mist-Covered Bog Dangers",
+  "description": "Encounter denser bog thorns and elusive spirit whispers along the Whispering Fen path.",
+  "route": "fen",
+  "experiment": {
+    "kind": "route_coin_bonus",
+    "route": "fen",
+    "value": 15,
+    "reason": "Boost route coin yields to help players bridge the gap toward high-tier cosmetic items."
+  },
+  "adopted_feedback_ids": [
+    "20260917T101331Z-first_time_player-feature-1",
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-combat_challenger-feature-1",
+    "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-accessibility_ux-feature-1"
+  ]
+}
