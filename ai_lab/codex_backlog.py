@@ -46,10 +46,25 @@ def locked_categories() -> set[str]:
     return {str(x) for x in governance().get("locked_categories", [])}
 
 
+def rollback_flags() -> tuple[set[str], set[str]]:
+    value = load_json(ROOT / "runtime" / "flagged_features.json", {"features": []})
+    ids: set[str] = set()
+    titles: set[str] = set()
+    for item in value.get("features", []) if isinstance(value, dict) else []:
+        if not isinstance(item, dict) or not bool(item.get("manual_clear_required", False)):
+            continue
+        if item.get("id"):
+            ids.add(str(item["id"]))
+        if item.get("title"):
+            titles.add(" ".join(str(item["title"]).strip().lower().split()))
+    return ids, titles
+
+
 def source_candidates() -> list[dict]:
     council = load_json(ROOT / "runtime" / "beta_council.json", {})
     world = load_json(ROOT / "runtime" / "ai_world_state.json", {})
     locked = locked_categories()
+    flagged_ids, flagged_titles = rollback_flags()
     candidates: list[dict] = []
 
     # Material regressions are always allowed through the lock. Locks protect
@@ -75,6 +90,10 @@ def source_candidates() -> list[dict]:
     for item in council.get("all_feature_requests", []) if isinstance(council, dict) else []:
         if not isinstance(item, dict) or bool(item.get("safe_content_only", False)):
             continue
+        item_id = str(item.get("id", ""))
+        item_title = " ".join(str(item.get("title", "")).strip().lower().split())
+        if item_id in flagged_ids or item_title in flagged_titles:
+            continue
         category = str(item.get("category", "feature"))
         if category in locked:
             continue
@@ -95,6 +114,9 @@ def source_candidates() -> list[dict]:
     backlog = world.get("development_backlog", []) if isinstance(world, dict) else []
     for item in backlog if isinstance(backlog, list) else []:
         if not isinstance(item, dict) or not bool(item.get("requires_code_change", False)):
+            continue
+        item_title = " ".join(str(item.get("title", "")).strip().lower().split())
+        if item_title in flagged_titles:
             continue
         category = str(item.get("category", "development"))
         if category in locked:
@@ -212,6 +234,7 @@ def main() -> None:
         "updated_utc": created,
         "active_queue_limit": MAX_ACTIVE_TASKS,
         "locked_categories": sorted(locked_categories()),
+        "rollback_flagged_feature_ids": sorted(rollback_flags()[0]),
         "tasks": manifest_tasks,
     }
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
