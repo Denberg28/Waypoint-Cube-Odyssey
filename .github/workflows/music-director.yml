@@ -1,22 +1,33 @@
 name: Waypoint AI Music Director
+
 on:
   workflow_dispatch:
   schedule:
     - cron: "37 2,8,14,20 * * *"
+
 permissions:
   contents: write
+
+env:
+  GEMINI_MODEL: gemini-3.5-flash-lite
+  GEMINI_SAFE_INPUT_TOKENS: "24000"
+  GEMINI_SAFE_OUTPUT_TOKENS: "3072"
+  GEMINI_SAFE_RPM: "1"
+  GEMINI_MAX_RETRIES: "1"
+  GEMINI_MAX_REQUESTS_PER_RUN: "2"
+
 jobs:
   music-director:
     runs-on: ubuntu-latest
     concurrency:
-      group: waypoint-ai-music-director
+      group: waypoint-gemini-api
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ai-development
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Sync aggregate public playtest telemetry
@@ -25,10 +36,9 @@ jobs:
       - name: Run Gemini Flash-Lite Music Director
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL: gemini-3.5-flash-lite
         run: python -m ai_lab.music_agent
       - name: Validate Python modules
-        run: python -m py_compile ai_lab/music_agent.py ai_lab/sync_public_telemetry.py
+        run: python -m py_compile ai_lab/music_agent.py ai_lab/sync_public_telemetry.py ai_lab/common.py
       - name: Commit bounded music profile
         run: |
           git config user.name "waypoint-music-director[bot]"
