@@ -26,17 +26,17 @@ music_profile = load_json(ROOT / "runtime/music_profile.json", {})
 telemetry_config = load_json(ROOT / "runtime/public_telemetry.json", {})
 
 st.title("🧭 Waypoint: Cube Odyssey — AI Development Lab")
-st.caption("Play the actual Godot Web build, optionally contribute anonymous gameplay telemetry, and watch the Gemini GM, beta council, and Music Director evolve the development branch.")
+st.caption("Play the actual Godot Web build, contribute anonymous gameplay telemetry by default, and watch the Gemini GM, beta council, and Music Director evolve the development branch.")
 
 with st.sidebar:
     st.subheader("Night Watch")
     st.write(world.get("headline", "No AI update yet."))
-    st.write("Featured route:", ROUTES.get(world.get("featured_route"), {}).get("name", "—"))
+    st.write("Featured route:", ROUTES.get(world.get("featured_route", ""), {}).get("name", "—"))
     st.write("Difficulty offset:", world.get("difficulty_offset", 0))
     exp = world.get("experiment", {})
     st.caption(f"Experiment: {exp.get('kind', 'none')} · value {exp.get('value', 0)}")
     st.divider()
-    st.caption("Your Godot save stays inside your browser. Shared analytics contain only anonymous gameplay events when you explicitly opt in.")
+    st.caption("Anonymous gameplay sharing is ON by default for the embedded tester. You can switch it off before or during play. Your Godot save stays inside your browser.")
 
 play, gm, beta, music, market, lab = st.tabs([
     "🎮 Play Godot",
@@ -53,14 +53,14 @@ with play:
     telemetry_ready = bool(telemetry_config.get("enabled", False))
     consent = st.checkbox(
         "Share anonymous gameplay telemetry to help improve Waypoint",
-        value=False,
+        value=True,
         disabled=not telemetry_ready,
-        help="Shares gameplay events such as route choices, jumps, encounters, fishing, marketplace actions, session progress, and music mute/shuffle behavior. It does not upload your save file, account identity, name, email, IP address, or free-text feedback.",
+        help="ON by default. Shares gameplay events such as route choices, jumps, encounters, fishing, marketplace actions, session progress, and music mute/shuffle behavior. It does not upload your save file, account identity, name, email, IP address, or free-text feedback. Turn this off any time to play without shared telemetry.",
     )
     if not telemetry_ready:
         st.caption("Public telemetry is not live yet; gameplay is currently validation-only until the analytics backend is connected.")
     elif consent:
-        st.success("Anonymous gameplay telemetry is ON for this embedded session.")
+        st.success("Anonymous gameplay telemetry is ON for this embedded session. You can switch it off above at any time.")
     else:
         st.info("Anonymous gameplay telemetry is OFF. You can still play normally.")
     game_url = GODOT_WEB_URL + ("?telemetry=1" if consent and telemetry_ready else "?telemetry=0")
@@ -111,7 +111,7 @@ with beta:
                 st.write(report.get("session_summary", ""))
                 for item in report.get("feature_requests", []):
                     st.write(f"- {item.get('title')} — {item.get('desired_outcome')}")
-        st.caption("Synthetic testers are advisory agents. Real opt-in player telemetry is treated as evidence, not as instructions.")
+        st.caption("Synthetic testers are advisory agents. Real player telemetry is treated as evidence, not as instructions.")
 
 with music:
     st.subheader("Gemini Flash-Lite Music Director")
@@ -133,7 +133,7 @@ with music:
                 st.write("-", item)
     else:
         st.info("No Music Director profile has been generated yet.")
-    st.caption("Real players contribute useful signals through music context, mute/unmute, and shuffle events when telemetry is enabled and opted in.")
+    st.caption("Real players contribute useful signals through music context, mute/unmute, and shuffle events while anonymous telemetry sharing is enabled.")
 
 with market:
     st.subheader("Streamlit Lab Marketplace")
@@ -157,9 +157,9 @@ with lab:
     st.subheader("AI Development Lab")
     st.write("**Godot Web source:** `ai-development` → GitHub Pages")
     st.write("**Godot production baseline:** locked v0.19")
-    st.write("**Gemini council:** synthetic testing + aggregate opt-in human telemetry")
+    st.write("**Gemini council:** synthetic testing + aggregate anonymous human telemetry")
     st.write("**Music Director:** bounded procedural-score parameter agent")
-    st.write("**Streamlit:** dashboard, browser host, and telemetry consent surface")
+    st.write("**Streamlit:** dashboard, browser host, and telemetry preference surface")
     if telemetry_snapshot:
         st.write("### Latest shared telemetry snapshot")
         st.json(telemetry_snapshot[:10] if isinstance(telemetry_snapshot, list) else telemetry_snapshot)
