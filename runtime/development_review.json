@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "bundle_id": "review-20260917T101331Z-current",
+  "created_utc": "2026-09-18T00:00:00Z",
+  "council_id": "beta-20260917T101331Z",
+  "status": "prepared",
+  "locked_categories": [],
+  "features": [
+    {
+      "id": "20260917T101331Z-first_time_player-feature-1",
+      "title": "Onboarding Tutorial Prompt",
+      "category": "onboarding",
+      "priority": "P2",
+      "source": "beta_council",
+      "tester": "First-Time Player",
+      "desired_outcome": "Add a brief narrative hint or welcome message at step 0 explaining how walking and enemy encounters work.",
+      "reason": "First-time players need clearer introduction to movement and combat.",
+      "safe_content_only_reported": true,
+      "requires_code_change": true,
+      "implementation_class": "source_change",
+      "locked": false
+    },
+    {
+      "id": "20260917T101331Z-explorer_collector-feature-1",
+      "title": "Route Discovery Log and Collector Milestones",
+      "category": "exploration",
+      "priority": "P1",
+      "source": "beta_council",
+      "tester": "Explorer & Collector",
+      "desired_outcome": "A menu section displaying collected items per route and rewarding completionists with unique cosmetic tints.",
+      "reason": "Collectors need an in-game tracking mechanism for discoveries and completion.",
+      "safe_content_only_reported": true,
+      "requires_code_change": true,
+      "implementation_class": "source_change",
+      "locked": false
+    },
+    {
+      "id": "20260917T101331Z-combat_challenger-feature-1",
+      "title": "Add Elite Enemy Encounters to Difficulty 3+ Routes",
+      "category": "combat",
+      "priority": "P1",
+      "source": "beta_council",
+      "tester": "Combat Challenger",
+      "desired_outcome": "Incorporate elite variants with distinct behavior profiles into higher-tier routes.",
+      "reason": "Higher difficulty routes currently have sparse enemy pressure.",
+      "safe_content_only_reported": true,
+      "requires_code_change": true,
+      "implementation_class": "source_change",
+      "locked": false
+    },
+    {
+      "id": "20260917T101331Z-economy_optimizer-feature-1",
+      "title": "Coin Bundle Special for Route Completion",
+      "category": "economy",
+      "priority": "P2",
+      "source": "beta_council",
+      "tester": "Economy Optimizer",
+      "desired_outcome": "Introduce a temporary marketplace special or route-incentive bonus to smooth out the coin threshold gap.",
+      "reason": "Provide a bounded progression experiment without permanently altering baseline pricing.",
+      "safe_content_only_reported": true,
+      "requires_code_change": false,
+      "implementation_class": "bounded_content",
+      "locked": false
+    },
+    {
+      "id": "20260917T101331Z-accessibility_ux-feature-1",
+      "title": "High-Contrast UI Theme Option",
+      "category": "accessibility",
+      "priority": "P2",
+      "source": "beta_council",
+      "tester": "Accessibility & UI Tester",
+      "desired_outcome": "Add an optional high-contrast mode toggle in the settings menu.",
+      "reason": "Improve readability and focus visibility.",
+      "safe_content_only_reported": true,
+      "requires_code_change": true,
+      "implementation_class": "source_change",
+      "locked": false
+    },
+    {
+      "id": "20260917T101331Z-qa_edge_cases-feature-1",
+      "title": "Explicit Input Buffering Feedback for Obstacles",
+      "category": "stability",
+      "priority": "P3",
+      "source": "beta_council",
+      "tester": "QA Edge-Case Tester",
+      "desired_outcome": "Add explicit descriptive hints and prevent redundant damage when invalid movement collides with static hazards.",
+      "reason": "Repeated walk commands against one obstacle can spam damage.",
+      "safe_content_only_reported": true,
+      "requires_code_change": true,
+      "implementation_class": "source_change",
+      "locked": false
+    }
+  ],
+  "policy": {
+    "owner_decision_required": true,
+    "decisions": [
+      "accept",
+      "hold"
+    ],
+    "accept_scope": "selected_features_only",
+    "auto_merge": false,
+    "accept_means": "authorize staged implementation/validation; it does not authorize automatic merge or bypass tests"
+  }
+}
