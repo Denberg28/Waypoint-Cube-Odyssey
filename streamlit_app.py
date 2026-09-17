@@ -1,8 +1,10 @@
 from __future__ import annotations
 import json
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, choose_route, move, resolve_enemy, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
+from streamlit_lab.viewport import viewport_html
 
 st.set_page_config(page_title="Waypoint AI Development Lab", page_icon="🧭", layout="wide")
 if "game" not in st.session_state:
@@ -12,7 +14,7 @@ world = load_world_state()
 council = load_beta_council()
 
 st.title("🧭 Waypoint: Cube Odyssey — AI Development Lab")
-st.caption("Playable Streamlit laboratory. Godot v0.19 remains the locked production baseline.")
+st.caption("Playable browser laboratory. Godot v0.19 remains the locked production baseline.")
 
 with st.sidebar:
     st.subheader("Character")
@@ -29,6 +31,9 @@ with st.sidebar:
 
 play, market, gm, beta, lab = st.tabs(["🎮 Play", "🛍️ Marketplace", "🌙 AI Game Master", "🤖 Beta Testers", "🧪 Dev Lab"])
 with play:
+    components.html(viewport_html(state, world, ROUTES), height=525, scrolling=False)
+    st.caption("Browser viewport mirrors the current game state; the controls below are the authoritative gameplay inputs.")
+
     if not state.get("route"):
         st.subheader("Crossroads")
         cols=st.columns(3)
@@ -41,7 +46,7 @@ with play:
                 st.write("Collectibles:", ", ".join(info['collectibles']))
                 with st.expander("Route details"):
                     st.write("Hazards:", ", ".join(info['hazards']))
-                if st.button("Start Adventure", key=f"route-{rid}"):
+                if st.button("Start Adventure", key=f"route-{rid}", use_container_width=True):
                     choose_route(state,rid); st.rerun()
     else:
         info=ROUTES[state['route']]
@@ -50,18 +55,18 @@ with play:
         st.info(state['message'])
         if state.get('encounter'):
             enc=state['encounter']; st.warning(f"Encounter: {enc['name']}")
-            if enc['kind']=='enemy' and st.button("Fight"):
+            if enc['kind']=='enemy' and st.button("⚔ Fight", use_container_width=True):
                 resolve_enemy(state); st.rerun()
             elif enc['kind']=='obstacle':
                 st.caption("Walk is blocked. Jump clears the obstacle tile.")
         a,b,c,d=st.columns(4)
-        if a.button("← Walk Left"):
+        if a.button("← Walk Left", use_container_width=True):
             move(state,"walk",world=world); st.rerun()
-        if b.button("↑ Walk"):
+        if b.button("↑ Walk", use_container_width=True):
             move(state,"walk",world=world); st.rerun()
-        if c.button("Walk Right →"):
+        if c.button("Walk Right →", use_container_width=True):
             move(state,"walk",world=world); st.rerun()
-        if d.button("⤒ JUMP"):
+        if d.button("⤒ JUMP", use_container_width=True, type="primary"):
             move(state,"jump",world=world); st.rerun()
 with market:
     st.subheader("Marketplace / Wardrobe")
