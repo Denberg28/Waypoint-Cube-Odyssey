@@ -1,0 +1,47 @@
+{
+  "session_summary": "Evaluated state transitions and edge-case behaviors on the Ember Forge route. Confirmed repeated walk commands against stationary obstacles correctly trigger telemetry events and state penalties (damage), and successfully resolve upon proper jump input.",
+  "fun_score": 4,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Repeated walk actions against step 2 (telemetry shows obstacle_hit with 8 damage twice) before the player successfully performed a jump action.",
+      "recommendation": "Ensure state validation cleanly prevents redundant movement command queuing when an obstacle state flag is active.",
+      "id": "20260917T101331Z-qa_edge_cases-obs-1"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Repeated Walk Input Into Obstacle Spams Damage",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route 'forge'",
+        "Walk forward to step 2 where an obstacle is present",
+        "Issue 'walk' command multiple times consecutively without jumping"
+      ],
+      "expected": "The player should hit the obstacle once, take damage once, and be blocked from passing until jumping.",
+      "observed": "The telemetry records multiple consecutive 'obstacle_hit' events (damage: 8) for duplicate walk attempts at the same step before jumping.",
+      "id": "20260917T101331Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Explicit Input Buffering Feedback for Obstacles",
+      "category": "accessibility",
+      "player_value": "Clearer visual or textual feedback when movement inputs are rejected due to an active blocking hazard.",
+      "rationale": "Helps edge-case testers distinguish between input lag and intended path blocking.",
+      "safe_content_only": true,
+      "desired_outcome": "Add explicit descriptive hints when invalid movement commands collide with static hazards.",
+      "id": "20260917T101331Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clean telemetry event logging for obstacle hits and jumps",
+    "Reliable route completion states and coin reward payouts"
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}
