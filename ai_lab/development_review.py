@@ -50,7 +50,13 @@ def main() -> None:
     council = load_json(ROOT / "runtime" / "beta_council.json", {})
     world = load_json(ROOT / "runtime" / "ai_world_state.json", {})
     governance = load_json(ROOT / "runtime" / "development_governance.json", {})
+    flags = load_json(ROOT / "runtime" / "flagged_features.json", {"features": []})
     locked = {str(x) for x in governance.get("locked_categories", [])}
+    flagged = {
+        str(item.get("id", "")): item
+        for item in flags.get("features", [])
+        if isinstance(item, dict) and str(item.get("id", ""))
+    }
 
     features: list[dict] = []
 
@@ -70,6 +76,8 @@ def main() -> None:
             "safe_content_only_reported": bool(item.get("safe_content_only", False)),
             "requires_code_change": None,
             "locked": category in locked,
+            "rollback_flagged": feature_id(item, "beta") in flagged,
+            "rollback_flag_reason": str(flagged.get(feature_id(item, "beta"), {}).get("reason", ""))[:800],
         })
 
     for item in world.get("development_backlog", []) if isinstance(world, dict) else []:
@@ -96,6 +104,8 @@ def main() -> None:
                 "safe_content_only_reported": False,
                 "requires_code_change": bool(item.get("requires_code_change", False)),
                 "locked": str(item.get("category", "development")) in locked,
+                "rollback_flagged": feature_id(item, "dev") in flagged,
+                "rollback_flag_reason": str(flagged.get(feature_id(item, "dev"), {}).get("reason", ""))[:800],
             }
             features.append(match)
         else:
@@ -115,6 +125,9 @@ def main() -> None:
             item["implementation_class"] = "bounded_content"
         else:
             item["implementation_class"] = "review_required"
+        if item.get("rollback_flagged"):
+            item["implementation_class"] = "rollback_flagged"
+            item["locked"] = True
 
     created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     council_id = str(council.get("council_id", ""))
@@ -125,6 +138,7 @@ def main() -> None:
         "council_id": council_id,
         "status": "prepared",
         "locked_categories": sorted(locked),
+        "rollback_flagged_feature_ids": sorted(flagged),
         "features": features[:20],
         "policy": {
             "owner_decision_required": True,
