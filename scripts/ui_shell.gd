@@ -1,10 +1,7 @@
 extends CanvasLayer
 ## Stable UI shell for header actions, side sheets, and 360 character inspection.
-## Industry-standard approach:
-## - no runtime signal rebinding
-## - no tree scans for buttons
-## - no rotation of the live gameplay actor
-## - 360 viewer runs in an isolated SubViewport modal
+## - explicit controls (no signal rebinding / tree scans)
+## - isolated SubViewport character preview (never rotates the live gameplay actor)
 ## - only explicit shell controls consume input
 
 const Catalog = preload("res://scripts/catalog.gd")
@@ -21,15 +18,12 @@ var header_cover: PanelContainer
 var character_button: Button
 var equipment_button: Button
 var menu_button: Button
-
 var sheet: PanelContainer
 var sheet_title: Label
 var sheet_body: VBoxContainer
 var sheet_status: Label
 var active_sheet := ""
-
 var modal_backdrop: ColorRect
-var modal_card: PanelContainer
 var viewport_container: SubViewportContainer
 var viewport: SubViewport
 var viewer_root: Node3D
@@ -42,7 +36,6 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_shell()
 	_build_viewer_modal()
-	set_process(true)
 
 func _scene():
 	return get_tree().current_scene
@@ -94,7 +87,7 @@ func _button(text_value: String, callback: Callable, primary := false) -> Button
 	b.add_theme_stylebox_override("normal", _style(MINT if primary else Color("294c49"), 9))
 	b.add_theme_stylebox_override("hover", _style(Color("c0ecd4") if primary else Color("385f56"), 9, MINT))
 	b.add_theme_stylebox_override("pressed", _style(Color("8bcdb1") if primary else Color("1c3b38"), 9, GOLD))
-	b.add_theme_stylebox_override("focus", _style(Color(0,0,0,0), 9, GOLD))
+	b.add_theme_stylebox_override("focus", _style(Color(0, 0, 0, 0), 9, GOLD))
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.pressed.connect(callback)
@@ -106,7 +99,6 @@ func _build_shell() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
 
-	# Opaque header action zone masks the legacy header buttons underneath.
 	header_cover = PanelContainer.new()
 	header_cover.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	header_cover.offset_left = -350
@@ -120,15 +112,12 @@ func _build_shell() -> void:
 	var header_row := HBoxContainer.new()
 	header_row.add_theme_constant_override("separation", 8)
 	header_cover.add_child(header_row)
-
 	character_button = _button("Character", func(): open_character_viewer())
 	character_button.custom_minimum_size.x = 98
 	header_row.add_child(character_button)
-
 	equipment_button = _button("Equipment", func(): toggle_sheet("equipment"))
 	equipment_button.custom_minimum_size.x = 105
 	header_row.add_child(equipment_button)
-
 	menu_button = _button("Menu", func(): toggle_sheet("menu"))
 	menu_button.custom_minimum_size.x = 82
 	header_row.add_child(menu_button)
@@ -147,7 +136,6 @@ func _build_shell() -> void:
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 8)
 	sheet.add_child(outer)
-
 	var sheet_header := HBoxContainer.new()
 	outer.add_child(sheet_header)
 	sheet_title = _label("PANEL", 17, GOLD)
@@ -156,18 +144,15 @@ func _build_shell() -> void:
 	var close_button := _button("Close", func(): close_sheet())
 	close_button.custom_minimum_size.x = 72
 	sheet_header.add_child(close_button)
-
 	outer.add_child(HSeparator.new())
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(scroll)
-
 	sheet_body = VBoxContainer.new()
 	sheet_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sheet_body.add_theme_constant_override("separation", 7)
 	scroll.add_child(sheet_body)
-
 	sheet_status = _label("", 10, MUTED)
 	outer.add_child(sheet_status)
 
@@ -179,7 +164,7 @@ func _build_viewer_modal() -> void:
 	modal_backdrop.hide()
 	root.add_child(modal_backdrop)
 
-	modal_card = PanelContainer.new()
+	var modal_card := PanelContainer.new()
 	modal_card.set_anchors_preset(Control.PRESET_CENTER)
 	modal_card.offset_left = -255
 	modal_card.offset_right = 255
@@ -191,7 +176,6 @@ func _build_viewer_modal() -> void:
 	var stack := VBoxContainer.new()
 	stack.add_theme_constant_override("separation", 8)
 	modal_card.add_child(stack)
-
 	var head := HBoxContainer.new()
 	stack.add_child(head)
 	var title := _label("CHARACTER INSPECT", 18, GOLD)
@@ -200,8 +184,7 @@ func _build_viewer_modal() -> void:
 	var close := _button("Close", func(): close_character_viewer())
 	close.custom_minimum_size.x = 76
 	head.add_child(close)
-
-	var help := _label("Drag inside the preview to rotate. This viewer is isolated from gameplay input.", 11, MUTED)
+	var help := _label("Drag inside the preview to rotate. Gameplay remains untouched.", 11, MUTED)
 	help.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stack.add_child(help)
 
@@ -211,7 +194,6 @@ func _build_viewer_modal() -> void:
 	viewport_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	viewport_container.stretch = true
 	viewport_container.mouse_filter = Control.MOUSE_FILTER_STOP
-	viewport_container.add_theme_stylebox_override("panel", _style(Color("0f292b"), 12, BORDER)) if viewport_container.has_method("add_theme_stylebox_override") else null
 	viewport_container.gui_input.connect(_on_viewer_gui_input)
 	stack.add_child(viewport_container)
 
@@ -220,7 +202,6 @@ func _build_viewer_modal() -> void:
 	viewport.transparent_bg = false
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport_container.add_child(viewport)
-
 	viewer_root = Node3D.new()
 	viewport.add_child(viewer_root)
 
@@ -233,18 +214,15 @@ func _build_viewer_modal() -> void:
 	env.ambient_light_energy = 0.7
 	env_node.environment = env
 	viewer_root.add_child(env_node)
-
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-35, -25, 0)
 	key.light_energy = 1.1
 	viewer_root.add_child(key)
-
 	var fill := OmniLight3D.new()
 	fill.position = Vector3(-2, 2.5, 3)
 	fill.light_energy = 2.0
 	fill.omni_range = 8.0
 	viewer_root.add_child(fill)
-
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 1.2, 4.6)
 	camera.fov = 40
@@ -333,12 +311,9 @@ func _render_equipment() -> void:
 		else:
 			sheet_body.add_child(_label("%s  /  [%s] %s" % [str(slot).to_upper(), str(item.get("rarity", "")), str(item.get("name", ""))], 12, INK))
 			sheet_body.add_child(_label(str(item.get("text", "")), 10, MUTED))
-	var equip_best := _button("Equip Best", func(): _equip_best(), true)
-	sheet_body.add_child(equip_best)
-	var inspect := _button("Inspect Character 360", func(): open_character_viewer())
-	sheet_body.add_child(inspect)
-	var market := _button("Marketplace / Wardrobe", func(): _open_marketplace())
-	sheet_body.add_child(market)
+	sheet_body.add_child(_button("Equip Best", func(): _equip_best(), true))
+	sheet_body.add_child(_button("Inspect Character 360", func(): open_character_viewer()))
+	sheet_body.add_child(_button("Marketplace / Wardrobe", func(): _open_marketplace()))
 	sheet_status.text = "Click Equipment again or Close to return to the normal status rail."
 
 func _render_menu() -> void:
@@ -427,7 +402,7 @@ func _rebuild_preview_model() -> void:
 	if not (duplicate is Node3D):
 		return
 	viewer_model = duplicate as Node3D
-	viewer_model.position = Vector3(0, 0, 0)
+	viewer_model.position = Vector3.ZERO
 	viewer_model.scale = Vector3.ONE
 	viewer_yaw = PI
 	viewer_model.rotation = Vector3(0, viewer_yaw, 0)
