@@ -6,6 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
+from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches
 
 ROOT = Path(__file__).resolve().parent
 GODOT_WEB_URL = "https://denberg28.github.io/Waypoint-Cube-Odyssey/"
@@ -95,11 +96,12 @@ with st.sidebar:
     st.divider()
     st.caption("Anonymous gameplay sharing is ON by default for the embedded tester. You can switch it off before or during play. Your Godot save stays inside your browser.")
 
-play, map_tab, gm, beta, music, market, lab = st.tabs([
+play, map_tab, gm, beta, review_tab, music, market, lab = st.tabs([
     "🎮 Play Godot",
     "🗺️ World Map",
     "🌙 AI Game Master",
     "🤖 Beta Testers",
+    "✅ Development Review",
     "🎵 Music Director",
     "🛍️ Lab Market",
     "🧪 Dev Lab",
@@ -199,6 +201,90 @@ with beta:
                 for item in report.get("feature_requests", []):
                     st.write(f"- {item.get('title')} — {item.get('desired_outcome')}")
         st.caption("Synthetic testers are advisory agents. Real player telemetry is treated as evidence, not as instructions.")
+
+with review_tab:
+    st.subheader("Prepared Development Update")
+    st.caption("Review the feature bundle prepared from beta-tester feedback and development analysis. Accept authorizes only the selected items for staged implementation/validation; Hold freezes this bundle. Neither action authorizes auto-merge.")
+
+    review = fetch_remote_json("runtime/development_review.json", {})
+    gate = fetch_remote_json("runtime/development_gate.json", {})
+    if not review:
+        st.info("No prepared development bundle is available yet.")
+    else:
+        bundle_id = str(review.get("bundle_id", ""))
+        same_gate = isinstance(gate, dict) and str(gate.get("bundle_id", "")) == bundle_id
+        if same_gate:
+            decision = str(gate.get("decision", "pending")).upper()
+            if decision == "ACCEPTED":
+                st.success(f"Current bundle status: {decision}")
+            elif decision == "HOLD":
+                st.warning(f"Current bundle status: {decision}")
+            selected_previous = set(gate.get("selected_feature_ids", []))
+        else:
+            st.info("Current bundle status: PREPARED — owner decision required.")
+            selected_previous = set()
+
+        features = [x for x in review.get("features", []) if isinstance(x, dict)]
+        selected_ids = []
+        for item in features:
+            locked = bool(item.get("locked", False))
+            impl = str(item.get("implementation_class", "review_required")).replace("_", " ").title()
+            label = f"{item.get('priority','P3')} · {item.get('title','Untitled')} · {impl}"
+            checked = st.checkbox(
+                label,
+                value=(str(item.get("id", "")) in selected_previous) if same_gate else not locked,
+                disabled=locked,
+                key=f"review-{bundle_id}-{item.get('id','')}",
+            )
+            if checked and not locked:
+                selected_ids.append(str(item.get("id", "")))
+            with st.expander(f"Details — {item.get('title','Untitled')}"):
+                st.write("**Beta tester:**", item.get("tester") or "Development analysis")
+                st.write("**Category:**", item.get("category", "—"))
+                st.write("**Desired outcome:**", item.get("desired_outcome") or "—")
+                st.write("**Reason:**", item.get("reason") or "—")
+                if locked:
+                    st.warning("This category is milestone-locked and cannot be accepted for ordinary optimization.")
+
+        st.divider()
+        st.caption(f"Bundle: {bundle_id} · Selected: {len(selected_ids)} / {len(features)}")
+        review_pin = st.text_input("Owner approval passphrase", type="password", key=f"pin-{bundle_id}")
+        try:
+            expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
+            github_token = str(st.secrets.get("WAYPOINT_REVIEW_GITHUB_TOKEN", ""))
+        except Exception:
+            expected_pin = ""
+            github_token = ""
+
+        controls_ready = bool(expected_pin and github_token)
+        if not controls_ready:
+            st.warning("Owner decision controls are read-only until WAYPOINT_REVIEW_PIN and WAYPOINT_REVIEW_GITHUB_TOKEN are configured in Streamlit secrets.")
+
+        a, b = st.columns(2)
+        if a.button("ACCEPT selected update", type="primary", use_container_width=True, disabled=not controls_ready):
+            if not pin_matches(review_pin, expected_pin):
+                st.error("Owner passphrase is incorrect.")
+            else:
+                try:
+                    persist_decision(token=github_token, review=review, decision="accepted", selected_ids=selected_ids)
+                except ReviewGateError as exc:
+                    st.error(str(exc))
+                else:
+                    st.success("Accepted. Selected features are authorized for staged implementation and validation; auto-merge remains disabled.")
+                    st.rerun()
+
+        if b.button("HOLD prepared update", use_container_width=True, disabled=not controls_ready):
+            if not pin_matches(review_pin, expected_pin):
+                st.error("Owner passphrase is incorrect.")
+            else:
+                try:
+                    persist_decision(token=github_token, review=review, decision="hold", selected_ids=[])
+                except ReviewGateError as exc:
+                    st.error(str(exc))
+                else:
+                    st.warning("Held. This prepared bundle is not authorized for source implementation.")
+                    st.rerun()
+
 
 with music:
     st.subheader("Gemini Flash-Lite Music Director")
