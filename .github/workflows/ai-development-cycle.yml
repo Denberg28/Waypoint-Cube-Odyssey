@@ -15,6 +15,8 @@ env:
   GEMINI_SAFE_RPM: "1"
   GEMINI_MAX_RETRIES: "1"
   GEMINI_MAX_REQUESTS_PER_RUN: "4"
+  FREE_TIER_ONLY: "true"
+  AUTONOMY_STOP_THRESHOLD: "3"
 
 jobs:
   cycle:
@@ -33,9 +35,27 @@ jobs:
           python-version: "3.12"
       - name: Preflight autonomous development code
         run: |
-          python -m py_compile ai_lab/common.py ai_lab/should_run.py ai_lab/cycle.py ai_lab/milestone_governor.py ai_lab/codex_backlog.py
+          python -m py_compile ai_lab/common.py ai_lab/autonomy_guard.py ai_lab/should_run.py ai_lab/cycle.py ai_lab/milestone_governor.py ai_lab/codex_backlog.py ai_lab/development_review.py
+      - name: Enforce subscription and zero-cost guard
+        id: autonomy
+        env:
+          CHATGPT_PLUS_END_UTC: ${{ vars.CHATGPT_PLUS_END_UTC }}
+          GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+        run: |
+          python ai_lab/autonomy_guard.py || true
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          s=json.loads(Path("runtime/autonomy_guard.json").read_text())
+          print("basic_gemini_allowed=" + str(s["basic_gemini_allowed"]).lower())
+          print("chatgpt_development_allowed=" + str(s["chatgpt_development_allowed"]).lower())
+          PY
+      - name: Stop paid-quality autonomous development in safety window
+        if: steps.autonomy.outputs.chatgpt_development_allowed != 'true'
+        run: echo "ChatGPT/Codex-class developmental autonomy is locked. Basic confirmed-free Gemini may remain available."
       - name: Check governed development cadence
         id: budget
+        if: steps.autonomy.outputs.chatgpt_development_allowed == 'true' && steps.autonomy.outputs.basic_gemini_allowed == 'true'
         env:
           AI_CYCLE_ENABLED: ${{ vars.AI_CYCLE_ENABLED || 'true' }}
           AI_MAX_DAILY_CYCLES: ${{ vars.AI_MAX_DAILY_CYCLES || '8' }}
@@ -46,16 +66,35 @@ jobs:
         continue-on-error: true
         run: python -m ai_lab.sync_public_telemetry
       - name: Run Gemini GM + beta-informed development analysis
+        id: development_request
         if: steps.budget.outputs.run_cycle == 'true'
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -m ai_lab.cycle
+      - name: Record development request result
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: |
+          if [ "${{ steps.development_request.outcome }}" = "success" ]; then
+            python ai_lab/autonomy_guard.py --success || true
+          else
+            python ai_lab/autonomy_guard.py --failure "Gemini development request failed" || true
+            git config user.name "waypoint-autonomy-guard[bot]"
+            git config user.email "waypoint-autonomy-guard[bot]@users.noreply.github.com"
+            git add runtime/autonomy_guard.json
+            git diff --cached --quiet || git commit -m "guard: record autonomous request failure"
+            git push origin ai-development
+            exit 1
+          fi
       - name: Refresh milestone governance
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m ai_lab.milestone_governor
       - name: Generate Codex engineering handoff queue
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m ai_lab.codex_backlog
+      - name: Prepare owner development review bundle
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: python -m ai_lab.development_review
       - name: Install test dependencies
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m pip install -r requirements-dev.txt
@@ -67,7 +106,7 @@ jobs:
         run: |
           git config user.name "waypoint-ai-gm[bot]"
           git config user.email "waypoint-ai-gm[bot]@users.noreply.github.com"
-          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json runtime/development_governance.json generated_content reports codex_backlog
+          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json runtime/development_governance.json runtime/autonomy_guard.json runtime/development_review.json generated_content reports codex_backlog
           git diff --cached --quiet && exit 0
           git commit -m "ai: governed development cycle and Codex handoff"
           git push origin ai-development
