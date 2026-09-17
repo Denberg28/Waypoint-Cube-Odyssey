@@ -15,6 +15,7 @@ env:
   GEMINI_SAFE_RPM: "1"
   GEMINI_MAX_RETRIES: "1"
   GEMINI_MAX_REQUESTS_PER_RUN: "8"
+  FREE_TIER_ONLY: "true"
 
 jobs:
   beta-council:
@@ -33,9 +34,23 @@ jobs:
           python-version: "3.12"
       - name: Preflight autonomous council code
         run: |
-          python -m py_compile ai_lab/common.py ai_lab/should_run_beta.py ai_lab/beta_testers.py ai_lab/world_architect.py ai_lab/milestone_governor.py ai_lab/codex_backlog.py
+          python -m py_compile ai_lab/common.py ai_lab/autonomy_guard.py ai_lab/should_run_beta.py ai_lab/beta_testers.py ai_lab/world_architect.py ai_lab/milestone_governor.py ai_lab/codex_backlog.py
+      - name: Enforce zero-cost Gemini guard
+        id: autonomy
+        env:
+          CHATGPT_PLUS_END_UTC: ${{ vars.CHATGPT_PLUS_END_UTC }}
+          GEMINI_FREE_TIER_CONFIRMED: ${{ vars.GEMINI_FREE_TIER_CONFIRMED || 'false' }}
+        run: |
+          python ai_lab/autonomy_guard.py || true
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          s=json.loads(Path("runtime/autonomy_guard.json").read_text())
+          print("basic_gemini_allowed=" + str(s["basic_gemini_allowed"]).lower())
+          PY
       - name: Check governed beta council cadence
         id: budget
+        if: steps.autonomy.outputs.basic_gemini_allowed == 'true'
         env:
           BETA_TESTER_ENABLED: ${{ vars.BETA_TESTER_ENABLED || 'true' }}
           BETA_MAX_DAILY_COUNCILS: "24"
@@ -72,7 +87,7 @@ jobs:
         run: |
           git config user.name "waypoint-beta-council[bot]"
           git config user.email "waypoint-beta-council[bot]@users.noreply.github.com"
-          git add beta_feedback runtime/beta_council.json runtime/telemetry_snapshot.json runtime/world_map.json runtime/development_governance.json reports/BETA_COUNCIL_LATEST.md reports/WORLD_ARCHITECT_LATEST.md reports/DEVELOPMENT_GOVERNANCE.md codex_backlog
+          git add beta_feedback runtime/beta_council.json runtime/telemetry_snapshot.json runtime/world_map.json runtime/development_governance.json runtime/autonomy_guard.json reports/BETA_COUNCIL_LATEST.md reports/WORLD_ARCHITECT_LATEST.md reports/DEVELOPMENT_GOVERNANCE.md codex_backlog
           git diff --cached --quiet && exit 0
           git commit -m "ai: governed beta council and milestone handoff"
           git push origin ai-development
