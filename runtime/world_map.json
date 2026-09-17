@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "revision": 1,
+  "updated_utc": "2026-09-17T12:15:00Z",
+  "summary": "Waypoint regional map. Active routes are playable; planned regions are bounded World Architect proposals.",
+  "nodes": [
+    {"id":"camp","name":"Lantern Camp","kind":"hub","status":"active","playable":true,"difficulty":0,"theme":"home waypoint","x":0.50,"y":0.50},
+    {"id":"moss","name":"Moss Trail","kind":"route","status":"active","playable":true,"difficulty":1,"theme":"verdant ruins","x":0.24,"y":0.28},
+    {"id":"forge","name":"Bramble Forge","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"ash and iron","x":0.50,"y":0.20},
+    {"id":"fen","name":"Whispering Fen","kind":"route","status":"active","playable":true,"difficulty":3,"theme":"misty marsh","x":0.76,"y":0.28},
+    {"id":"treasure","name":"Lantern Crossing","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"merchant road","x":0.22,"y":0.72},
+    {"id":"shrine","name":"Moonlit Steps","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"moonlit stones","x":0.50,"y":0.80},
+    {"id":"frost","name":"Frostfang Pass","kind":"route","status":"active","playable":true,"difficulty":3,"theme":"snowbound ridge","x":0.78,"y":0.72}
+  ],
+  "edges": [
+    {"from":"camp","to":"moss"}, {"from":"camp","to":"forge"}, {"from":"camp","to":"fen"},
+    {"from":"camp","to":"treasure"}, {"from":"camp","to":"shrine"}, {"from":"camp","to":"frost"},
+    {"from":"moss","to":"forge"}, {"from":"forge","to":"fen"},
+    {"from":"treasure","to":"shrine"}, {"from":"shrine","to":"frost"},
+    {"from":"moss","to":"treasure"}, {"from":"fen","to":"frost"}
+  ],
+  "planned_limit": 12
+}
