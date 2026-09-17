@@ -1,0 +1,54 @@
+{
+  "schema": 2,
+  "bundle_id": "review-20260917T101331Z-current",
+  "council_id": "beta-20260917T101331Z",
+  "decision": "accepted",
+  "selected_feature_ids": [
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-combat_challenger-feature-1",
+    "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-accessibility_ux-feature-1",
+    "20260917T101331Z-qa_edge_cases-feature-1"
+  ],
+  "selected_features": [
+    {
+      "id": "20260917T101331Z-explorer_collector-feature-1",
+      "title": "Route Discovery Log and Collector Milestones",
+      "category": "exploration",
+      "implementation_class": "source_change"
+    },
+    {
+      "id": "20260917T101331Z-combat_challenger-feature-1",
+      "title": "Add Elite Enemy Encounters to Difficulty 3+ Routes",
+      "category": "combat",
+      "implementation_class": "source_change"
+    },
+    {
+      "id": "20260917T101331Z-economy_optimizer-feature-1",
+      "title": "Coin Bundle Special for Route Completion",
+      "category": "economy",
+      "implementation_class": "bounded_content"
+    },
+    {
+      "id": "20260917T101331Z-accessibility_ux-feature-1",
+      "title": "High-Contrast UI Theme Option",
+      "category": "accessibility",
+      "implementation_class": "source_change"
+    },
+    {
+      "id": "20260917T101331Z-qa_edge_cases-feature-1",
+      "title": "Explicit Input Buffering Feedback for Obstacles",
+      "category": "stability",
+      "implementation_class": "source_change"
+    }
+  ],
+  "reviewed_utc": "2026-09-17T23:48:11Z",
+  "reviewer": "owner",
+  "implementation_authorized": true,
+  "auto_merge_authorized": false,
+  "rollback_checkpoint_sha": "4ae136a23aba46e9a43c4b7e0c2474ef0da1ad54",
+  "rollback_checkpoint_utc": "2026-09-17T23:48:11Z",
+  "rollback_status": "armed",
+  "implementation_changed_files": [],
+  "note": "Selected prepared features are authorized for staged implementation and validation. A pre-implementation rollback checkpoint has been captured. Source changes still require tests, milestone locks, autonomy guard, and no-auto-merge policy."
+}
