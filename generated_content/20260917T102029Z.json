@@ -1,0 +1,21 @@
+{
+  "id": "ai-20260917T102029Z",
+  "created_utc": "20260917T102029Z",
+  "kind": "collectible_rumor",
+  "title": "Whispering Fen Artifact Rumor",
+  "description": "Whispers speak of hidden Fen Pearls resting deep within the misty marshland, waiting for keen-eyed collectors.",
+  "route": "fen",
+  "experiment": {
+    "kind": "route_coin_bonus",
+    "route": "fen",
+    "value": 15,
+    "reason": "Temporarily boost coin yields on Whispering Fen to bridge the economy gap toward high-tier cosmetic purchases."
+  },
+  "adopted_feedback_ids": [
+    "20260917T101331Z-first_time_player-feature-1",
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-combat_challenger-feature-1",
+    "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-accessibility_ux-feature-1"
+  ]
+}
