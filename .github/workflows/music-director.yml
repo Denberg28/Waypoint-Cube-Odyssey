@@ -19,11 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Sync real public playtest telemetry
+      - name: Sync aggregate public playtest telemetry
         continue-on-error: true
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python -m ai_lab.sync_public_telemetry
       - name: Run Gemini Flash-Lite Music Director
         env:
