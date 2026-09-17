@@ -3,7 +3,6 @@ name: Waypoint AI Development Cycle
 on:
   workflow_dispatch:
   schedule:
-    # Staggered from the beta council to avoid bursty Gemini usage.
     - cron: "17 * * * *"
 
 permissions:
@@ -29,52 +28,46 @@ jobs:
         with:
           ref: ai-development
           fetch-depth: 0
-
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-
       - name: Preflight autonomous development code
         run: |
-          python -m py_compile ai_lab/common.py ai_lab/should_run.py ai_lab/cycle.py ai_lab/codex_backlog.py
-
-      - name: Check cycle budget
+          python -m py_compile ai_lab/common.py ai_lab/should_run.py ai_lab/cycle.py ai_lab/milestone_governor.py ai_lab/codex_backlog.py
+      - name: Check governed development cadence
         id: budget
         env:
           AI_CYCLE_ENABLED: ${{ vars.AI_CYCLE_ENABLED || 'true' }}
           AI_MAX_DAILY_CYCLES: ${{ vars.AI_MAX_DAILY_CYCLES || '8' }}
         run: |
           python ai_lab/should_run.py && echo "run_cycle=true" >> "$GITHUB_OUTPUT" || echo "run_cycle=false" >> "$GITHUB_OUTPUT"
-
       - name: Sync aggregate public playtest telemetry
         if: steps.budget.outputs.run_cycle == 'true'
         continue-on-error: true
         run: python -m ai_lab.sync_public_telemetry
-
       - name: Run Gemini GM + beta-informed development analysis
         if: steps.budget.outputs.run_cycle == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -m ai_lab.cycle
-
+      - name: Refresh milestone governance
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: python -m ai_lab.milestone_governor
       - name: Generate Codex engineering handoff queue
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m ai_lab.codex_backlog
-
       - name: Install test dependencies
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m pip install -r requirements-dev.txt
-
       - name: Run contract tests
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m pytest tests_ai_lab -q
-
-      - name: Commit safe generated state and Codex handoff
+      - name: Commit governed generated state and Codex handoff
         if: steps.budget.outputs.run_cycle == 'true'
         run: |
           git config user.name "waypoint-ai-gm[bot]"
           git config user.email "waypoint-ai-gm[bot]@users.noreply.github.com"
-          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json generated_content reports codex_backlog
+          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json runtime/development_governance.json generated_content reports codex_backlog
           git diff --cached --quiet && exit 0
-          git commit -m "ai: beta-informed development cycle and Codex handoff"
+          git commit -m "ai: governed development cycle and Codex handoff"
           git push origin ai-development
