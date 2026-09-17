@@ -51,9 +51,9 @@ func _build_controls() -> void:
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(hint)
 
-	row.add_child(_viewer_button("LEFT", func(): rotate_by(-ROTATE_STEP), "Rotate character left"))
+	row.add_child(_viewer_button("LEFT", func(): rotate_by(ROTATE_STEP), "Rotate character left"))
 	row.add_child(_viewer_button("RESET", func(): reset_rotation(), "Face character forward"))
-	row.add_child(_viewer_button("RIGHT", func(): rotate_by(ROTATE_STEP), "Rotate character right"))
+	row.add_child(_viewer_button("RIGHT", func(): rotate_by(-ROTATE_STEP), "Rotate character right"))
 
 func _panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
@@ -151,9 +151,6 @@ func pointer_over_view_controls(screen_position: Vector2) -> bool:
 	return is_instance_valid(panel) and panel.visible and panel.get_global_rect().has_point(screen_position)
 
 func pointer_in_character_view_zone(screen_position: Vector2) -> bool:
-	# Do not depend on 3D projection/picking. In Web builds a scaled iframe can make
-	# projected coordinates diverge from GUI coordinates. Use the central scene zone
-	# instead; the main camp modal and side panels remain outside this area.
 	var size := get_viewport().get_visible_rect().size
 	if size.x <= 0.0 or size.y <= 0.0:
 		return false
@@ -175,7 +172,6 @@ func _process(_delta: float) -> void:
 			dragging_touch_id = -1
 		was_camp_active = active
 	if active:
-		# Re-apply every frame so animation/build refreshes cannot cancel the viewer.
 		apply_rotation()
 
 func _input(event: InputEvent) -> void:
@@ -184,10 +180,10 @@ func _input(event: InputEvent) -> void:
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_Q:
-			rotate_by(-ROTATE_STEP)
+			rotate_by(ROTATE_STEP)
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_E:
-			rotate_by(ROTATE_STEP)
+			rotate_by(-ROTATE_STEP)
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_R:
 			reset_rotation()
@@ -205,7 +201,8 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseMotion and dragging_mouse:
-		rotate_by(-event.relative.x * DRAG_SENSITIVITY)
+		# Direct-manipulation convention: dragging right turns the character right.
+		rotate_by(event.relative.x * DRAG_SENSITIVITY)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -220,5 +217,5 @@ func _input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenDrag and dragging_touch_id == event.index:
-		rotate_by(-event.relative.x * DRAG_SENSITIVITY)
+		rotate_by(event.relative.x * DRAG_SENSITIVITY)
 		get_viewport().set_input_as_handled()
