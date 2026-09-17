@@ -3,6 +3,7 @@ name: Waypoint Gemini Beta Tester Council
 on:
   workflow_dispatch:
   schedule:
+    # GitHub cron is UTC. :05 every hour still means one full council every hour.
     - cron: "5 * * * *"
 
 permissions:
@@ -10,16 +11,21 @@ permissions:
 
 env:
   GEMINI_MODEL: gemini-3.5-flash-lite
+  # Conservative per-request guardrails, intentionally far below model ceilings.
   GEMINI_SAFE_INPUT_TOKENS: "32000"
   GEMINI_SAFE_OUTPUT_TOKENS: "4096"
+  # Serialize Gemini calls to <= 1 request/minute and prevent runaway retries.
   GEMINI_SAFE_RPM: "1"
   GEMINI_MAX_RETRIES: "1"
+  # Six beta personas + one World Architect, with room for one bounded retry.
   GEMINI_MAX_REQUESTS_PER_RUN: "8"
 
 jobs:
   beta-council:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     concurrency:
+      # Shared by every Gemini workflow so independent schedules cannot burst together.
       group: waypoint-gemini-api
       cancel-in-progress: false
     steps:
@@ -32,9 +38,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Sync aggregate public playtest telemetry
-        continue-on-error: true
-        run: python -m ai_lab.sync_public_telemetry
+      - name: Preflight autonomous council code
+        run: |
+          python -m py_compile \
+            ai_lab/common.py \
+            ai_lab/should_run_beta.py \
+            ai_lab/beta_testers.py \
+            ai_lab/world_architect.py \
+            ai_lab/codex_backlog.py
 
       - name: Check hourly beta council safety cap
         id: budget
@@ -43,6 +54,11 @@ jobs:
           BETA_MAX_DAILY_COUNCILS: "24"
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
+
+      - name: Sync aggregate public playtest telemetry
+        if: steps.budget.outputs.run_council == 'true'
+        continue-on-error: true
+        run: python -m ai_lab.sync_public_telemetry
 
       - name: Run six Gemini Flash-Lite beta tester agents
         if: steps.budget.outputs.run_council == 'true'
