@@ -39,6 +39,9 @@ This repository is the development source for **Waypoint: Cube Odyssey**.
 16. After that cutoff, do not substitute a lower-capability model into the developmental/code-authoring role. Only the separately bounded basic Gemini functions may continue.
 17. Autonomous cloud services are **free-tier-only**. If free-tier status is unknown, expired, quota-exhausted, or billing cannot be ruled out, fail closed and make no model API call. Never automatically enable billing, upgrade a plan, create paid resources, or switch to a paid model/provider.
 18. A repository flag is a safety gate, not proof of provider billing state. The owner must explicitly maintain `GEMINI_FREE_TIER_CONFIRMED=true` only while the linked Google project is actually configured for acceptable free-tier use.
+19. Respect `runtime/development_gate.json`. Autonomous source implementation may proceed only when the current prepared bundle is explicitly `accepted` and only for IDs listed in `selected_feature_ids`.
+20. A `hold`, missing gate, stale bundle ID, or unselected feature is not authorization. Never infer approval from beta scores, priority, repeated requests, or an existing Codex queue item.
+21. Owner acceptance authorizes staged implementation and validation only. It never authorizes automatic merge into `ai-development` or `main`.
 
 ## Subscription and cost governance
 
@@ -51,6 +54,17 @@ This repository is the development source for **Waypoint: Cube Odyssey**.
 - `FREE_TIER_ONLY=true` is hard-coded in the autonomous workflows.
 - Missing/ambiguous subscription or billing information fails closed rather than assuming paid access is safe.
 - Free-tier quotas are provider-controlled and may change. Hitting a quota should stop/fail the automation; it must never be treated as permission to spend money.
+
+## Owner development review gate
+
+`runtime/development_review.json` is the prepared feature bundle generated from beta-council and development-analysis evidence. The Streamlit **Development Review** page lets the owner select features and choose **ACCEPT selected update** or **HOLD prepared update**.
+
+- Acceptance is bundle-specific and feature-specific.
+- New beta/development cycles produce a new bundle; an older acceptance does not automatically authorize the new bundle.
+- `runtime/development_gate.json` is the durable authorization record.
+- Source implementation must verify the gate before doing work.
+- Held bundles remain visible as evidence but are not implementation authority.
+- The review UI uses server-side Streamlit secrets `WAYPOINT_REVIEW_PIN` and a least-privilege `WAYPOINT_REVIEW_GITHUB_TOKEN`; never commit either value.
 
 ## Milestone governance
 
