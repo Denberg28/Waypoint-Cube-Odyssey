@@ -116,6 +116,12 @@ func _ready() -> void:
 	add_child(world)
 	world.setup(game)
 	world.route_clicked.connect(func(route_id: String): preview_route(route_id))
+	world.camp_clicked.connect(func():
+		if not at_title and not busy and game.data.mode == "choice":
+			game.return_camp()
+			push_chat("Returned to Lantern Camp.")
+			commit()
+	)
 	world.marketplace_clicked.connect(func():
 		if not at_title and not busy and game.data.mode in ["camp", "rest", "choice"]:
 			show_marketplace("skin")
@@ -976,7 +982,7 @@ func start_adventure() -> void:
 		return
 	game.begin(str(game.data.class_id))
 	current_music_variant = -1
-	push_chat("Adventure started. Click a crossroads sign to choose your road.")
+	push_chat("Adventure started. Walk to the road-end crossroads and choose your next route.")
 	commit()
 
 func show_mode() -> void:
@@ -1008,8 +1014,8 @@ func show_mode() -> void:
 			overlay.hide()
 			show_fishing_game()
 		"camp":
-			modal("01 / LANTERN CAMP", "Ready for the road?", "Start with your current cube, shop cosmetics, or choose a new character before leaving camp.")
-			action("Start Adventure   →", func(): start_adventure(), true)
+			modal("01 / LANTERN CAMP", "Rest by the fire.", "Your character is seated at the bonfire. Recover, manage gear, or leave camp when you are ready for another expedition.")
+			action("Head to Crossroads   →", func(): start_adventure(), true)
 			action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
 			action("Equipment", func(): show_inventory())
 			action("Choose New Character", func(): show_selector())
@@ -1033,7 +1039,7 @@ func show_mode() -> void:
 		"choice":
 			overlay.hide()
 			route_panel.hide()
-			push_chat("Crossroads: click a wooden sign to preview its difficulty and rewards.")
+			push_chat("Road-end crossroads: choose the next adventure, or use the Lantern Camp marker to return home.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
