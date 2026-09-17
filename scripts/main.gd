@@ -303,9 +303,11 @@ func build_ui() -> void:
 	brightness_box.add_theme_constant_override("separation", 3)
 	brand_top.add_child(brightness_box)
 	brightness_buttons = []
-	for entry in [["☀", 0, "Sun brightness"], ["◐", 1, "Half-moon brightness"], ["●", 2, "Full-moon brightness"]]:
+	for entry in [["DAY", 0, "Day brightness"], ["DUSK", 1, "Dusk brightness"], ["NIGHT", 2, "Night brightness"]]:
 		var brightness_index: int = int(entry[1])
 		var brightness_button = small_icon_button(str(entry[0]), func(): set_brightness_mode(brightness_index), str(entry[2]))
+		brightness_button.custom_minimum_size.x = 58.0
+		brightness_button.add_theme_font_size_override("font_size", 10)
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
 	brand.add_child(label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED))
@@ -359,10 +361,10 @@ func build_ui() -> void:
 	var controls = HBoxContainer.new()
 	controls.add_theme_constant_override("separation", 6)
 	bottom.add_child(controls)
-	for entry in [["←", -1, "A / Walk left"], ["↑", 0, "W / Walk forward"], ["→", 1, "D / Walk right"]]:
+	for entry in [["A", -1, "A / Walk left"], ["W", 0, "W / Walk forward"], ["D", 1, "D / Walk right"]]:
 		var direction: int = int(entry[1])
 		var b = button(str(entry[0]), func(): do_move(direction, false), direction == 0)
-		b.custom_minimum_size = Vector2(50, 42)
+		b.custom_minimum_size = Vector2(56, 42)
 		b.add_theme_stylebox_override("normal", compact_style(MINT if direction == 0 else Color("294c49"), 9, Color("41645b")))
 		b.add_theme_stylebox_override("hover", compact_style(Color("c0ecd4") if direction == 0 else Color("385f56"), 9, MINT))
 		b.add_theme_stylebox_override("pressed", compact_style(Color("8bcdb1") if direction == 0 else Color("1c3b38"), 9, GOLD))
