@@ -118,9 +118,17 @@ func _ready() -> void:
 	world.route_clicked.connect(func(route_id: String): preview_route(route_id))
 	world.camp_clicked.connect(func():
 		if not at_title and not busy and game.data.mode == "choice":
-			game.return_camp()
-			push_chat("Returned to Lantern Camp.")
-			commit()
+			modal("RETURN TO CAMP", "Go to Lantern Camp?", "Leave the road-end waypoint and return to Lantern Camp. Your banked progress and permanent gear remain safe.")
+			action("Go to Lantern Camp", func():
+				game.return_camp()
+				push_chat("Returned to Lantern Camp.")
+				commit()
+			, true)
+			action("Stay at Road-End Waypoint", func(): show_mode())
+	)
+	world.continue_clicked.connect(func():
+		if not at_title and not busy and game.data.mode == "choice":
+			show_routes()
 	)
 	world.marketplace_clicked.connect(func():
 		if not at_title and not busy and game.data.mode in ["camp", "rest", "choice"]:
@@ -1039,7 +1047,7 @@ func show_mode() -> void:
 		"choice":
 			overlay.hide()
 			route_panel.hide()
-			push_chat("Road-end crossroads: choose the next adventure, or use the Lantern Camp marker to return home.")
+			push_chat("Road-end waypoint: select CONTINUE ADVENTURE to choose the next route, or LANTERN CAMP to return home.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
@@ -1251,7 +1259,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt Lantern Camp, open Marketplace / Wardrobe from the camp menu or click the MARKET stall. Rest by the bonfire, then head to the road-end crossroads. Choose the next adventure from the wooden signs, or click LANTERN CAMP to return home. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt Lantern Camp, open Marketplace / Wardrobe from the camp menu or click the MARKET stall. Rest by the bonfire, then head to the road-end waypoint. Select CONTINUE ADVENTURE to choose the next route, or select LANTERN CAMP and confirm to return home. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
