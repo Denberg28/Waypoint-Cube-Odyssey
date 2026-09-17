@@ -3,7 +3,7 @@ import json
 import streamlit as st
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, choose_route, move, resolve_enemy, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
-from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches
+from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches, request_rollback
 
 st.set_page_config(page_title="Waypoint AI Development Lab", page_icon="🧭", layout="wide")
 if "game" not in st.session_state:
@@ -177,6 +177,26 @@ with review_tab:
                     st.rerun()
                 except ReviewGateError as exc:
                     st.error(str(exc))
+
+        if same_gate and str(gate.get("decision", "")) == "accepted":
+            st.divider()
+            st.write("### Rollback protection")
+            checkpoint = str(gate.get("rollback_checkpoint_sha", ""))
+            manifest = [str(x) for x in gate.get("implementation_changed_files", [])]
+            st.caption(f"Checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'} · Implementation files recorded: {len(manifest)}")
+            if not manifest:
+                st.info("Rollback checkpoint is armed. Rollback becomes available after the implementation worker records the exact files changed for this accepted bundle.")
+            rollback_reason = st.text_input("Rollback reason", placeholder="Example: accepted update breaks route loading", key=f"rollback-reason-{bundle_id}")
+            if st.button("ROLL BACK accepted update", use_container_width=True, disabled=not ready or not bool(checkpoint) or not bool(manifest), key=f"rollback-{bundle_id}"):
+                if not pin_matches(review_pin, expected_pin):
+                    st.error("Owner passphrase is incorrect.")
+                else:
+                    try:
+                        request_rollback(token=github_token, gate=gate, reason=rollback_reason)
+                        st.warning("Rollback requested. The recovery worker will restore the recorded implementation files and flag the rolled-back features.")
+                        st.rerun()
+                    except ReviewGateError as exc:
+                        st.error(str(exc))
 
 
 with lab:
