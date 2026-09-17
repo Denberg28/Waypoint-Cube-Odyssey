@@ -12,6 +12,8 @@ on:
       - "scripts/**"
       - "assets/**"
       - "game_data/**"
+      - "runtime/music_profile.json"
+      - "runtime/public_telemetry.json"
       - ".github/workflows/godot-web-pages.yml"
 
 permissions:
