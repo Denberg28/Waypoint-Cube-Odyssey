@@ -14,6 +14,7 @@ BRANCH = "ai-development"
 GATE_PATH = "runtime/development_gate.json"
 REVIEW_PATH = "runtime/development_review.json"
 ROLLBACK_REQUEST_PATH = "runtime/rollback_request.json"
+FLAGGED_FEATURES_PATH = "runtime/flagged_features.json"
 API_ROOT = f"https://api.github.com/repos/{REPOSITORY}"
 
 
@@ -131,7 +132,18 @@ def persist_decision(
         for item in review.get("features", [])
         if isinstance(item, dict) and str(item.get("id", "")).strip()
     }
-    selected = [item for item in selected_ids if item in feature_map and not bool(feature_map[item].get("locked", False))]
+    flagged = fetch_remote_json(FLAGGED_FEATURES_PATH, {"features": []}) or {"features": []}
+    flagged_ids = {
+        str(item.get("id", "")).strip()
+        for item in flagged.get("features", [])
+        if isinstance(item, dict) and bool(item.get("manual_clear_required", False))
+    }
+    selected = [
+        item for item in selected_ids
+        if item in feature_map
+        and not bool(feature_map[item].get("locked", False))
+        and item not in flagged_ids
+    ]
     if decision == "accepted" and not selected:
         raise ReviewGateError("Select at least one non-locked feature before accepting.")
 
