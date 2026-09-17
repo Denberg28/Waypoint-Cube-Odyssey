@@ -28,6 +28,20 @@ func load_remote_config() -> void:
 	if parsed is Dictionary:
 		remote_config = parsed.duplicate(true)
 
+func web_opted_in() -> bool:
+	if not OS.has_feature("web"):
+		return bool(remote_config.get("allow_desktop_debug", false))
+	if not bool(remote_config.get("require_opt_in", true)):
+		return true
+	var window = JavaScriptBridge.get_interface("window")
+	if window == null:
+		return false
+	var location = window.location
+	if location == null:
+		return false
+	var search: String = str(location.search)
+	return "telemetry=1" in search
+
 func load_session() -> void:
 	if not FileAccess.file_exists(session_path):
 		return
@@ -97,7 +111,7 @@ func record(event_type: String, game, details: Dictionary = {}) -> void:
 func mirror_remote(event_type: String, created_unix: int, context: Dictionary, details: Dictionary) -> void:
 	if not bool(remote_config.get("enabled", false)):
 		return
-	if not OS.has_feature("web") and not bool(remote_config.get("allow_desktop_debug", false)):
+	if not web_opted_in():
 		return
 	var base_url: String = str(remote_config.get("supabase_url", "")).strip_edges().trim_suffix("/")
 	var publishable_key: String = str(remote_config.get("supabase_publishable_key", "")).strip_edges()
