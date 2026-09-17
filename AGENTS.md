@@ -42,6 +42,9 @@ This repository is the development source for **Waypoint: Cube Odyssey**.
 19. Respect `runtime/development_gate.json`. Autonomous source implementation may proceed only when the current prepared bundle is explicitly `accepted` and only for IDs listed in `selected_feature_ids`.
 20. A `hold`, missing gate, stale bundle ID, or unselected feature is not authorization. Never infer approval from beta scores, priority, repeated requests, or an existing Codex queue item.
 21. Owner acceptance authorizes staged implementation and validation only. It never authorizes automatic merge into `ai-development` or `main`.
+22. Before implementing an accepted bundle, preserve the gate's `rollback_checkpoint_sha` and record the exact implementation file set in `implementation_changed_files` using `python -m ai_lab.implementation_manifest <paths...>`.
+23. Never broaden a rollback file manifest after unrelated work has landed. Rollback may restore only the recorded implementation paths from the accepted bundle's checkpoint.
+24. A feature listed in `runtime/flagged_features.json` with `manual_clear_required=true` is blocked from autonomous reintroduction, even if later beta councils recommend it again. Only an explicit owner decision may clear/rework that flag.
 
 ## Subscription and cost governance
 
@@ -65,6 +68,18 @@ This repository is the development source for **Waypoint: Cube Odyssey**.
 - Source implementation must verify the gate before doing work.
 - Held bundles remain visible as evidence but are not implementation authority.
 - The review UI uses server-side Streamlit secrets `WAYPOINT_REVIEW_PIN` and a least-privilege `WAYPOINT_REVIEW_GITHUB_TOKEN`; never commit either value.
+
+## Rollback and feature quarantine
+
+Every accepted bundle captures a pre-implementation Git checkpoint. The implementation step must record its exact changed-file manifest before the update is considered rollback-ready.
+
+- The Streamlit Development Review page exposes **ROLL BACK accepted update** only after a checkpoint and implementation manifest exist.
+- A rollback creates a backup branch of the broken state, restores only the recorded implementation files from the pre-implementation checkpoint, and commits that restoration forward on `ai-development`.
+- Rollback never rewrites repository history and never infers a broad file set from every commit since acceptance.
+- If the implementation manifest is missing, rollback fails closed rather than risking unrelated work.
+- Rolled-back features are written to `runtime/flagged_features.json` with `manual_clear_required=true`.
+- Rollback-flagged features must be excluded from normal autonomous implementation/recommendation loops until the owner explicitly clears or revises them.
+- `runtime/rollback_request.json` is the durable rollback request/status record.
 
 ## Milestone governance
 
@@ -93,11 +108,13 @@ When working from a task under `codex_backlog/queue/`:
 2. Check `runtime/autonomy_guard.json`; stop developmental work when `chatgpt_development_allowed` is false.
 3. Read only source files relevant to the task.
 4. Check `runtime/development_governance.json` before changing a mature feature area.
-5. Implement the smallest coherent change without reopening locked optimization work.
-6. Add/update regression tests where feasible.
-7. Run listed validation.
-8. Summarize changed files, tests, risks, and intentionally unchanged behavior.
-9. If requirements conflict with this guide or cannot be validated safely, stop instead of guessing.
+5. Check `runtime/flagged_features.json`; do not implement a rollback-flagged feature unless the owner has explicitly cleared it.
+6. Before editing source for an accepted bundle, record the exact files that this implementation will own in the rollback manifest.
+7. Implement the smallest coherent change without reopening locked optimization work.
+8. Add/update regression tests where feasible.
+9. Run listed validation.
+10. Summarize changed files, tests, risks, and intentionally unchanged behavior.
+11. If requirements conflict with this guide or cannot be validated safely, stop instead of guessing.
 
 ## AI-generated development evidence
 
