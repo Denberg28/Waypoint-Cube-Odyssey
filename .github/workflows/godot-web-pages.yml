@@ -47,18 +47,23 @@ jobs:
         run: |
           set -euo pipefail
           GODOT_VERSION="4.7.2"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
           wget -q "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -O templates.tpz
           unzip -q templates.tpz
-          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
-          cp -R templates/. "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          mkdir -p "$TEMPLATE_DIR"
+          cp -R templates/. "$TEMPLATE_DIR/"
+          echo "Installed Web templates:"
+          ls -lh "$TEMPLATE_DIR"/web*.zip
+          test -f "$TEMPLATE_DIR/web_nothreads_release.zip"
 
       - name: Import project resources
         run: godot --headless --path . --import
 
       - name: Export actual Godot game for Web
         run: |
+          set -euo pipefail
           mkdir -p build/web
-          godot --headless --path . --export-release "Web" build/web/index.html
+          godot --headless --verbose --path . --export-release "Web" build/web/index.html
           test -f build/web/index.html
           test -f build/web/index.wasm
           test -f build/web/index.pck
