@@ -1,10 +1,13 @@
 name: Waypoint Gemini Beta Tester Council
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5 0,6,12,18 * * *"
+    - cron: "5 * * * *"
+
 permissions:
   contents: write
+
 jobs:
   beta-council:
     runs-on: ubuntu-latest
@@ -12,42 +15,51 @@ jobs:
       group: waypoint-beta-tester-council
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ai-development
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Check beta council budget
+
+      - name: Sync aggregate public playtest telemetry
+        continue-on-error: true
+        run: python -m ai_lab.sync_public_telemetry
+
+      - name: Check smart beta council gate
         id: budget
         env:
           BETA_TESTER_ENABLED: ${{ vars.BETA_TESTER_ENABLED || 'true' }}
           BETA_MAX_DAILY_COUNCILS: ${{ vars.BETA_MAX_DAILY_COUNCILS || '2' }}
+          BETA_FALLBACK_HOURS: "12"
+          BETA_FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
-      - name: Sync aggregate public playtest telemetry
-        if: steps.budget.outputs.run_council == 'true'
-        continue-on-error: true
-        run: python -m ai_lab.sync_public_telemetry
+
       - name: Run six Gemini Flash-Lite beta tester agents
         if: steps.budget.outputs.run_council == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.5-flash-lite
         run: python -m ai_lab.beta_testers
+
       - name: Resolve council with World Architect & Cartographer
         if: steps.budget.outputs.run_council == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.5-flash-lite
         run: python -m ai_lab.world_architect
+
       - name: Install test dependencies
         if: steps.budget.outputs.run_council == 'true'
         run: python -m pip install -r requirements-dev.txt
+
       - name: Run AI lab tests
         if: steps.budget.outputs.run_council == 'true'
         run: python -m pytest tests_ai_lab -q
+
       - name: Commit beta tester evidence and world map resolution
         if: steps.budget.outputs.run_council == 'true'
         run: |
