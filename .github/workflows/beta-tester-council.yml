@@ -26,12 +26,9 @@ jobs:
           BETA_MAX_DAILY_COUNCILS: ${{ vars.BETA_MAX_DAILY_COUNCILS || '2' }}
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
-      - name: Sync real public playtest telemetry
+      - name: Sync aggregate public playtest telemetry
         if: steps.budget.outputs.run_council == 'true'
         continue-on-error: true
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
         run: python -m ai_lab.sync_public_telemetry
       - name: Run six Gemini Flash-Lite beta tester agents
         if: steps.budget.outputs.run_council == 'true'
