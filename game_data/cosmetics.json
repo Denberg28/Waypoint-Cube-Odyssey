@@ -1,0 +1,44 @@
+[
+  {
+    "id": "trail_cap",
+    "slot": "head",
+    "name": "Trail Cap",
+    "price": 45
+  },
+  {
+    "id": "moon_hood",
+    "slot": "head",
+    "name": "Moon Hood",
+    "price": 80
+  },
+  {
+    "id": "waypoint_crown",
+    "slot": "head",
+    "name": "Waypoint Crown",
+    "price": 160
+  },
+  {
+    "id": "traveler_pack",
+    "slot": "back",
+    "name": "Traveler Pack",
+    "price": 70
+  },
+  {
+    "id": "road_cape",
+    "slot": "back",
+    "name": "Road Cape",
+    "price": 120
+  },
+  {
+    "id": "scout_goggles",
+    "slot": "face",
+    "name": "Scout Goggles",
+    "price": 60
+  },
+  {
+    "id": "wanderer_scarf",
+    "slot": "face",
+    "name": "Wanderer Scarf",
+    "price": 90
+  }
+]

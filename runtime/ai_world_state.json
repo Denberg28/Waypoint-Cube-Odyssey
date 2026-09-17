@@ -1,0 +1,42 @@
+{
+  "headline": "Lanterns Beyond the Moss",
+  "summary": "Offline validation cycle informed by the beta tester council.",
+  "featured_route": "moss",
+  "difficulty_offset": 0,
+  "development_focus": {
+    "title": "Validate beta tester feedback loop",
+    "reason": "Use synthetic tester evidence to drive one reversible experiment while preserving the locked Godot baseline."
+  },
+  "adopted_feedback_ids": [
+    "20260917T100303Z-first_time_player-feature-1"
+  ],
+  "experiment": {
+    "kind": "market_discount",
+    "route": "moss",
+    "value": 10,
+    "reason": "Offline bounded experiment selected from safe tester feedback."
+  },
+  "challenge": {
+    "title": "Trail Test",
+    "description": "Complete one route in the development lab.",
+    "target": 1
+  },
+  "reward": {
+    "coins": 10,
+    "gems": 0
+  },
+  "content_pack": {
+    "kind": "collectible_rumor",
+    "title": "Moss Token Rumor",
+    "description": "Travelers report a moss-marked token near the old stones.",
+    "route": "moss"
+  },
+  "development_backlog": [
+    {
+      "priority": "P2",
+      "title": "Review beta council evidence",
+      "reason": "Promote only repeated or test-supported feature requests into source work.",
+      "requires_code_change": false
+    }
+  ]
+}

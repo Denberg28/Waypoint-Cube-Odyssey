@@ -1,0 +1,49 @@
+name: Waypoint AI Development Cycle
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 * * * *"
+permissions:
+  contents: write
+jobs:
+  cycle:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: waypoint-ai-development
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ai-development
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check cycle budget
+        id: budget
+        env:
+          AI_CYCLE_ENABLED: ${{ vars.AI_CYCLE_ENABLED || 'true' }}
+          AI_MAX_DAILY_CYCLES: ${{ vars.AI_MAX_DAILY_CYCLES || '8' }}
+        run: |
+          python ai_lab/should_run.py && echo "run_cycle=true" >> "$GITHUB_OUTPUT" || echo "run_cycle=false" >> "$GITHUB_OUTPUT"
+      - name: Run Gemini GM + beta-informed development analysis
+        if: steps.budget.outputs.run_cycle == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.5-flash-lite
+        run: python -m ai_lab.cycle
+      - name: Install test dependencies
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: python -m pip install -r requirements-dev.txt
+      - name: Run contract tests
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: python -m pytest tests_ai_lab -q
+      - name: Commit safe generated state
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: |
+          git config user.name "waypoint-ai-gm[bot]"
+          git config user.email "waypoint-ai-gm[bot]@users.noreply.github.com"
+          git add runtime/ai_world_state.json generated_content reports
+          git diff --cached --quiet && exit 0
+          git commit -m "ai: beta-informed Waypoint development cycle"
+          git push origin ai-development

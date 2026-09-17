@@ -1,0 +1,951 @@
+extends RefCounted
+const Catalog = preload("res://scripts/catalog.gd")
+const STAGE_STEPS: int = 18
+const GENERATED_ROWS: int = STAGE_STEPS - 1
+const CELL_COUNT: int = GENERATED_ROWS * 3
+const SAVE_PATH = "user://waypoint_save_v1.json"
+var save_path: String = SAVE_PATH
+var data: Dictionary
+var notice: String = ""
+var rng = RandomNumberGenerator.new()
+var ai_difficulty_offset: int = 0
+var ai_featured_route: String = ""
+
+func _init() -> void:
+	rng.randomize()
+	reset()
+
+func reset() -> void:
+	data = {
+		"version":9,
+		"mode":"camp",
+		"hp":6,
+		"mana":3,
+		"coins":0,
+		"bag":0,
+		"stage":0,
+		"row":0,
+		"lane":0,
+		"route":"moss",
+		"environment":"sunny",
+		"cells":[],
+		"seed":1,
+		"inventory":[],
+		"equipped":{"core":"", "shell":"", "charm":""},
+		"wins":0,
+		"runs":0,
+		"skin":0,
+		"cosmetics_owned":[],
+		"cosmetics_equipped":{"skin":"", "head":"", "back":"", "face":""},
+		"camp_level":0,
+		"kills":0,
+		"turn":0,
+		"boss_hp":12,
+		"danger":0,
+		"target":-1,
+		"blessing":0,
+		"class_id":"adventurer",
+		"popup":{},
+		"potions":{"heal":1, "mana":1},
+		"streak":0,
+		"relic_charge":0,
+		"gems":0,
+		"fish_caught":0,
+		"last":"Welcome, little wanderer. Your first journey starts here."
+	}
+
+func stat(key: String) -> int:
+	var value: int = int(class_info().get(key, 0))
+	for id in data.equipped.values():
+		value += int(Catalog.item(str(id)).get(key, 0))
+	return value
+
+func max_hp() -> int:
+	return int(class_info().hp) + stat("health") + int(data.camp_level)
+
+func attack() -> int:
+	return stat("attack") + int(data.blessing)
+
+func max_mana() -> int:
+	return 5 if str(data.class_id) == "magician" else 3
+
+func equip_best() -> void:
+	if data.mode not in ["camp", "rest", "choice"]:
+		return
+	for slot in ["core", "shell", "charm"]:
+		var best_id: String = ""
+		var best_score: int = -999
+		for id in data.inventory:
+			var gear: Dictionary = Catalog.item(str(id))
+			if gear.get("slot", "") != slot:
+				continue
+			var score: int = int(gear.get("attack", 0)) * 5 + int(gear.get("health", 0)) * 4 + int(gear.get("coins", 0)) * 2 + int(gear.get("heal", 0)) * 3
+			if str(gear.get("rarity", "")) == "LEGENDARY":
+				score += 2
+			elif str(gear.get("rarity", "")) == "UNIQUE":
+				score += 4
+			if score > best_score:
+				best_score = score
+				best_id = str(id)
+		if best_id != "":
+			data.equipped[slot] = best_id
+	data.hp = mini(int(data.hp), max_hp())
+	data.last = "Best available equipment equipped."
+
+func owns_cosmetic(id: String) -> bool:
+	return id in data.cosmetics_owned
+
+func buy_cosmetic(id: String) -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Visit a safe waypoint to use the marketplace."
+		return false
+	var item: Dictionary = Catalog.cosmetic(id)
+	if item.is_empty():
+		data.last = "That cosmetic is unavailable."
+		return false
+	if owns_cosmetic(id):
+		data.last = "%s is already in your wardrobe." % str(item.name)
+		return false
+	var price: int = int(item.get("price", 0))
+	if int(data.coins) < price:
+		data.last = "You need %d more banked coins." % (price - int(data.coins))
+		return false
+	data.coins -= price
+	data.cosmetics_owned.append(id)
+	data.cosmetics_equipped[str(item.slot)] = id
+	data.last = "Purchased and equipped: %s." % str(item.name)
+	return true
+
+func equip_cosmetic(id: String) -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		return false
+	if id == "":
+		return false
+	if not owns_cosmetic(id):
+		return false
+	var item: Dictionary = Catalog.cosmetic(id)
+	if item.is_empty():
+		return false
+	data.cosmetics_equipped[str(item.slot)] = id
+	data.last = "Equipped: %s." % str(item.name)
+	return true
+
+func clear_cosmetic(slot: String) -> bool:
+	if data.mode not in ["camp", "rest", "choice"] or slot not in ["skin", "head", "back", "face"]:
+		return false
+	data.cosmetics_equipped[slot] = ""
+	data.last = "%s cosmetic cleared." % slot.capitalize()
+	return true
+
+func use_potion(kind: String) -> bool:
+	if kind not in ["heal", "mana"] or not data.potions.has(kind) or int(data.potions[kind]) <= 0:
+		return false
+	if kind == "heal":
+		if int(data.hp) >= max_hp():
+			data.last = "Hearts are already full."
+			return false
+		data.potions.heal -= 1
+		data.hp = mini(max_hp(), int(data.hp) + 3)
+		data.last = "Healing potion used: +3 hearts."
+	else:
+		if int(data.mana) >= max_mana():
+			data.last = "Mana is already full."
+			return false
+		data.potions.mana -= 1
+		data.mana = mini(max_mana(), int(data.mana) + 3)
+		data.last = "Mana potion used: +3 mana."
+	return true
+
+func class_info() -> Dictionary:
+	return Catalog.CLASSES[str(data.class_id)]
+
+func enemy_damage(amount: int) -> int:
+	return maxi(1, amount - stat("armor"))
+
+func environment_name() -> String:
+	return str(Catalog.ENVIRONMENTS.get(str(data.environment), {"name":"Sunny"}).get("name", "Sunny"))
+
+func roll_environment(route: String) -> String:
+	var roll: float = rng.randf()
+	if route == "frost":
+		return "winter" if roll < 0.76 else "cloudy"
+	if route == "fen":
+		if roll < 0.58:
+			return "rainy"
+		elif roll < 0.88:
+			return "cloudy"
+		return "sunny"
+	if route == "moss":
+		if roll < 0.34:
+			return "sunny"
+		elif roll < 0.58:
+			return "cloudy"
+		elif roll < 0.76:
+			return "rainy"
+		elif roll < 0.90:
+			return "winter"
+		return "sand"
+	if route == "forge":
+		if roll < 0.38:
+			return "sand"
+		elif roll < 0.62:
+			return "sunny"
+		elif roll < 0.82:
+			return "cloudy"
+		elif roll < 0.92:
+			return "rainy"
+		return "winter"
+	if route == "shrine":
+		if roll < 0.26:
+			return "winter"
+		elif roll < 0.50:
+			return "cloudy"
+		elif roll < 0.72:
+			return "rainy"
+		elif roll < 0.90:
+			return "sunny"
+		return "sand"
+	if roll < 0.24:
+		return "sunny"
+	elif roll < 0.44:
+		return "cloudy"
+	elif roll < 0.64:
+		return "rainy"
+	elif roll < 0.82:
+		return "sand"
+	return "winter"
+
+func enemy_profile(kind: String) -> Dictionary:
+	return Catalog.ENEMIES.get(kind, Catalog.ENEMIES.get("slime", {}))
+
+func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> String:
+	var stage_bonus: float = min(0.12, float(int(data.stage)) * 0.02)
+	var roll: float = local_rng.randf()
+	match route:
+		"frost":
+			if roll < 0.30 + stage_bonus:
+				return "ogre"
+			elif roll < 0.68:
+				return "kobold"
+			return "goblin"
+		"fen":
+			if roll < 0.16 + stage_bonus:
+				return "ogre"
+			elif roll < 0.44:
+				return "goblin"
+			elif roll < 0.70:
+				return "kobold"
+			return "slime"
+		"forge":
+			if roll < 0.08 + stage_bonus:
+				return "ogre"
+			elif roll < 0.34:
+				return "kobold"
+			return "goblin"
+		"shrine":
+			if roll < 0.16 + stage_bonus:
+				return "kobold"
+			return "slime"
+		"treasure":
+			if roll < 0.10 + stage_bonus:
+				return "ogre"
+			elif roll < 0.28:
+				return "goblin"
+			return "slime"
+		_:
+			if roll < 0.08 + stage_bonus:
+				return "goblin"
+			return "slime"
+
+func begin(class_id: String = "") -> void:
+	if class_id in Catalog.CLASSES:
+		data.class_id = class_id
+	data.popup = {}
+	data.row = 0
+	data.lane = 0
+	data.cells = []
+	data.runs += 1
+	data.hp = max_hp()
+	data.mana = max_mana()
+	data.stage = 0
+	data.bag = 0
+	data.blessing = 0
+	data.streak = 0
+	data.mode = "choice"
+	data.last = "Choose a route. Every road has something to offer."
+
+func make_room(route: String) -> void:
+	data.route = route
+	data.environment = roll_environment(route)
+	data.mode = "travel"
+	data.row = 0
+	data.lane = 0
+	data.turn = 0
+	data.seed = rng.randi_range(1, 9999999)
+	var local_rng = RandomNumberGenerator.new()
+	local_rng.seed = int(data.seed)
+	data.cells = []
+	var route_difficulty: int = clampi(int(Catalog.ROUTES[route].get("difficulty", 0)) + ai_difficulty_offset, 0, 3)
+	for row in range(1, STAGE_STEPS):
+		var safe_lane: int = local_rng.randi_range(-1, 1)
+		var breather: bool = row in [1, 6, 12, 17]
+		for lane in range(-1, 2):
+			var kind: String = "empty"
+			var roll: float = local_rng.randf()
+			if breather:
+				kind = "coin" if lane == safe_lane or roll < 0.28 else "empty"
+			elif lane == safe_lane:
+				kind = "coin" if roll < 0.58 else "empty"
+			else:
+				var spike_limit: float = 0.14 + float(route_difficulty) * 0.025
+				var enemy_limit: float = (0.52 if route == "forge" else 0.39) + float(route_difficulty) * 0.055
+				if roll < spike_limit:
+					kind = "spike"
+				elif roll < enemy_limit:
+					kind = enemy_kind_for_route(route, local_rng)
+				elif roll < 0.69:
+					kind = "coin"
+				elif roll < 0.75 and route in ["frost", "fen"]:
+					kind = "gem"
+				elif roll < 0.82 and route == "moss":
+					kind = "heal"
+			data.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
+	# Repair a guaranteed hazard-free corridor. Special encounters are placed away from it.
+	var corridor_lanes: Dictionary = {}
+	var corridor: int = 0
+	for row in range(1, STAGE_STEPS):
+		corridor = clampi(corridor + local_rng.randi_range(-1, 1), -1, 1)
+		corridor_lanes[row] = corridor
+		for cell in data.cells:
+			if int(cell.row) == row and int(cell.lane) == corridor:
+				cell.kind = "coin" if row % 2 == 0 else "empty"
+	# Optional roadside discoveries: players can stay on the safe corridor or detour.
+	place_special_cell(6, int(corridor_lanes[6]), "campfire", local_rng)
+	place_special_cell(12, int(corridor_lanes[12]), "fishing", local_rng)
+	if local_rng.randf() < (0.78 if route in ["frost", "fen"] else 0.48):
+		place_special_cell(15, int(corridor_lanes[15]), "gear_cache", local_rng)
+	if route == "fen":
+		place_special_cell(9, int(corridor_lanes[9]), "fishing", local_rng)
+	data.last = "The road reveals only a few steps ahead. Optional fires, fishing pools, and caches reward exploration."
+
+func place_special_cell(row: int, safe_lane: int, kind: String, local_rng: RandomNumberGenerator) -> void:
+	var candidates: Array[int] = []
+	for lane in range(-1, 2):
+		if lane != safe_lane:
+			candidates.append(lane)
+	if candidates.is_empty():
+		return
+	var chosen_lane: int = candidates[local_rng.randi_range(0, candidates.size() - 1)]
+	var cell: Dictionary = cell_at(row, chosen_lane)
+	if not cell.is_empty():
+		cell.kind = kind
+
+func cell_at(row: int, lane: int) -> Dictionary:
+	for cell in data.cells:
+		if int(cell.row) == row and int(cell.lane) == lane:
+			return cell
+	return {}
+
+func enemy_active(cell: Dictionary) -> bool:
+	return (int(data.turn) + int(cell.row) + int(cell.lane) + 3) % 2 == 0
+
+func danger_level() -> int:
+	if str(data.mode) == "boss":
+		return 5
+	if str(data.mode) not in ["travel", "campfire", "fishing"]:
+		return 1
+	var level: int = 1 + int(Catalog.ROUTES.get(str(data.route), {}).get("difficulty", 0)) + ai_difficulty_offset
+	if int(data.row) >= 6:
+		level += 1
+	if int(data.row) >= 12:
+		level += 1
+	if int(data.stage) >= 3:
+		level += 1
+	return clampi(level, 1, 5)
+
+func enemy_elite(cell: Dictionary) -> bool:
+	if cell.is_empty() or str(cell.get("kind", "")) not in ["slime", "goblin", "kobold", "ogre"]:
+		return false
+	if int(cell.row) < 5:
+		return false
+	var chance: int = 8 + int(data.stage) * 2 + danger_level() * 3
+	if str(data.route) == "forge":
+		chance += 7
+	elif str(data.route) in ["frost", "fen"]:
+		chance += 11
+	chance = mini(chance, 38)
+	var signature: int = absi(int(data.seed) + int(cell.row) * 37 + int(cell.lane) * 101 + int(data.stage) * 19) % 100
+	return signature < chance
+
+func add_relic_charge(amount: int) -> void:
+	data.relic_charge = clampi(int(data.relic_charge) + amount, 0, 100)
+
+func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
+	var profile: Dictionary = enemy_profile(kind)
+	var toughness: int = int(profile.toughness) + (1 if elite else 0)
+	var damage_value: int = int(profile.damage) + (1 if elite else 0)
+	var reward: int = int(profile.reward) + (2 if elite else 0)
+	var consolation: int = int(profile.consolation) + (1 if elite else 0)
+	var enemy_name: String = ("Elite " if elite else "") + str(profile.name)
+	var result: String = ""
+	if active:
+		var damage: int = enemy_damage(damage_value)
+		data.hp -= damage
+		data.streak = 0
+		add_relic_charge(4 if elite else 2)
+		result = "%s struck first! Lost %d hearts." % [enemy_name, damage]
+	elif attack() < toughness:
+		data.hp -= 1
+		data.bag += consolation
+		data.kills += 1
+		data.streak = 0
+		add_relic_charge(8 if elite else 4)
+		result = "Hard fight. %s defeated! +%d coins, but lost 1 heart." % [enemy_name, consolation]
+	else:
+		data.kills += 1
+		data.streak += 1
+		var streak_bonus: int = 2 if int(data.streak) > 0 and int(data.streak) % 3 == 0 else 0
+		data.bag += reward + streak_bonus
+		add_relic_charge((18 if elite else 9) + mini(int(data.streak), 5))
+		result = "%s defeated! +%d coins." % [enemy_name, reward + streak_bonus]
+		if elite and rng.randf() < 0.22:
+			data.gems += 1
+			result += " Found 1 gem!"
+		if streak_bonus > 0:
+			result += " Streak bonus!"
+	if int(data.relic_charge) >= 100:
+		result += " Relic meter full — next gear is Rare or better."
+	return result
+
+func jumpable_cell(cell: Dictionary) -> bool:
+	if cell.is_empty() or bool(cell.get("cleared", false)):
+		return false
+	return str(cell.get("kind", "")) in ["spike"]
+
+func jump_distance(direction: int = 0) -> int:
+	if data.mode != "travel":
+		return 1
+	var lane: int = clampi(int(data.lane) + direction, -1, 1)
+	var obstacle_row: int = int(data.row) + 1
+	if obstacle_row >= STAGE_STEPS:
+		return 1
+	var obstacle: Dictionary = cell_at(obstacle_row, lane)
+	if jumpable_cell(obstacle) and int(data.row) + 2 <= STAGE_STEPS:
+		return 2
+	return 1
+
+func jump_hop(direction: int = 0) -> String:
+	if data.mode != "travel":
+		return ""
+	var distance: int = jump_distance(direction)
+	if distance <= 1:
+		return hop(direction)
+	data.lane = clampi(int(data.lane) + direction, -1, 1)
+	var obstacle_row: int = int(data.row) + 1
+	var obstacle: Dictionary = cell_at(obstacle_row, int(data.lane))
+	var obstacle_name: String = "obstacle"
+	if not obstacle.is_empty():
+		if str(obstacle.kind) == "spike":
+			obstacle_name = "thorns"
+		obstacle.cleared = true
+	data.row += 2
+	var cell: Dictionary = cell_at(int(data.row), int(data.lane))
+	var landing_result: String = ""
+	if not cell.is_empty() and not bool(cell.cleared):
+		match str(cell.kind):
+			"coin":
+				var count: int = 2 + stat("coins") + (2 if data.route == "treasure" else 0)
+				data.bag += count
+				if rng.randf() < 0.12:
+					data.potions.mana += 1
+					landing_result = "+%d expedition coins + mana potion" % count
+				else:
+					landing_result = "+%d expedition coins" % count
+			"gem":
+				var amount: int = 2 if data.route == "frost" and rng.randf() < 0.25 else 1
+				data.gems += amount
+				add_relic_charge(10 * amount)
+				landing_result = "Found %d gem%s! Relic energy rises." % [amount, "" if amount == 1 else "s"]
+			"heal":
+				data.potions.heal += 1
+				landing_result = "Found a healing potion."
+			"spike":
+				var thorn_damage: int = 2 if danger_level() >= 4 else 1
+				data.hp -= thorn_damage
+				data.streak = 0
+				landing_result = "Landed in thorns! Lost %d heart%s." % [thorn_damage, "" if thorn_damage == 1 else "s"]
+			"campfire":
+				data.mode = "campfire"
+				landing_result = "A roadside campfire crackles beside the trail."
+			"fishing":
+				data.mode = "fishing"
+				landing_result = "A quiet pool ripples beside the road."
+			"gear_cache":
+				var cache_loot: String = award_gear(false, true, "ROADSIDE GEAR CACHE")
+				if rng.randf() < 0.30:
+					data.gems += 1
+					cache_loot += " + 1 gem"
+				landing_result = "Hidden cache: " + cache_loot
+			"slime", "goblin", "kobold", "ogre":
+				landing_result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
+		cell.cleared = true
+	var result: String = "Jumped cleanly over the %s!" % obstacle_name
+	if landing_result != "":
+		result += " " + landing_result
+	data.turn += 1
+	data.last = result
+	if data.hp <= 0:
+		defeat()
+	elif data.row >= STAGE_STEPS and data.mode == "travel":
+		finish_room()
+	return str(data.last)
+
+func hop(direction: int) -> String:
+	if data.mode != "travel":
+		return ""
+	data.lane = clampi(int(data.lane) + direction, -1, 1)
+	data.row += 1
+	var cell: Dictionary = cell_at(int(data.row), int(data.lane))
+	var result: String = "A little further along the road."
+	if not cell.is_empty() and not bool(cell.cleared):
+		match str(cell.kind):
+			"coin":
+				var count: int = 2 + stat("coins") + (2 if data.route == "treasure" else 0)
+				data.bag += count
+				if rng.randf() < 0.12:
+					data.potions.mana += 1
+					result = "+%d expedition coins + mana potion" % count
+				else:
+					result = "+%d expedition coins" % count
+			"gem":
+				var amount: int = 2 if data.route == "frost" and rng.randf() < 0.25 else 1
+				data.gems += amount
+				add_relic_charge(10 * amount)
+				result = "Found %d gem%s! Relic energy rises." % [amount, "" if amount == 1 else "s"]
+			"heal":
+				data.potions.heal += 1
+				result = "Found a healing potion."
+			"spike":
+				var thorn_damage: int = 2 if danger_level() >= 4 else 1
+				data.hp -= thorn_damage
+				data.streak = 0
+				result = "Thorns! Lost %d heart%s. Look for the clear tiles." % [thorn_damage, "" if thorn_damage == 1 else "s"]
+			"campfire":
+				data.mode = "campfire"
+				result = "A roadside campfire crackles beside the trail. No rush — listen and look around."
+			"fishing":
+				data.mode = "fishing"
+				result = "A quiet pool ripples beside the road. Time one cast for a chance at fish, gems, or gear."
+			"gear_cache":
+				var cache_loot: String = award_gear(false, true, "ROADSIDE GEAR CACHE")
+				if rng.randf() < 0.30:
+					data.gems += 1
+					cache_loot += " + 1 gem"
+				result = "Hidden cache: " + cache_loot
+			"slime", "goblin", "kobold", "ogre":
+				result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
+		cell.cleared = true
+	data.turn += 1
+	data.last = result
+	if data.hp <= 0:
+		defeat()
+	elif data.row >= STAGE_STEPS and data.mode == "travel":
+		finish_room()
+	return str(data.last)
+
+func leave_campfire() -> void:
+	if data.mode == "campfire":
+		data.mode = "travel"
+		data.last = "The embers fade behind you. The road continues."
+
+func leave_fishing() -> void:
+	if data.mode == "fishing":
+		data.mode = "travel"
+		data.last = "You leave the pool undisturbed and return to the road."
+
+func resolve_fishing(accuracy: float) -> String:
+	if data.mode != "fishing":
+		return ""
+	data.mode = "travel"
+	var quality: float = clampf(accuracy, 0.0, 1.0)
+	if quality <= 0.0:
+		data.last = "The ripple slipped past the hook. Nothing caught this time."
+		return str(data.last)
+	data.fish_caught += 1
+	var roll: float = rng.randf()
+	var gear_cutoff: float = 0.12 + quality * 0.12
+	var gem_cutoff: float = gear_cutoff + 0.22 + quality * 0.12
+	if roll < gear_cutoff:
+		var gear_text: String = award_gear(quality >= 0.88, true, "FISHING TREASURE")
+		data.last = "The line goes heavy — treasure! " + gear_text
+	elif roll < gem_cutoff:
+		var gems_found: int = 2 if quality >= 0.82 else 1
+		data.gems += gems_found
+		add_relic_charge(12 * gems_found)
+		data.last = "A river gem flashes beneath the water. +%d gem%s." % [gems_found, "" if gems_found == 1 else "s"]
+	else:
+		var fish_value: int = 4 + int(round(quality * 7.0))
+		data.bag += fish_value
+		if quality >= 0.90 and rng.randf() < 0.35:
+			data.potions.heal += 1
+			data.last = "Perfect catch! Rare fish worth %d coins + healing potion." % fish_value
+		else:
+			data.last = "Caught a trail fish worth %d expedition coins." % fish_value
+	return str(data.last)
+
+func register_special_popup(chosen: Dictionary) -> void:
+	var rarity: String = str(chosen.get("rarity", "COMMON"))
+	if rarity not in ["LEGENDARY", "UNIQUE"]:
+		return
+	if not data.popup.is_empty():
+		return
+	data.popup = {
+		"tag": "%s FIND" % rarity,
+		"heading": str(chosen.name),
+		"body": "%s\nThis item is permanent and can be equipped at a rest area." % str(chosen.text)
+	}
+
+func award_gear(force_rare: bool = false, popup_all: bool = false, popup_tag: String = "GEAR FIND") -> String:
+	var meter_charged: bool = int(data.relic_charge) >= 100
+	var charged: bool = force_rare or meter_charged
+	var roll: float = rng.randf()
+	var rarity: String = "COMMON"
+	if charged:
+		if meter_charged:
+			data.relic_charge = maxi(0, int(data.relic_charge) - 100)
+		if roll < 0.04:
+			rarity = "UNIQUE"
+		elif roll < 0.18:
+			rarity = "LEGENDARY"
+		elif roll < 0.46:
+			rarity = "EPIC"
+		else:
+			rarity = "RARE"
+	else:
+		if roll < 0.015:
+			rarity = "UNIQUE"
+		elif roll < 0.055:
+			rarity = "LEGENDARY"
+		elif roll < 0.14:
+			rarity = "EPIC"
+		elif roll < 0.34:
+			rarity = "RARE"
+		elif roll < 0.66:
+			rarity = "UNCOMMON"
+	var candidates: Array = []
+	for gear in Catalog.GEAR:
+		if gear.rarity == rarity:
+			candidates.append(gear)
+	if candidates.is_empty():
+		for gear in Catalog.GEAR:
+			if gear.rarity == "COMMON":
+				candidates.append(gear)
+	var unowned: Array = []
+	for gear in candidates:
+		if gear.id not in data.inventory:
+			unowned.append(gear)
+	var pool: Array = unowned if not unowned.is_empty() else candidates
+	var chosen: Dictionary = pool[rng.randi_range(0, pool.size() - 1)]
+	if chosen.id in data.inventory:
+		var duplicate_reward: int = 8
+		if chosen.rarity == "LEGENDARY":
+			duplicate_reward = 12
+		elif chosen.rarity == "UNIQUE":
+			duplicate_reward = 16
+		data.coins += duplicate_reward
+		add_relic_charge(15)
+		return "%s duplicate → %d banked coins + relic charge" % [chosen.name, duplicate_reward]
+	data.inventory.append(chosen.id)
+	if popup_all and data.popup.is_empty():
+		data.popup = {
+			"tag": popup_tag,
+			"heading": "%s  [%s]" % [str(chosen.name), str(chosen.rarity)],
+			"body": "%s\nAdded permanently to your collection." % str(chosen.text)
+		}
+	else:
+		register_special_popup(chosen)
+	return "NEW • %s [%s]" % [chosen.name, chosen.rarity]
+
+func forge_with_gems() -> String:
+	if data.mode not in ["camp", "rest", "choice"]:
+		return "Gem forging is only available at a safe waypoint."
+	if int(data.gems) < 6:
+		data.last = "You need %d more gems for a Rare+ forge." % (6 - int(data.gems))
+		return str(data.last)
+	data.gems -= 6
+	var saved_relic: int = int(data.relic_charge)
+	var result: String = award_gear(true, true, "GEM FORGE")
+	data.relic_charge = saved_relic
+	data.last = "Gem forge: " + result
+	return str(data.last)
+
+func finish_room() -> void:
+	data.stage += 1
+	data.hp = mini(max_hp(), int(data.hp) + stat("heal"))
+	var loot: String = award_gear()
+	if data.route == "forge":
+		loot += "\n" + award_gear()
+	elif data.route == "frost":
+		data.gems += 1
+		loot += "\n+1 guaranteed frost gem"
+		if rng.randf() < 0.35:
+			loot += "\n" + award_gear()
+	elif data.route == "fen":
+		add_relic_charge(18)
+		loot += "\n+18 relic charge"
+	data.last = "Found: " + loot + "\nGear is permanent. Equip it at a rest area."
+	data.mode = "reward"
+
+func after_reward() -> void:
+	if data.route == "shrine":
+		data.mode = "shrine"
+	elif data.route == "treasure":
+		data.mode = "traveler"
+	else:
+		next_stage()
+
+func next_stage() -> void:
+	if int(data.stage) == 3:
+		bank()
+		data.hp = max_hp()
+		data.mana = max_mana()
+		data.mode = "rest"
+	elif int(data.stage) >= 6:
+		data.mode = "boss_intro"
+	else:
+		data.mode = "choice"
+
+func bank() -> void:
+	data.coins += int(data.bag)
+	data.bag = 0
+
+func start_boss() -> void:
+	data.mode = "boss"
+	data.row = 0
+	data.lane = 0
+	data.turn = 0
+	data.boss_hp = 12
+	data.danger = 0
+	data.target = -1
+	data.last = "Avoid the orange lane. Land on the mint rune to strike."
+
+func boss_hop(direction: int) -> String:
+	if data.mode != "boss":
+		return ""
+	data.lane = clampi(int(data.lane) + direction, -1, 1)
+	if int(data.lane) == int(data.danger):
+		var damage: int = enemy_damage(2)
+		data.hp -= damage
+		data.streak = 0
+		data.last = "Root slam! Lost %d hearts." % damage
+	elif int(data.lane) == int(data.target):
+		data.boss_hp -= attack()
+		data.streak += 1
+		add_relic_charge(8)
+		data.last = "Rune stomp! %d damage to the guardian." % attack()
+	else:
+		data.last = "Safe landing. Reach the mint rune to attack."
+	data.turn += 1
+	if data.hp <= 0:
+		defeat()
+	elif data.boss_hp <= 0:
+		data.wins += 1
+		add_relic_charge(35)
+		data.bag += 30
+		bank()
+		data.mode = "victory"
+		data.last = "The forest wakes. +30 coins, all expedition coins banked.\nFound: " + award_gear()
+	else:
+		# Always leave at least one reachable safe landing.
+		data.danger = (int(data.turn) % 3) - 1
+		var choices: Array = []
+		for lane in range(-1, 2):
+			if lane != int(data.danger) and absi(lane - int(data.lane)) <= 1:
+				choices.append(lane)
+		data.target = choices[rng.randi_range(0, choices.size() - 1)]
+	return str(data.last)
+
+func defeat() -> void:
+	data.popup = {}
+	data.hp = 0
+	data.last = "The lantern brought you home. Lost %d unbanked coins.\nYour equipment, cosmetics, and banked coins are safe." % int(data.bag)
+	data.bag = 0
+	data.mode = "defeat"
+
+func return_camp() -> void:
+	data.popup = {}
+	data.mode = "camp"
+	data.hp = max_hp()
+	data.mana = max_mana()
+	data.blessing = 0
+	data.streak = 0
+	data.row = 0
+	data.lane = 0
+	data.last = "Rest a while. Another path is waiting."
+
+func equip(id: String) -> void:
+	if data.mode not in ["camp", "rest", "choice"] or id not in data.inventory:
+		return
+	var gear: Dictionary = Catalog.item(id)
+	data.equipped[gear.slot] = id
+	data.hp = mini(int(data.hp), max_hp())
+
+func save_game() -> bool:
+	var temp: String = save_path + ".tmp"
+	var f = FileAccess.open(temp, FileAccess.WRITE)
+	if f == null:
+		notice = "Save failed. Check available storage."
+		return false
+	f.store_string(JSON.stringify(data, "\t"))
+	f.flush()
+	f.close()
+	if FileAccess.file_exists(save_path):
+		DirAccess.copy_absolute(save_path, save_path + ".bak")
+	var err: int = DirAccess.rename_absolute(temp, save_path)
+	if err != OK:
+		notice = "Save failed (%d). Your previous save is preserved." % err
+		return false
+	notice = "Progress saved"
+	return true
+
+func valid_save(value: Variant) -> bool:
+	if not value is Dictionary:
+		return false
+	if value.get("version") not in [9, 9.0]:
+		return false
+	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
+		return false
+	if str(value.get("environment", "sunny")) not in Catalog.ENVIRONMENTS:
+		return false
+	if not value.popup.is_empty():
+		for key in ["heading", "body", "tag"]:
+			if not value.popup.get(key) is String:
+				return false
+	for key in data:
+		if not value.has(key):
+			return false
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
+		if not (value[key] is int or value[key] is float):
+			return false
+	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0:
+		return false
+	if not value.inventory is Array or not value.cells is Array or not value.equipped is Dictionary or not value.potions is Dictionary:
+		return false
+	if not value.cosmetics_owned is Array or not value.cosmetics_equipped is Dictionary:
+		return false
+	for slot in ["skin", "head", "back", "face"]:
+		if not value.cosmetics_equipped.has(slot):
+			return false
+		var cosmetic_id: String = str(value.cosmetics_equipped[slot])
+		if cosmetic_id != "":
+			var cosmetic_item: Dictionary = Catalog.cosmetic(cosmetic_id)
+			if cosmetic_item.is_empty() or str(cosmetic_item.get("slot", "")) != slot or cosmetic_id not in value.cosmetics_owned:
+				return false
+	for cosmetic_id in value.cosmetics_owned:
+		if Catalog.cosmetic(str(cosmetic_id)).is_empty():
+			return false
+	if not value.potions.has("heal") or not value.potions.has("mana"):
+		return false
+	if not (value.potions.heal is int or value.potions.heal is float) or not (value.potions.mana is int or value.potions.mana is float):
+		return false
+	if value.mode not in ["camp", "choice", "travel", "campfire", "fishing", "reward", "rest", "shrine", "traveler", "boss_intro", "boss", "victory", "defeat"]:
+		return false
+	if value.route not in Catalog.ROUTES or not value.last is String:
+		return false
+	if int(value.row) < 0 or int(value.row) > STAGE_STEPS or absi(int(value.lane)) > 1:
+		return false
+	if int(value.stage) < 0 or int(value.stage) > 6 or int(value.camp_level) < 0 or int(value.camp_level) > 3:
+		return false
+	if int(value.skin) < 0 or int(value.skin) >= Catalog.SKINS.size():
+		return false
+	for id in value.inventory:
+		if Catalog.item(str(id)).is_empty():
+			return false
+	for slot in ["core", "shell", "charm"]:
+		if not value.equipped.has(slot):
+			return false
+		var id: String = str(value.equipped[slot])
+		if id != "" and (id not in value.inventory or Catalog.item(id).get("slot", "") != slot):
+			return false
+	if value.mode in ["travel", "campfire", "fishing"] and value.cells.size() != CELL_COUNT:
+		return false
+	var seen: Dictionary = {}
+	for cell in value.cells:
+		if not cell is Dictionary:
+			return false
+		for key in ["row", "lane", "kind", "cleared"]:
+			if not cell.has(key):
+				return false
+		if not (cell.row is float or cell.row is int) or not (cell.lane is float or cell.lane is int) or not cell.cleared is bool:
+			return false
+		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "slime", "goblin", "kobold", "ogre"]:
+			return false
+		var cell_key: String = "%d:%d" % [int(cell.row), int(cell.lane)]
+		if seen.has(cell_key):
+			return false
+		seen[cell_key] = true
+	return true
+
+func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
+	var migrated: Dictionary = parsed.duplicate(true)
+	var old_version: int = int(migrated.get("version", 1))
+	if old_version <= 1:
+		migrated.class_id = "adventurer"
+		migrated.popup = {}
+	if old_version <= 2:
+		migrated.mana = 3
+		migrated.potions = {"heal":1, "mana":1}
+	if not migrated.has("popup") or not migrated.popup is Dictionary:
+		migrated.popup = {}
+	if not migrated.has("mana"):
+		migrated.mana = 3
+	if not migrated.has("potions") or not migrated.potions is Dictionary:
+		migrated.potions = {"heal":1, "mana":1}
+	if not migrated.has("streak"):
+		migrated.streak = 0
+	if not migrated.has("relic_charge"):
+		migrated.relic_charge = 0
+	if not migrated.has("gems"):
+		migrated.gems = 0
+	if not migrated.has("fish_caught"):
+		migrated.fish_caught = 0
+	if not migrated.has("cosmetics_owned") or not migrated.cosmetics_owned is Array:
+		migrated.cosmetics_owned = []
+	if not migrated.has("cosmetics_equipped") or not migrated.cosmetics_equipped is Dictionary:
+		migrated.cosmetics_equipped = {"skin":"", "head":"", "back":"", "face":""}
+	else:
+		for slot in ["skin", "head", "back", "face"]:
+			if not migrated.cosmetics_equipped.has(slot):
+				migrated.cosmetics_equipped[slot] = ""
+	if not migrated.has("environment") or str(migrated.environment) not in Catalog.ENVIRONMENTS:
+		migrated.environment = roll_environment(str(migrated.get("route", "moss")))
+	# v0.4 lengthens a road from 10 to 18 hop decisions. Existing live rooms are extended with a gentle, readable finish.
+	if str(migrated.get("mode", "")) == "travel" and migrated.get("cells") is Array and migrated.cells.size() == 27:
+		for row in range(10, STAGE_STEPS):
+			for lane in range(-1, 2):
+				var kind: String = "empty"
+				if lane == int(migrated.get("lane", 0)) and row % 2 == 0:
+					kind = "coin"
+				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
+					kind = "coin"
+				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
+	migrated.version = 9
+	return migrated
+
+func load_game() -> bool:
+	for path in [save_path, save_path + ".bak"]:
+		if not FileAccess.file_exists(path):
+			continue
+		var parser = JSON.new()
+		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
+			continue
+		var parsed = parser.data
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0]:
+			parsed = migrate_legacy_save(parsed)
+		if valid_save(parsed):
+			data = parsed
+			notice = "Backup save recovered" if path.ends_with(".bak") else "Welcome back"
+			return true
+	if FileAccess.file_exists(save_path):
+		notice = "Save could not be read. A new journey is available."
+	return false

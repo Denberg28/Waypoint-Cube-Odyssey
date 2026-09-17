@@ -1,0 +1,19 @@
+{
+  "allowed_content_types": [
+    "world_event",
+    "challenge",
+    "collectible_rumor",
+    "market_special",
+    "route_modifier"
+  ],
+  "max_coin_reward": 25,
+  "max_gem_reward": 2,
+  "max_difficulty_offset": 1,
+  "forbidden": [
+    "source_edit",
+    "save_delete",
+    "currency_spend",
+    "gear_delete",
+    "permanent_balance_change"
+  ]
+}

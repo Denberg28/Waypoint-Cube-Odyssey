@@ -1,0 +1,26 @@
+{
+  "session_summary": "Offline synthetic review by Explorer & Collector. The trace was completed without source changes.",
+  "fun_score": 3,
+  "clarity_score": 3,
+  "friction_score": 2,
+  "observations": [],
+  "bugs": [],
+  "feature_requests": [
+    {
+      "title": "Route-specific collectible rumor",
+      "category": "exploration",
+      "player_value": "Adds a reason to revisit routes.",
+      "rationale": "The trace has route identity but few explicit collection goals.",
+      "safe_content_only": true,
+      "desired_outcome": "Feature a rotating collectible rumor tied to one route.",
+      "id": "20260917T100303Z-explorer_collector-feature-1"
+    }
+  ],
+  "keep": [
+    "Keep route preview before starting an adventure.",
+    "Keep Jump as a distinct obstacle-clearing action."
+  ],
+  "tester_id": "explorer_collector",
+  "tester_name": "Explorer & Collector",
+  "focus": "route variety, discoveries, collectibles, cosmetics, reasons to revisit routes"
+}

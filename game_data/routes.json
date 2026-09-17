@@ -1,0 +1,74 @@
+{
+  "moss": {
+    "name": "Moss Trail",
+    "difficulty": 1,
+    "theme": "verdant ruins",
+    "collectibles": [
+      "Moss Token",
+      "Trail Coin"
+    ],
+    "hazards": [
+      "thorns"
+    ]
+  },
+  "forge": {
+    "name": "Ember Forge",
+    "difficulty": 2,
+    "theme": "ash and iron",
+    "collectibles": [
+      "Ember Shard",
+      "Forge Coin"
+    ],
+    "hazards": [
+      "hot plates"
+    ]
+  },
+  "shrine": {
+    "name": "Moon Shrine",
+    "difficulty": 2,
+    "theme": "moonlit stones",
+    "collectibles": [
+      "Moon Sigil",
+      "Relic Dust"
+    ],
+    "hazards": [
+      "spirit wisps"
+    ]
+  },
+  "treasure": {
+    "name": "Treasure Run",
+    "difficulty": 2,
+    "theme": "merchant road",
+    "collectibles": [
+      "Gem Cache",
+      "Ancient Coin"
+    ],
+    "hazards": [
+      "bandit traps"
+    ]
+  },
+  "frost": {
+    "name": "Frostfang Pass",
+    "difficulty": 3,
+    "theme": "snowbound ridge",
+    "collectibles": [
+      "Frost Crystal",
+      "Ice Coin"
+    ],
+    "hazards": [
+      "ice spikes"
+    ]
+  },
+  "fen": {
+    "name": "Whispering Fen",
+    "difficulty": 3,
+    "theme": "misty marsh",
+    "collectibles": [
+      "Mooncap",
+      "Fen Pearl"
+    ],
+    "hazards": [
+      "bog thorns"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "session_summary": "Offline synthetic review by Accessibility & UI Tester. The trace was completed without source changes.",
+  "fun_score": 3,
+  "clarity_score": 3,
+  "friction_score": 2,
+  "observations": [],
+  "bugs": [],
+  "feature_requests": [
+    {
+      "title": "Persistent control legend",
+      "category": "accessibility",
+      "player_value": "Improves control discoverability.",
+      "rationale": "The development lab uses several movement buttons and state-dependent actions.",
+      "safe_content_only": false,
+      "desired_outcome": "Keep a compact Walk / Jump legend visible during an active route.",
+      "id": "20260917T100303Z-accessibility_ux-feature-1"
+    }
+  ],
+  "keep": [
+    "Keep route preview before starting an adventure.",
+    "Keep Jump as a distinct obstacle-clearing action."
+  ],
+  "tester_id": "accessibility_ux",
+  "tester_name": "Accessibility & UI Tester",
+  "focus": "readability, button clarity, cognitive load, feedback, keyboard/mouse usability"
+}

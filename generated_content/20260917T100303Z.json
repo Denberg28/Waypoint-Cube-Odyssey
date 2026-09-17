@@ -1,0 +1,17 @@
+{
+  "id": "ai-20260917T100303Z",
+  "created_utc": "20260917T100303Z",
+  "kind": "collectible_rumor",
+  "title": "Moss Token Rumor",
+  "description": "Travelers report a moss-marked token near the old stones.",
+  "route": "moss",
+  "experiment": {
+    "kind": "market_discount",
+    "route": "moss",
+    "value": 10,
+    "reason": "Offline bounded experiment selected from safe tester feedback."
+  },
+  "adopted_feedback_ids": [
+    "20260917T100303Z-first_time_player-feature-1"
+  ]
+}

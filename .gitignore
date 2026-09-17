@@ -1,0 +1,8 @@
+.godot/
+__pycache__/
+*.pyc
+.venv/
+.env
+.streamlit/secrets.toml
+runtime/private_*
+ai_gamemaster/__pycache__/

@@ -1,0 +1,346 @@
+{
+  "schema": 1,
+  "council_id": "beta-20260917T100303Z",
+  "created_utc": "20260917T100303Z",
+  "tester_count": 6,
+  "scores": {
+    "fun_average": 3.0,
+    "clarity_average": 3.17,
+    "friction_average": 2.0
+  },
+  "category_signal": {
+    "onboarding": 2,
+    "stability": 2,
+    "economy": 1,
+    "exploration": 1,
+    "combat": 1,
+    "marketplace": 1,
+    "accessibility": 1
+  },
+  "high_severity_bugs": [],
+  "safe_content_feature_requests": [
+    {
+      "title": "First-run movement hint",
+      "category": "onboarding",
+      "player_value": "Reduces early uncertainty.",
+      "rationale": "The core distinction between walking and obstacle jumping is important to learn immediately.",
+      "safe_content_only": true,
+      "desired_outcome": "Show a brief non-blocking hint on the first route.",
+      "id": "20260917T100303Z-first_time_player-feature-1",
+      "tester_id": "first_time_player",
+      "tester_name": "First-Time Player"
+    },
+    {
+      "title": "Route-specific collectible rumor",
+      "category": "exploration",
+      "player_value": "Adds a reason to revisit routes.",
+      "rationale": "The trace has route identity but few explicit collection goals.",
+      "safe_content_only": true,
+      "desired_outcome": "Feature a rotating collectible rumor tied to one route.",
+      "id": "20260917T100303Z-explorer_collector-feature-1",
+      "tester_id": "explorer_collector",
+      "tester_name": "Explorer & Collector"
+    },
+    {
+      "title": "Temporary elite hunt challenge",
+      "category": "combat",
+      "player_value": "Creates a mastery target without permanent balance changes.",
+      "rationale": "Combat rewards are readable but can benefit from a short-term goal.",
+      "safe_content_only": true,
+      "desired_outcome": "Offer a bounded elite-focused Night Watch challenge.",
+      "id": "20260917T100303Z-combat_challenger-feature-1",
+      "tester_id": "combat_challenger",
+      "tester_name": "Combat Challenger"
+    },
+    {
+      "title": "Rotating marketplace discount",
+      "category": "marketplace",
+      "player_value": "Makes accumulated coins feel purposeful.",
+      "rationale": "A temporary discount creates spending decisions while preserving baseline prices.",
+      "safe_content_only": true,
+      "desired_outcome": "Discount cosmetics modestly for one AI world cycle.",
+      "id": "20260917T100303Z-economy_optimizer-feature-1",
+      "tester_id": "economy_optimizer",
+      "tester_name": "Economy Optimizer"
+    }
+  ],
+  "all_feature_requests": [
+    {
+      "title": "First-run movement hint",
+      "category": "onboarding",
+      "player_value": "Reduces early uncertainty.",
+      "rationale": "The core distinction between walking and obstacle jumping is important to learn immediately.",
+      "safe_content_only": true,
+      "desired_outcome": "Show a brief non-blocking hint on the first route.",
+      "id": "20260917T100303Z-first_time_player-feature-1",
+      "tester_id": "first_time_player",
+      "tester_name": "First-Time Player"
+    },
+    {
+      "title": "Route-specific collectible rumor",
+      "category": "exploration",
+      "player_value": "Adds a reason to revisit routes.",
+      "rationale": "The trace has route identity but few explicit collection goals.",
+      "safe_content_only": true,
+      "desired_outcome": "Feature a rotating collectible rumor tied to one route.",
+      "id": "20260917T100303Z-explorer_collector-feature-1",
+      "tester_id": "explorer_collector",
+      "tester_name": "Explorer & Collector"
+    },
+    {
+      "title": "Temporary elite hunt challenge",
+      "category": "combat",
+      "player_value": "Creates a mastery target without permanent balance changes.",
+      "rationale": "Combat rewards are readable but can benefit from a short-term goal.",
+      "safe_content_only": true,
+      "desired_outcome": "Offer a bounded elite-focused Night Watch challenge.",
+      "id": "20260917T100303Z-combat_challenger-feature-1",
+      "tester_id": "combat_challenger",
+      "tester_name": "Combat Challenger"
+    },
+    {
+      "title": "Rotating marketplace discount",
+      "category": "marketplace",
+      "player_value": "Makes accumulated coins feel purposeful.",
+      "rationale": "A temporary discount creates spending decisions while preserving baseline prices.",
+      "safe_content_only": true,
+      "desired_outcome": "Discount cosmetics modestly for one AI world cycle.",
+      "id": "20260917T100303Z-economy_optimizer-feature-1",
+      "tester_id": "economy_optimizer",
+      "tester_name": "Economy Optimizer"
+    },
+    {
+      "title": "Persistent control legend",
+      "category": "accessibility",
+      "player_value": "Improves control discoverability.",
+      "rationale": "The development lab uses several movement buttons and state-dependent actions.",
+      "safe_content_only": false,
+      "desired_outcome": "Keep a compact Walk / Jump legend visible during an active route.",
+      "id": "20260917T100303Z-accessibility_ux-feature-1",
+      "tester_id": "accessibility_ux",
+      "tester_name": "Accessibility & UI Tester"
+    },
+    {
+      "title": "Expand deterministic state-transition tests",
+      "category": "stability",
+      "player_value": "Reduces regressions as AI content grows.",
+      "rationale": "Autonomous content cycles increase the importance of predictable game-state boundaries.",
+      "safe_content_only": false,
+      "desired_outcome": "Add tests for blocked movement, completion rewards, and market ownership.",
+      "id": "20260917T100303Z-qa_edge_cases-feature-1",
+      "tester_id": "qa_edge_cases",
+      "tester_name": "QA Edge-Case Tester"
+    }
+  ],
+  "observations": [
+    {
+      "category": "onboarding",
+      "severity": "medium",
+      "evidence": "The trace starts immediately after route selection and relies on button labels to teach movement.",
+      "recommendation": "Add a one-session contextual hint explaining Walk versus Jump.",
+      "id": "20260917T100303Z-first_time_player-obs-1",
+      "tester_id": "first_time_player",
+      "tester_name": "First-Time Player"
+    },
+    {
+      "category": "economy",
+      "severity": "medium",
+      "evidence": "Marketplace purchases compete with route rewards, but there is no rotating value proposition.",
+      "recommendation": "Experiment with a small temporary marketplace discount rather than permanent price changes.",
+      "id": "20260917T100303Z-economy_optimizer-obs-1",
+      "tester_id": "economy_optimizer",
+      "tester_name": "Economy Optimizer"
+    },
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Walking into an obstacle intentionally causes damage and does not advance, which is valid but should remain covered by tests.",
+      "recommendation": "Retain regression coverage for obstacle blocking, enemy blocking, and route completion.",
+      "id": "20260917T100303Z-qa_edge_cases-obs-1",
+      "tester_id": "qa_edge_cases",
+      "tester_name": "QA Edge-Case Tester"
+    }
+  ],
+  "reports": [
+    {
+      "session_summary": "Offline synthetic review by First-Time Player. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 4,
+      "friction_score": 2,
+      "observations": [
+        {
+          "category": "onboarding",
+          "severity": "medium",
+          "evidence": "The trace starts immediately after route selection and relies on button labels to teach movement.",
+          "recommendation": "Add a one-session contextual hint explaining Walk versus Jump.",
+          "id": "20260917T100303Z-first_time_player-obs-1"
+        }
+      ],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "First-run movement hint",
+          "category": "onboarding",
+          "player_value": "Reduces early uncertainty.",
+          "rationale": "The core distinction between walking and obstacle jumping is important to learn immediately.",
+          "safe_content_only": true,
+          "desired_outcome": "Show a brief non-blocking hint on the first route.",
+          "id": "20260917T100303Z-first_time_player-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "first_time_player",
+      "tester_name": "First-Time Player",
+      "focus": "onboarding, clarity, route choice, controls, first-session friction"
+    },
+    {
+      "session_summary": "Offline synthetic review by Explorer & Collector. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 3,
+      "friction_score": 2,
+      "observations": [],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "Route-specific collectible rumor",
+          "category": "exploration",
+          "player_value": "Adds a reason to revisit routes.",
+          "rationale": "The trace has route identity but few explicit collection goals.",
+          "safe_content_only": true,
+          "desired_outcome": "Feature a rotating collectible rumor tied to one route.",
+          "id": "20260917T100303Z-explorer_collector-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "explorer_collector",
+      "tester_name": "Explorer & Collector",
+      "focus": "route variety, discoveries, collectibles, cosmetics, reasons to revisit routes"
+    },
+    {
+      "session_summary": "Offline synthetic review by Combat Challenger. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 3,
+      "friction_score": 2,
+      "observations": [],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "Temporary elite hunt challenge",
+          "category": "combat",
+          "player_value": "Creates a mastery target without permanent balance changes.",
+          "rationale": "Combat rewards are readable but can benefit from a short-term goal.",
+          "safe_content_only": true,
+          "desired_outcome": "Offer a bounded elite-focused Night Watch challenge.",
+          "id": "20260917T100303Z-combat_challenger-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "combat_challenger",
+      "tester_name": "Combat Challenger",
+      "focus": "encounter pacing, enemy friction, risk/reward, challenge and mastery"
+    },
+    {
+      "session_summary": "Offline synthetic review by Economy Optimizer. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 3,
+      "friction_score": 2,
+      "observations": [
+        {
+          "category": "economy",
+          "severity": "medium",
+          "evidence": "Marketplace purchases compete with route rewards, but there is no rotating value proposition.",
+          "recommendation": "Experiment with a small temporary marketplace discount rather than permanent price changes.",
+          "id": "20260917T100303Z-economy_optimizer-obs-1"
+        }
+      ],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "Rotating marketplace discount",
+          "category": "marketplace",
+          "player_value": "Makes accumulated coins feel purposeful.",
+          "rationale": "A temporary discount creates spending decisions while preserving baseline prices.",
+          "safe_content_only": true,
+          "desired_outcome": "Discount cosmetics modestly for one AI world cycle.",
+          "id": "20260917T100303Z-economy_optimizer-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "economy_optimizer",
+      "tester_name": "Economy Optimizer",
+      "focus": "coin flow, marketplace value, reward pacing, meaningful spending decisions"
+    },
+    {
+      "session_summary": "Offline synthetic review by Accessibility & UI Tester. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 3,
+      "friction_score": 2,
+      "observations": [],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "Persistent control legend",
+          "category": "accessibility",
+          "player_value": "Improves control discoverability.",
+          "rationale": "The development lab uses several movement buttons and state-dependent actions.",
+          "safe_content_only": false,
+          "desired_outcome": "Keep a compact Walk / Jump legend visible during an active route.",
+          "id": "20260917T100303Z-accessibility_ux-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "accessibility_ux",
+      "tester_name": "Accessibility & UI Tester",
+      "focus": "readability, button clarity, cognitive load, feedback, keyboard/mouse usability"
+    },
+    {
+      "session_summary": "Offline synthetic review by QA Edge-Case Tester. The trace was completed without source changes.",
+      "fun_score": 3,
+      "clarity_score": 3,
+      "friction_score": 2,
+      "observations": [
+        {
+          "category": "stability",
+          "severity": "medium",
+          "evidence": "Walking into an obstacle intentionally causes damage and does not advance, which is valid but should remain covered by tests.",
+          "recommendation": "Retain regression coverage for obstacle blocking, enemy blocking, and route completion.",
+          "id": "20260917T100303Z-qa_edge_cases-obs-1"
+        }
+      ],
+      "bugs": [],
+      "feature_requests": [
+        {
+          "title": "Expand deterministic state-transition tests",
+          "category": "stability",
+          "player_value": "Reduces regressions as AI content grows.",
+          "rationale": "Autonomous content cycles increase the importance of predictable game-state boundaries.",
+          "safe_content_only": false,
+          "desired_outcome": "Add tests for blocked movement, completion rewards, and market ownership.",
+          "id": "20260917T100303Z-qa_edge_cases-feature-1"
+        }
+      ],
+      "keep": [
+        "Keep route preview before starting an adventure.",
+        "Keep Jump as a distinct obstacle-clearing action."
+      ],
+      "tester_id": "qa_edge_cases",
+      "tester_name": "QA Edge-Case Tester",
+      "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+    }
+  ]
+}

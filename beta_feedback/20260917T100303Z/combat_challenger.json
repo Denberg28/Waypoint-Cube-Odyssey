@@ -1,0 +1,26 @@
+{
+  "session_summary": "Offline synthetic review by Combat Challenger. The trace was completed without source changes.",
+  "fun_score": 3,
+  "clarity_score": 3,
+  "friction_score": 2,
+  "observations": [],
+  "bugs": [],
+  "feature_requests": [
+    {
+      "title": "Temporary elite hunt challenge",
+      "category": "combat",
+      "player_value": "Creates a mastery target without permanent balance changes.",
+      "rationale": "Combat rewards are readable but can benefit from a short-term goal.",
+      "safe_content_only": true,
+      "desired_outcome": "Offer a bounded elite-focused Night Watch challenge.",
+      "id": "20260917T100303Z-combat_challenger-feature-1"
+    }
+  ],
+  "keep": [
+    "Keep route preview before starting an adventure.",
+    "Keep Jump as a distinct obstacle-clearing action."
+  ],
+  "tester_id": "combat_challenger",
+  "tester_name": "Combat Challenger",
+  "focus": "encounter pacing, enemy friction, risk/reward, challenge and mastery"
+}
