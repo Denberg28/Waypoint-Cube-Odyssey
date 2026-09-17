@@ -15,6 +15,7 @@ GATE_PATH = "runtime/development_gate.json"
 REVIEW_PATH = "runtime/development_review.json"
 ROLLBACK_REQUEST_PATH = "runtime/rollback_request.json"
 FLAGGED_FEATURES_PATH = "runtime/flagged_features.json"
+DECISIONS_PATH = "runtime/development_decisions.json"
 API_ROOT = f"https://api.github.com/repos/{REPOSITORY}"
 
 
@@ -70,6 +71,17 @@ def _github_contents(path: str, token: str) -> dict:
         if exc.code == 404:
             return {}
         raise ReviewGateError(f"GitHub read failed with HTTP {exc.code}") from exc
+
+
+def _read_json_api(path: str, token: str, default: Any) -> Any:
+    payload = _github_contents(path, token)
+    encoded = str(payload.get("content", "")).replace("\n", "")
+    if not encoded:
+        return default
+    try:
+        return json.loads(base64.b64decode(encoded).decode("utf-8"))
+    except Exception:
+        return default
 
 
 def _branch_head(token: str) -> str:
@@ -182,6 +194,33 @@ def persist_decision(
         ),
     }
     _write_json(GATE_PATH, token, gate, f"gate: {decision} development bundle {bundle_id}")
+
+    history = _read_json_api(DECISIONS_PATH, token, {"schema": 1, "decisions": []})
+    decisions = [
+        item for item in history.get("decisions", [])
+        if isinstance(item, dict) and str(item.get("bundle_id", "")) != bundle_id
+    ]
+    decisions.append({
+        "bundle_id": bundle_id,
+        "council_id": str(review.get("council_id", "")),
+        "decision": decision,
+        "reviewed_utc": gate["reviewed_utc"],
+        "selected_feature_ids": list(gate.get("selected_feature_ids", [])),
+        "selected_features": list(gate.get("selected_features", [])),
+        "rollback_checkpoint_sha": checkpoint,
+        "auto_merge_authorized": False,
+    })
+    history = {
+        "schema": 1,
+        "updated_utc": utc_now(),
+        "decisions": decisions[-50:],
+    }
+    _write_json(
+        DECISIONS_PATH,
+        token,
+        history,
+        f"gate: archive {decision} decision for {bundle_id}",
+    )
     return gate
 
 
