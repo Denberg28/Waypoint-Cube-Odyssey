@@ -3,6 +3,7 @@ extends Node3D
 signal route_clicked(route_id: String)
 signal marketplace_clicked
 signal camp_clicked
+signal continue_clicked
 const Catalog = preload("res://scripts/catalog.gd")
 const State = preload("res://scripts/state.gd")
 const LANE_SPACING: float = 2.8
@@ -68,7 +69,7 @@ func cone(parent: Node3D, pos: Vector3, radius: float, height: float, color: Col
 	parent.add_child(node)
 	return node
 
-func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false, camp_return: bool = false) -> Area3D:
+func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false, camp_return: bool = false, continue_adventure: bool = false) -> Area3D:
 	var area = Area3D.new()
 	area.position = pos
 	area.input_ray_pickable = true
@@ -91,6 +92,8 @@ func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, 
 			marketplace_clicked.emit()
 		elif camp_return:
 			camp_clicked.emit()
+		elif continue_adventure:
+			continue_clicked.emit()
 		elif route_id != "":
 			route_clicked.emit(route_id)
 	)
@@ -505,11 +508,15 @@ func crossroads(finish_z: float) -> void:
 		clickable_board(scenery, board.pos, board.size, board_color, route_id)
 		floating_text(scenery, str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 22)
 
-	# Optional return marker keeps the expedition flowing without forcing camp.
+	# High-level road-end choices. Lantern Camp asks for confirmation in main.gd;
+	# Continue Adventure opens the route chooser while keeping the player here.
+	var continue_pos := Vector3(-2.55, 0.66, finish_z + 0.15)
+	clickable_board(scenery, continue_pos, Vector3(2.75, 0.50, 0.24), Color("8c7352"), "", false, false, true)
+	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 19)
 	var camp_pos := Vector3(2.55, 0.66, finish_z + 0.15)
 	clickable_board(scenery, camp_pos, Vector3(2.55, 0.50, 0.24), Color("6b806b"), "", false, true)
 	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
-	floating_text(scenery, "NEXT ADVENTURE  •  CLICK A SIGN", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 21)
+	floating_text(scenery, "ROAD-END WAYPOINT  •  CHOOSE YOUR NEXT STEP", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 20)
 	for x in [-2.2, 0.0, 2.2]:
 		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 
