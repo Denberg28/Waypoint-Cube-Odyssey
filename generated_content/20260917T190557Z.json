@@ -1,0 +1,21 @@
+{
+  "id": "ai-20260917T190557Z",
+  "created_utc": "20260917T190557Z",
+  "kind": "route_modifier",
+  "title": "Mist-Covered Bounty",
+  "description": "Increased coin yields and mysterious rumors emerge from the deep fog of the Whispering Fen.",
+  "route": "fen",
+  "experiment": {
+    "kind": "market_discount",
+    "route": "fen",
+    "value": 15,
+    "reason": "Provide a temporary economic cushion for players saving up toward high-value cosmetic items."
+  },
+  "adopted_feedback_ids": [
+    "20260917T101331Z-first_time_player-feature-1",
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-combat_challenger-feature-1",
+    "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-accessibility_ux-feature-1"
+  ]
+}

@@ -1,11 +1,11 @@
 {
-  "headline": "Whispering Fen Shrouded in Mist",
-  "summary": "Beta council signals indicate strong satisfaction with core onboarding and exploration loops. To address feedback regarding mid-tier economic pacing and combat pressure, Whispering Fen is featured with increased coin rewards and heightened danger.",
+  "headline": "Whispering Fen Expansion & Economic Rebalance",
+  "summary": "Following recent beta feedback from the Explorer and Economy councils, this update brings enhanced coin discovery bonuses to Whispering Fen, introduces a temporary market discount experiment, and lays out backlog tasks for onboarding tutorials and route completion logs.",
   "featured_route": "fen",
   "difficulty_offset": 1,
   "development_focus": {
-    "title": "Economy & Combat Density Balancing",
-    "reason": "Address tester observations regarding coin threshold gaps and sparse enemy encounters on high-difficulty routes."
+    "title": "Route Discovery and Mid-Tier Economy Pacing",
+    "reason": "Address feedback regarding long-term collection tracking and bridge the currency gap between standard cosmetics and premium crown items."
   },
   "adopted_feedback_ids": [
     "20260917T101331Z-first_time_player-feature-1",
@@ -15,14 +15,14 @@
     "20260917T101331Z-accessibility_ux-feature-1"
   ],
   "experiment": {
-    "kind": "route_coin_bonus",
+    "kind": "market_discount",
     "route": "fen",
     "value": 15,
-    "reason": "Boost route coin yields to help players bridge the gap toward high-tier cosmetic items."
+    "reason": "Provide a temporary economic cushion for players saving up toward high-value cosmetic items."
   },
   "challenge": {
     "title": "Fen Pearl Expedition",
-    "description": "Navigate the misty marsh of Whispering Fen and unearth hidden relics.",
+    "description": "Traverse the Whispering Fen and successfully collect rare marsh specimens while avoiding bog thorns.",
     "target": 3
   },
   "reward": {
@@ -31,39 +31,39 @@
   },
   "content_pack": {
     "kind": "route_modifier",
-    "title": "Mist-Covered Bog Dangers",
-    "description": "Encounter denser bog thorns and elusive spirit whispers along the Whispering Fen path.",
+    "title": "Mist-Covered Bounty",
+    "description": "Increased coin yields and mysterious rumors emerge from the deep fog of the Whispering Fen.",
     "route": "fen"
   },
   "development_backlog": [
     {
       "priority": "P1",
-      "title": "Implement Route Discovery Log UI",
-      "reason": "Fulfills explorer feedback by adding an in-game tracking system for route collectibles and completion milestones.",
+      "title": "Onboarding Tutorial Prompt System",
+      "reason": "First-time players need immediate clarity on movement and combat interactions during early route steps.",
       "requires_code_change": true
     },
     {
       "priority": "P1",
-      "title": "Add Elite Enemy Profiles for Difficulty 3+ Routes",
-      "reason": "Directly responds to combat challenger requests for higher risk and mechanical friction in advanced areas.",
+      "title": "Route Discovery Log UI",
+      "reason": "Explorers need an in-game tracking mechanism to view collected items and monitor completion milestones.",
       "requires_code_change": true
     },
     {
       "priority": "P2",
-      "title": "Introduce High-Contrast UI Theme Toggle",
-      "reason": "Improves readability and meets accessibility requirements highlighted by UI/UX beta testers.",
+      "title": "Elite Enemy Profiles for Difficulty 3+ Routes",
+      "reason": "Combat challengers requested higher enemy pressure and distinct behavior profiles on tougher routes.",
       "requires_code_change": true
     },
     {
       "priority": "P2",
-      "title": "Refine Marketplace Pacing and Wishlist Progress",
-      "reason": "Smoothes out the coin threshold gap between standard cosmetics and premium crown items.",
+      "title": "High-Contrast UI Theme Toggle",
+      "reason": "Accessibility council highlighted the need for optional high-contrast visual modes to improve readability.",
       "requires_code_change": true
     },
     {
       "priority": "P3",
-      "title": "Add Explicit Input Buffering Feedback for Obstacles",
-      "reason": "Helps edge-case testers distinguish between input lag and path blocking from static hazards.",
+      "title": "Explicit Input Buffering Feedback",
+      "reason": "Clearer visual or text indicators when movement inputs collide with static hazards or obstacle states.",
       "requires_code_change": true
     }
   ]
