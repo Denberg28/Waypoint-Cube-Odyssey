@@ -37,11 +37,23 @@ def priority_rank(value: str) -> int:
     return {"P0": 0, "P1": 1, "P2": 2, "P3": 3}.get(str(value).upper(), 4)
 
 
+def governance() -> dict:
+    value = load_json(ROOT / "runtime" / "development_governance.json", {})
+    return value if isinstance(value, dict) else {}
+
+
+def locked_categories() -> set[str]:
+    return {str(x) for x in governance().get("locked_categories", [])}
+
+
 def source_candidates() -> list[dict]:
     council = load_json(ROOT / "runtime" / "beta_council.json", {})
     world = load_json(ROOT / "runtime" / "ai_world_state.json", {})
+    locked = locked_categories()
     candidates: list[dict] = []
 
+    # Material regressions are always allowed through the lock. Locks protect
+    # mature features from optimization churn, not from real breakage.
     for bug in council.get("high_severity_bugs", []) if isinstance(council, dict) else []:
         if not isinstance(bug, dict):
             continue
@@ -56,11 +68,15 @@ def source_candidates() -> list[dict]:
                 "Preserve unrelated gameplay behavior.",
             ],
             "source_ids": [str(bug.get("id", ""))],
-            "category": "bug",
+            "category": str(bug.get("category", "stability")),
+            "lock_override": "high-severity-regression",
         })
 
     for item in council.get("all_feature_requests", []) if isinstance(council, dict) else []:
         if not isinstance(item, dict) or bool(item.get("safe_content_only", False)):
+            continue
+        category = str(item.get("category", "feature"))
+        if category in locked:
             continue
         candidates.append({
             "priority": "P2",
@@ -73,12 +89,15 @@ def source_candidates() -> list[dict]:
                 "Add or update tests when feasible.",
             ],
             "source_ids": [str(item.get("id", ""))],
-            "category": str(item.get("category", "feature")),
+            "category": category,
         })
 
     backlog = world.get("development_backlog", []) if isinstance(world, dict) else []
     for item in backlog if isinstance(backlog, list) else []:
         if not isinstance(item, dict) or not bool(item.get("requires_code_change", False)):
+            continue
+        category = str(item.get("category", "development"))
+        if category in locked:
             continue
         candidates.append({
             "priority": str(item.get("priority", "P3")).upper(),
@@ -91,7 +110,7 @@ def source_candidates() -> list[dict]:
                 "Run relevant tests and report residual risk.",
             ],
             "source_ids": [],
-            "category": "development",
+            "category": category,
         })
 
     return candidates
@@ -118,11 +137,13 @@ def build_task(candidate: dict, created: str) -> dict:
         "source_ids": [x for x in candidate.get("source_ids", []) if x][:8],
         "created_utc": created,
         "branch_base": "ai-development",
+        "lock_override": candidate.get("lock_override", ""),
         "acceptance_criteria": candidate.get("acceptance", [])[:6],
         "constraints": [
             "Read AGENTS.md before implementation.",
             "Do not auto-merge.",
             "Do not modify unrelated gameplay/economy/content.",
+            "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
             "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
             "Preserve Godot 4.7.x Web compatibility.",
         ],
@@ -139,6 +160,7 @@ def task_markdown(task: dict) -> str:
         "",
         f"Task ID: `{task['task_id']}`",
         f"Base branch: `{task['branch_base']}`",
+        f"Category: `{task['category']}`",
         "",
         "## Why this task exists",
         task["reason"],
@@ -153,6 +175,8 @@ def task_markdown(task: dict) -> str:
     if task["source_ids"]:
         lines += ["", "## Evidence IDs"]
         lines.extend(f"- `{item}`" for item in task["source_ids"])
+    if task.get("lock_override"):
+        lines += ["", f"Lock override: `{task['lock_override']}`"]
     lines += [
         "",
         "## Codex completion contract",
@@ -182,12 +206,12 @@ def main() -> None:
 
     manifest_tasks = [item for item in old.get("tasks", []) if isinstance(item, dict)]
     manifest_tasks.extend(new_tasks)
-    # Keep manifest bounded; queue files remain the durable handoff artifacts.
     manifest_tasks = manifest_tasks[-100:]
     manifest = {
         "schema": 1,
         "updated_utc": created,
         "active_queue_limit": MAX_ACTIVE_TASKS,
+        "locked_categories": sorted(locked_categories()),
         "tasks": manifest_tasks,
     }
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -206,6 +230,7 @@ def main() -> None:
         f"Generated: `{created}`",
         f"New tasks this run: **{len(new_tasks)}**",
         f"Queue files present: **{len(queued_files)}**",
+        f"Optimization-locked categories: **{', '.join(sorted(locked_categories())) or 'none'}**",
         "",
         "## Next tasks",
     ]
@@ -217,11 +242,11 @@ def main() -> None:
     latest += [
         "",
         "## Efficient Codex workflow",
-        "Open one queue file at a time, ask Codex to implement it on a branch from `ai-development`, run the specified validation, and prepare a reviewable PR. Keep automatic PR review enabled in the Codex/GitHub product settings rather than adding an OpenAI API key to this repository.",
+        "Open one queue file at a time, ask Codex to implement it on a branch from `ai-development`, run the specified validation, and prepare a reviewable PR. Locked milestone categories remain closed to ordinary optimization; only documented material regressions may bypass the lock.",
         "",
     ]
     LATEST_PATH.write_text("\n".join(latest), encoding="utf-8")
-    print(json.dumps({"ok": True, "new_tasks": len(new_tasks), "queue_files": len(queued_files)}))
+    print(json.dumps({"ok": True, "new_tasks": len(new_tasks), "queue_files": len(queued_files), "locked_categories": sorted(locked_categories())}))
 
 
 if __name__ == "__main__":
