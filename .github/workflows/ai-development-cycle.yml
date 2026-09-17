@@ -26,6 +26,13 @@ jobs:
           AI_MAX_DAILY_CYCLES: ${{ vars.AI_MAX_DAILY_CYCLES || '8' }}
         run: |
           python ai_lab/should_run.py && echo "run_cycle=true" >> "$GITHUB_OUTPUT" || echo "run_cycle=false" >> "$GITHUB_OUTPUT"
+      - name: Sync real public playtest telemetry
+        if: steps.budget.outputs.run_cycle == 'true'
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: python -m ai_lab.sync_public_telemetry
       - name: Run Gemini GM + beta-informed development analysis
         if: steps.budget.outputs.run_cycle == 'true'
         env:
@@ -43,7 +50,7 @@ jobs:
         run: |
           git config user.name "waypoint-ai-gm[bot]"
           git config user.email "waypoint-ai-gm[bot]@users.noreply.github.com"
-          git add runtime/ai_world_state.json generated_content reports
+          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json generated_content reports
           git diff --cached --quiet && exit 0
           git commit -m "ai: beta-informed Waypoint development cycle"
           git push origin ai-development

@@ -1,11 +1,19 @@
 from __future__ import annotations
 import json
+from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
 
+ROOT = Path(__file__).resolve().parent
 GODOT_WEB_URL = "https://denberg28.github.io/Waypoint-Cube-Odyssey/"
+
+def load_json(path: Path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
 
 st.set_page_config(page_title="Waypoint AI Development Lab", page_icon="🧭", layout="wide")
 if "game" not in st.session_state:
@@ -13,9 +21,12 @@ if "game" not in st.session_state:
 state = st.session_state.game
 world = load_world_state()
 council = load_beta_council()
+telemetry_snapshot = load_json(ROOT / "runtime/telemetry_snapshot.json", [])
+music_profile = load_json(ROOT / "runtime/music_profile.json", {})
+telemetry_config = load_json(ROOT / "runtime/public_telemetry.json", {})
 
 st.title("🧭 Waypoint: Cube Odyssey — AI Development Lab")
-st.caption("The Play tab embeds the actual Godot Web export. Streamlit hosts the AI Game Master, beta council, and development telemetry around it.")
+st.caption("Play the actual Godot Web build, optionally contribute anonymous gameplay telemetry, and watch the Gemini GM, beta council, and Music Director evolve the development branch.")
 
 with st.sidebar:
     st.subheader("Night Watch")
@@ -25,12 +36,13 @@ with st.sidebar:
     exp = world.get("experiment", {})
     st.caption(f"Experiment: {exp.get('kind', 'none')} · value {exp.get('value', 0)}")
     st.divider()
-    st.caption("The Godot game keeps its own save/state in the browser. Streamlit lab state below is separate and used only for AI-development experiments.")
+    st.caption("Your Godot save stays inside your browser. Shared analytics contain only anonymous gameplay events when you explicitly opt in.")
 
-play, gm, beta, market, lab = st.tabs([
+play, gm, beta, music, market, lab = st.tabs([
     "🎮 Play Godot",
     "🌙 AI Game Master",
     "🤖 Beta Testers",
+    "🎵 Music Director",
     "🛍️ Lab Market",
     "🧪 Dev Lab",
 ])
@@ -38,8 +50,22 @@ play, gm, beta, market, lab = st.tabs([
 with play:
     st.subheader("Actual Godot Web Tester")
     st.caption("This is the same Godot project and scene structure as the desktop tester, exported to Web from the ai-development branch.")
-    components.iframe(GODOT_WEB_URL, height=830, scrolling=False)
-    st.link_button("Open Godot tester in a new tab", GODOT_WEB_URL, use_container_width=True)
+    telemetry_ready = bool(telemetry_config.get("enabled", False))
+    consent = st.checkbox(
+        "Share anonymous gameplay telemetry to help improve Waypoint",
+        value=False,
+        disabled=not telemetry_ready,
+        help="Shares gameplay events such as route choices, jumps, encounters, fishing, marketplace actions, session progress, and music mute/shuffle behavior. It does not upload your save file, account identity, name, email, IP address, or free-text feedback.",
+    )
+    if not telemetry_ready:
+        st.caption("Public telemetry is not live yet; gameplay is currently validation-only until the analytics backend is connected.")
+    elif consent:
+        st.success("Anonymous gameplay telemetry is ON for this embedded session.")
+    else:
+        st.info("Anonymous gameplay telemetry is OFF. You can still play normally.")
+    game_url = GODOT_WEB_URL + ("?telemetry=1" if consent and telemetry_ready else "?telemetry=0")
+    components.iframe(game_url, height=830, scrolling=False)
+    st.link_button("Open Godot tester in a new tab", game_url, use_container_width=True)
 
 with gm:
     st.subheader("Night Watch")
@@ -56,6 +82,13 @@ with gm:
 
 with beta:
     st.subheader("Gemini 3.5 Flash-Lite Beta Tester Council")
+    if telemetry_snapshot and isinstance(telemetry_snapshot, list) and isinstance(telemetry_snapshot[0], dict) and telemetry_snapshot[0].get("source") == "real_public_playtests":
+        s = telemetry_snapshot[0]
+        a, b, c = st.columns(3)
+        a.metric("Real play sessions", s.get("unique_sessions", 0))
+        b.metric("Real events sampled", s.get("sample_events", 0))
+        c.metric("Obstacle jumps", s.get("jump_actions", 0))
+        st.caption("These aggregate public playtest signals are supplied alongside synthetic traces to the beta agents.")
     if not council:
         st.info("No beta tester council has run yet.")
     else:
@@ -78,7 +111,29 @@ with beta:
                 st.write(report.get("session_summary", ""))
                 for item in report.get("feature_requests", []):
                     st.write(f"- {item.get('title')} — {item.get('desired_outcome')}")
-        st.caption("These are synthetic AI tester reports based on executable play traces and data snapshots, not human visual playtest results.")
+        st.caption("Synthetic testers are advisory agents. Real opt-in player telemetry is treated as evidence, not as instructions.")
+
+with music:
+    st.subheader("Gemini Flash-Lite Music Director")
+    st.caption("The agent can only adjust bounded parameters on Waypoint's original procedural music. It cannot generate or copy copyrighted songs, melodies, lyrics, or arbitrary source code.")
+    if music_profile:
+        st.info(music_profile.get("summary", "Current bounded music profile"))
+        rows = []
+        for context, cfg in music_profile.get("contexts", {}).items():
+            rows.append({
+                "context": context,
+                "pitch_scale": cfg.get("pitch_scale", 1.0),
+                "volume_delta_db": cfg.get("volume_delta_db", 0.0),
+            })
+        st.dataframe(rows, use_container_width=True, hide_index=True)
+        recommendations = music_profile.get("recommendations", [])
+        if recommendations:
+            st.write("**Latest music recommendations**")
+            for item in recommendations:
+                st.write("-", item)
+    else:
+        st.info("No Music Director profile has been generated yet.")
+    st.caption("Real players contribute useful signals through music context, mute/unmute, and shuffle events when telemetry is enabled and opted in.")
 
 with market:
     st.subheader("Streamlit Lab Marketplace")
@@ -102,10 +157,13 @@ with lab:
     st.subheader("AI Development Lab")
     st.write("**Godot Web source:** `ai-development` → GitHub Pages")
     st.write("**Godot production baseline:** locked v0.19")
-    st.write("**Gemini council:** synthetic gameplay/system beta testing")
-    st.write("**Streamlit:** dashboard and browser host")
-    st.write(f"Local simulated telemetry events this session: {len(state['telemetry'])}")
-    st.json(state["telemetry"][-25:])
+    st.write("**Gemini council:** synthetic testing + aggregate opt-in human telemetry")
+    st.write("**Music Director:** bounded procedural-score parameter agent")
+    st.write("**Streamlit:** dashboard, browser host, and telemetry consent surface")
+    if telemetry_snapshot:
+        st.write("### Latest shared telemetry snapshot")
+        st.json(telemetry_snapshot[:10] if isinstance(telemetry_snapshot, list) else telemetry_snapshot)
+    st.write(f"Local simulated telemetry events this Streamlit session: {len(state['telemetry'])}")
     st.download_button(
         "Download lab telemetry JSON",
         json.dumps(state["telemetry"], indent=2),
