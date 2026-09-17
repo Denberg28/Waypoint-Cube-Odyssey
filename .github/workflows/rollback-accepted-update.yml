@@ -1,0 +1,37 @@
+name: Waypoint Accepted Update Rollback
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: waypoint-development-rollback
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ai-development
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Preflight rollback processor
+        run: python -m py_compile ai_lab/rollback_update.py
+
+      - name: Configure rollback committer
+        run: |
+          git config user.name "waypoint-rollback[bot]"
+          git config user.email "waypoint-rollback[bot]@users.noreply.github.com"
+
+      - name: Process pending rollback request
+        run: python -m ai_lab.rollback_update
