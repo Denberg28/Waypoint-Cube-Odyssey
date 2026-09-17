@@ -28,7 +28,7 @@ with st.sidebar:
     if st.button("Reset lab run"):
         st.session_state.game = new_state(); st.rerun()
 
-play, market, gm, beta, review_tab, lab = st.tabs(["🎮 Play", "🛍️ Marketplace", "🌙 AI Game Master", "🤖 Beta Testers", "✅ Development Review", "🧪 Dev Lab"])
+play, market, gm, beta, review_tab, accepted_tab, lab = st.tabs(["🎮 Play", "🛍️ Marketplace", "🌙 AI Game Master", "🤖 Beta Testers", "✅ Development Review", "📦 Accepted Updates", "🧪 Dev Lab"])
 with play:
     if not state.get("route"):
         st.subheader("Crossroads")
@@ -138,7 +138,7 @@ with review_tab:
             checked = st.checkbox(
                 f"{item.get('priority','P3')} · {item.get('title','Untitled')} · {impl}",
                 value=(str(item.get("id", "")) in previous) if same_gate else not locked,
-                disabled=locked,
+                disabled=locked or (same_gate and str(gate.get("decision", "")) == "accepted"),
                 key=f"review-{bundle_id}-{item.get('id','')}",
             )
             if checked and not locked:
@@ -198,6 +198,112 @@ with review_tab:
                     except ReviewGateError as exc:
                         st.error(str(exc))
 
+
+with accepted_tab:
+    st.subheader("Accepted Development Updates")
+    st.caption("Accepted items are kept separate from new beta proposals. Approval and implementation are shown as different states so an accepted idea is never mistaken for code that has already landed.")
+
+    gate = fetch_remote_json("runtime/development_gate.json", {})
+    history = fetch_remote_json("runtime/development_decisions.json", {"decisions": []})
+    rollback_request = fetch_remote_json("runtime/rollback_request.json", {})
+    flagged = fetch_remote_json("runtime/flagged_features.json", {"features": []})
+
+    try:
+        expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
+        github_token = str(st.secrets.get("WAYPOINT_REVIEW_GITHUB_TOKEN", ""))
+    except Exception:
+        expected_pin = ""
+        github_token = ""
+    accepted_controls_ready = bool(expected_pin and github_token)
+
+    current_is_accepted = isinstance(gate, dict) and str(gate.get("decision", "")) == "accepted"
+    if current_is_accepted:
+        selected_features = [x for x in gate.get("selected_features", []) if isinstance(x, dict)]
+        manifest = [str(x) for x in gate.get("implementation_changed_files", [])]
+        checkpoint = str(gate.get("rollback_checkpoint_sha", ""))
+        rollback_status = str(gate.get("rollback_status", "not_armed"))
+
+        a1, a2, a3 = st.columns(3)
+        a1.metric("Accepted features", len(selected_features))
+        a2.metric("Implementation files", len(manifest))
+        a3.metric("Rollback", rollback_status.replace("_", " ").title())
+
+        if manifest:
+            st.success("Current accepted bundle has an implementation manifest. Rollback protection is ready.")
+        else:
+            st.info("Current bundle is ACCEPTED, but implementation has not yet recorded its changed-file manifest. It is approved for staged work, not marked as implemented.")
+
+        for item in selected_features:
+            fid = str(item.get("id", ""))
+            is_flagged = any(
+                isinstance(flag, dict) and str(flag.get("id", "")) == fid and bool(flag.get("manual_clear_required", False))
+                for flag in flagged.get("features", [])
+            )
+            status = "ROLLED BACK / FLAGGED" if is_flagged else ("IMPLEMENTATION RECORDED" if manifest else "ACCEPTED / PENDING IMPLEMENTATION")
+            with st.expander(f"{status} — {item.get('title','Untitled')}"):
+                st.write("**Feature ID:**", fid)
+                st.write("**Category:**", item.get("category", "—"))
+                st.write("**Class:**", str(item.get("implementation_class", "review_required")).replace("_", " ").title())
+                st.write("**Status:**", status)
+
+        st.divider()
+        st.write("### Rollback current accepted update")
+        st.caption(
+            f"Pre-implementation checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'} · "
+            f"Recorded implementation files: {len(manifest)}"
+        )
+        accepted_pin = st.text_input("Owner approval passphrase", type="password", key=f"accepted-pin-{gate.get('bundle_id','current')}")
+        rollback_reason = st.text_input(
+            "Rollback reason",
+            placeholder="Example: route selection crashes after this update",
+            key=f"accepted-rollback-reason-{gate.get('bundle_id','current')}",
+        )
+        if not accepted_controls_ready:
+            st.warning("Rollback controls remain read-only until the Streamlit review secrets are configured.")
+        rollback_pending = (
+            isinstance(rollback_request, dict)
+            and str(rollback_request.get("bundle_id", "")) == str(gate.get("bundle_id", ""))
+            and str(rollback_request.get("status", "")) in {"requested", "completed"}
+        )
+        if rollback_pending:
+            st.warning(f"Rollback status: {str(rollback_request.get('status','')).upper()}")
+        if st.button(
+            "ROLL BACK current accepted update",
+            use_container_width=True,
+            disabled=(not accepted_controls_ready or not bool(checkpoint) or not bool(manifest) or rollback_pending),
+            key=f"accepted-rollback-{gate.get('bundle_id','current')}",
+        ):
+            if not pin_matches(accepted_pin, expected_pin):
+                st.error("Owner passphrase is incorrect.")
+            else:
+                try:
+                    request_rollback(token=github_token, gate=gate, reason=rollback_reason)
+                except ReviewGateError as exc:
+                    st.error(str(exc))
+                else:
+                    st.warning("Rollback requested. The recovery worker will restore only the recorded implementation files, preserve the broken state on a backup branch, and flag the affected features.")
+                    st.rerun()
+    else:
+        st.info("There is no currently accepted development bundle.")
+
+    decisions = [
+        item for item in history.get("decisions", [])
+        if isinstance(item, dict) and str(item.get("decision", "")) == "accepted"
+    ]
+    if decisions:
+        st.divider()
+        st.write("### Accepted update history")
+        for decision in reversed(decisions[-12:]):
+            titles = [str(x.get("title", "")) for x in decision.get("selected_features", []) if isinstance(x, dict)]
+            with st.expander(f"ACCEPTED — {decision.get('bundle_id','bundle')} · {decision.get('reviewed_utc','')}"):
+                st.write("**Features:**")
+                if titles:
+                    for title in titles:
+                        st.write("- " + title)
+                else:
+                    st.write("No archived titles available.")
+                checkpoint = str(decision.get("rollback_checkpoint_sha", ""))
+                st.caption(f"Checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'}")
 
 with lab:
     st.subheader("Development telemetry")
