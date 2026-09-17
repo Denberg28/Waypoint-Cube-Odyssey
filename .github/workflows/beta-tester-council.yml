@@ -28,13 +28,11 @@ jobs:
         continue-on-error: true
         run: python -m ai_lab.sync_public_telemetry
 
-      - name: Check smart beta council gate
+      - name: Check hourly beta council safety cap
         id: budget
         env:
           BETA_TESTER_ENABLED: ${{ vars.BETA_TESTER_ENABLED || 'true' }}
-          BETA_MAX_DAILY_COUNCILS: ${{ vars.BETA_MAX_DAILY_COUNCILS || '2' }}
-          BETA_FALLBACK_HOURS: "12"
-          BETA_FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          BETA_MAX_DAILY_COUNCILS: "24"
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
 
