@@ -16,6 +16,7 @@ env:
   GEMINI_MAX_RETRIES: "1"
   GEMINI_MAX_REQUESTS_PER_RUN: "8"
   FREE_TIER_ONLY: "true"
+  AUTONOMY_STOP_THRESHOLD: "3"
 
 jobs:
   beta-council:
@@ -61,15 +62,37 @@ jobs:
         continue-on-error: true
         run: python -m ai_lab.sync_public_telemetry
       - name: Run six Gemini Flash-Lite beta tester agents
+        id: beta_request
         if: steps.budget.outputs.run_council == 'true'
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -m ai_lab.beta_testers
-      - name: Resolve council with World Architect & Cartographer
+      - name: Record beta request result
         if: steps.budget.outputs.run_council == 'true'
+        run: |
+          if [ "${{ steps.beta_request.outcome }}" = "success" ]; then
+            python ai_lab/autonomy_guard.py --success || true
+          else
+            python ai_lab/autonomy_guard.py --failure "beta tester Gemini request failed" || true
+            exit 1
+          fi
+      - name: Resolve council with World Architect & Cartographer
+        id: architect_request
+        if: steps.budget.outputs.run_council == 'true'
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -m ai_lab.world_architect
+      - name: Record architect request result
+        if: steps.budget.outputs.run_council == 'true'
+        run: |
+          if [ "${{ steps.architect_request.outcome }}" = "success" ]; then
+            python ai_lab/autonomy_guard.py --success || true
+          else
+            python ai_lab/autonomy_guard.py --failure "World Architect Gemini request failed" || true
+            exit 1
+          fi
       - name: Evaluate milestone locks and cadence
         if: steps.budget.outputs.run_council == 'true'
         run: python -m ai_lab.milestone_governor
