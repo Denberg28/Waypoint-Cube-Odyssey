@@ -16,6 +16,7 @@ env:
   GEMINI_MAX_RETRIES: "1"
   GEMINI_MAX_REQUESTS_PER_RUN: "4"
   FREE_TIER_ONLY: "true"
+  AUTONOMY_STOP_THRESHOLD: "3"
 
 jobs:
   cycle:
@@ -65,10 +66,21 @@ jobs:
         continue-on-error: true
         run: python -m ai_lab.sync_public_telemetry
       - name: Run Gemini GM + beta-informed development analysis
+        id: development_request
         if: steps.budget.outputs.run_cycle == 'true'
+        continue-on-error: true
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python -m ai_lab.cycle
+      - name: Record development request result
+        if: steps.budget.outputs.run_cycle == 'true'
+        run: |
+          if [ "${{ steps.development_request.outcome }}" = "success" ]; then
+            python ai_lab/autonomy_guard.py --success || true
+          else
+            python ai_lab/autonomy_guard.py --failure "Gemini development request failed" || true
+            exit 1
+          fi
       - name: Refresh milestone governance
         if: steps.budget.outputs.run_cycle == 'true'
         run: python -m ai_lab.milestone_governor
