@@ -5,6 +5,8 @@ extends Node
 const PROFILE_PATH := "res://runtime/music_profile.json"
 var profile: Dictionary = {}
 var last_context := ""
+var last_muted = null
+var last_variant: int = -999
 
 func _ready() -> void:
 	load_profile()
@@ -28,6 +30,12 @@ func context_config(context: String) -> Dictionary:
 		return contexts[context]
 	return {}
 
+func emit_music_event(scene, event_name: String, details: Dictionary) -> void:
+	var telemetry = scene.get("ai_telemetry")
+	var game = scene.get("game")
+	if telemetry != null and game != null and telemetry.has_method("record"):
+		telemetry.call("record", event_name, game, details)
+
 func apply_to_game() -> void:
 	var scene := get_tree().current_scene
 	if scene == null or not scene.has_method("music_context"):
@@ -42,7 +50,18 @@ func apply_to_game() -> void:
 	player.pitch_scale = pitch
 	var base_volume := -20.0 if context == "boss" else (-29.0 if context == "campfire" else (-26.0 if context == "fishing" else -23.0))
 	player.volume_db = base_volume + volume_delta
+
+	var muted := bool(scene.get("music_muted"))
+	var variant := int(scene.get("current_music_variant"))
 	if context != last_context:
 		last_context = context
+		emit_music_event(scene, "music_context", {"context":context, "pitch_scale":pitch, "volume_delta_db":volume_delta})
 		if scene.has_method("update_music"):
 			scene.call("update_music", true)
+	if last_muted == null or muted != bool(last_muted):
+		if last_muted != null:
+			emit_music_event(scene, "music_muted", {"muted":muted, "context":context})
+		last_muted = muted
+	if last_variant != -999 and variant != last_variant and context == last_context:
+		emit_music_event(scene, "music_shuffle", {"context":context, "variant":variant})
+	last_variant = variant
