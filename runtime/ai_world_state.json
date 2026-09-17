@@ -1,28 +1,28 @@
 {
-  "headline": "Whispering Fen Expansion & Economic Rebalance",
-  "summary": "Following recent beta feedback from the Explorer and Economy councils, this update brings enhanced coin discovery bonuses to Whispering Fen, introduces a temporary market discount experiment, and lays out backlog tasks for onboarding tutorials and route completion logs.",
-  "featured_route": "fen",
+  "headline": "Ember Forge Awakening: Forge & Flame Update",
+  "summary": "Telemetry shows strong activity in the Ember Forge and Whispering Fen routes. Based on feedback from the Beta Council, we are enhancing combat tension on high-difficulty paths and introducing a temporary marketplace coin bonus experiment to support progression toward elite cosmetics.",
+  "featured_route": "forge",
   "difficulty_offset": 1,
   "development_focus": {
-    "title": "Route Discovery and Mid-Tier Economy Pacing",
-    "reason": "Address feedback regarding long-term collection tracking and bridge the currency gap between standard cosmetics and premium crown items."
+    "title": "Combat & Economy Optimization",
+    "reason": "Address combat challenger feedback on higher difficulty routes while easing the coin threshold gap for long-term cosmetics."
   },
   "adopted_feedback_ids": [
-    "20260917T101331Z-first_time_player-feature-1",
-    "20260917T101331Z-explorer_collector-feature-1",
     "20260917T101331Z-combat_challenger-feature-1",
     "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-first_time_player-feature-1",
     "20260917T101331Z-accessibility_ux-feature-1"
   ],
   "experiment": {
-    "kind": "market_discount",
-    "route": "fen",
+    "kind": "route_coin_bonus",
+    "route": "forge",
     "value": 15,
-    "reason": "Provide a temporary economic cushion for players saving up toward high-value cosmetic items."
+    "reason": "Test an increased coin yield on Ember Forge to help bridge the mid-game currency gap for players saving toward elite crown items."
   },
   "challenge": {
-    "title": "Fen Pearl Expedition",
-    "description": "Traverse the Whispering Fen and successfully collect rare marsh specimens while avoiding bog thorns.",
+    "title": "Forge Master's Trial",
+    "description": "Navigate the hazards of Ember Forge and secure valuable ash and iron artifacts.",
     "target": 3
   },
   "reward": {
@@ -31,39 +31,39 @@
   },
   "content_pack": {
     "kind": "route_modifier",
-    "title": "Mist-Covered Bounty",
-    "description": "Increased coin yields and mysterious rumors emerge from the deep fog of the Whispering Fen.",
-    "route": "fen"
+    "title": "Magma Vent Pressure",
+    "description": "Hot plates in the Ember Forge flare with increased frequency, requiring careful timing and mastery of movement.",
+    "route": "forge"
   },
   "development_backlog": [
     {
       "priority": "P1",
-      "title": "Onboarding Tutorial Prompt System",
-      "reason": "First-time players need immediate clarity on movement and combat interactions during early route steps.",
+      "title": "Elite Enemy Behavior Profiles for Difficulty 3+ Routes",
+      "reason": "Combat challengers reported low enemy encounter density and mechanical friction on high-tier routes.",
       "requires_code_change": true
     },
     {
       "priority": "P1",
-      "title": "Route Discovery Log UI",
-      "reason": "Explorers need an in-game tracking mechanism to view collected items and monitor completion milestones.",
+      "title": "Route Discovery Ledger and Collection Milestones UI",
+      "reason": "Explorers and collectors desire an in-game tracking interface for unique route items and completion rewards.",
       "requires_code_change": true
     },
     {
       "priority": "P2",
-      "title": "Elite Enemy Profiles for Difficulty 3+ Routes",
-      "reason": "Combat challengers requested higher enemy pressure and distinct behavior profiles on tougher routes.",
+      "title": "Onboarding Tutorial Prompt System",
+      "reason": "First-time players need welcome tooltips at step 0 to understand initial movement and combat mechanics.",
       "requires_code_change": true
     },
     {
       "priority": "P2",
-      "title": "High-Contrast UI Theme Toggle",
-      "reason": "Accessibility council highlighted the need for optional high-contrast visual modes to improve readability.",
+      "title": "High-Contrast UI Theme & Focus States",
+      "reason": "Accessibility council noted that marketplace navigation and UI elements need clearer keyboard focus rings.",
       "requires_code_change": true
     },
     {
       "priority": "P3",
-      "title": "Explicit Input Buffering Feedback",
-      "reason": "Clearer visual or text indicators when movement inputs collide with static hazards or obstacle states.",
+      "title": "Movement Command Validation & Obstacle Input Buffering",
+      "reason": "Edge-case telemetry shows redundant walk commands attempting to queue against active hazard collisions.",
       "requires_code_change": true
     }
   ]

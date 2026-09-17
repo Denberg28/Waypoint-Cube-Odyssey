@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "source": "real_public_playtests_aggregate",
+    "window_hours": 72,
+    "sample_events": 2374,
+    "unique_sessions": 3,
+    "event_counts": {
+      "movement": 1241,
+      "music_context": 216,
+      "music_shuffle": 410,
+      "obstacle_jump": 3,
+      "route_preview": 76,
+      "fishing_result": 10,
+      "route_complete": 67,
+      "route_selected": 71,
+      "enemy_encounter": 276,
+      "cosmetic_equipped": 4
+    },
+    "route_activity": {
+      "fen": 551,
+      "moss": 134,
+      "forge": 542,
+      "frost": 472,
+      "shrine": 224,
+      "treasure": 451
+    },
+    "music": {
+      "mute_events": 0,
+      "shuffle_events": 410,
+      "context_changes": 216
+    },
+    "generated_at": "2026-09-17T22:14:45.152302+00:00"
+  }
+]

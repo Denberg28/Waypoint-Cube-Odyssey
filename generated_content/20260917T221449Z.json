@@ -1,0 +1,21 @@
+{
+  "id": "ai-20260917T221449Z",
+  "created_utc": "20260917T221449Z",
+  "kind": "route_modifier",
+  "title": "Magma Vent Pressure",
+  "description": "Hot plates in the Ember Forge flare with increased frequency, requiring careful timing and mastery of movement.",
+  "route": "forge",
+  "experiment": {
+    "kind": "route_coin_bonus",
+    "route": "forge",
+    "value": 15,
+    "reason": "Test an increased coin yield on Ember Forge to help bridge the mid-game currency gap for players saving toward elite crown items."
+  },
+  "adopted_feedback_ids": [
+    "20260917T101331Z-combat_challenger-feature-1",
+    "20260917T101331Z-economy_optimizer-feature-1",
+    "20260917T101331Z-explorer_collector-feature-1",
+    "20260917T101331Z-first_time_player-feature-1",
+    "20260917T101331Z-accessibility_ux-feature-1"
+  ]
+}
