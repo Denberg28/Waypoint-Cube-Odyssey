@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "summary": "Default neutral music profile.",
+  "contexts": {
+    "camp": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
+    "road": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
+    "boss": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
+    "fishing": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
+    "campfire": {"pitch_scale": 1.0, "volume_delta_db": 0.0}
+  },
+  "recommendations": []
+}
