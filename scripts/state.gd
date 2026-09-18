@@ -20,7 +20,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":12,
+		"version":13,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -57,6 +57,7 @@ func reset() -> void:
 		"relic_charge":0,
 		"gems":0,
 		"fish_caught":0,
+		"gloomcaps":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
 
@@ -279,6 +280,8 @@ func roll_environment(route: String) -> String:
 		elif roll < 0.88:
 			return "cloudy"
 		return "sunny"
+	if route == "gloomwood":
+		return "cloudy" if roll < 0.72 else "rainy"
 	if route == "moss":
 		if roll < 0.34:
 			return "sunny"
@@ -349,6 +352,14 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 			elif roll < 0.34:
 				return "kobold"
 			return "goblin"
+		"gloomwood":
+			if roll < 0.08 + stage_bonus:
+				return "ogre"
+			elif roll < 0.38:
+				return "kobold"
+			elif roll < 0.70:
+				return "goblin"
+			return "slime"
 		"shrine":
 			if roll < 0.16 + stage_bonus:
 				return "kobold"
@@ -363,6 +374,17 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 			if roll < 0.08 + stage_bonus:
 				return "goblin"
 			return "slime"
+
+static func route_options_for_stage_index(stage_index: int) -> Array:
+	var sets: Array = [
+		["moss", "forge", "gloomwood"],
+		["treasure", "shrine", "frost"],
+		["moss", "gloomwood", "fen"],
+		["forge", "treasure", "frost"],
+		["shrine", "fen", "gloomwood"],
+		["frost", "fen", "treasure"]
+	]
+	return sets[stage_index % sets.size()].duplicate()
 
 func prepare_new_expedition() -> void:
 	data.popup = {}
@@ -420,6 +442,8 @@ func make_room(route: String) -> void:
 					kind = "coin"
 				elif roll < 0.75 and route in ["frost", "fen"]:
 					kind = "gem"
+				elif roll < 0.77 and route == "gloomwood":
+					kind = "gloomcap"
 				elif roll < 0.82 and route == "moss":
 					kind = "heal"
 			data.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false, "elite":false})
@@ -439,6 +463,9 @@ func make_room(route: String) -> void:
 		place_special_cell(15, int(corridor_lanes[15]), "gear_cache", local_rng)
 	if route == "fen":
 		place_special_cell(9, int(corridor_lanes[9]), "fishing", local_rng)
+	if route == "gloomwood":
+		place_special_cell(9, int(corridor_lanes[9]), "gloomcap", local_rng)
+		place_special_cell(14, int(corridor_lanes[14]), "gloomcap", local_rng)
 	# Effective danger begins at 1 + route difficulty. Danger 3+ roads get one
 	# guaranteed elite profile encounter off the safe corridor; later elites
 	# still use the deterministic chance system.
@@ -580,6 +607,17 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		result += " Relic meter full — next gear is Rare or better."
 	return result
 
+func collect_gloomcap() -> String:
+	data.gloomcaps += 1
+	var result: String = "Gloomcap collected! Regional collection: %d." % int(data.gloomcaps)
+	var resolve_note: String = add_resolve(3)
+	if resolve_note != "":
+		result += "  " + resolve_note
+	if int(data.gloomcaps) % 3 == 0:
+		data.gems += 1
+		result += "  Collector milestone: +1 gem!"
+	return result
+
 func jumpable_cell(cell: Dictionary) -> bool:
 	if cell.is_empty() or bool(cell.get("cleared", false)):
 		return false
@@ -609,7 +647,7 @@ func jump_hop(direction: int = 0) -> String:
 	var obstacle_name: String = "obstacle"
 	if not obstacle.is_empty():
 		if str(obstacle.kind) == "spike":
-			obstacle_name = "thorns"
+			obstacle_name = "ensnaring briars" if str(data.route) == "gloomwood" else "thorns"
 		obstacle.cleared = true
 	data.row += 2
 	var cell: Dictionary = cell_at(int(data.row), int(data.lane))
@@ -649,6 +687,8 @@ func jump_hop(direction: int = 0) -> String:
 					data.gems += 1
 					cache_loot += " + 1 gem"
 				landing_result = "Hidden cache: " + cache_loot
+			"gloomcap":
+				landing_result = collect_gloomcap()
 			"slime", "goblin", "kobold", "ogre":
 				landing_result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
 		cell.cleared = true
@@ -705,6 +745,8 @@ func hop(direction: int) -> String:
 					data.gems += 1
 					cache_loot += " + 1 gem"
 				result = "Hidden cache: " + cache_loot
+			"gloomcap":
+				result = collect_gloomcap()
 			"slime", "goblin", "kobold", "ogre":
 				result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
 		cell.cleared = true
@@ -1025,7 +1067,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [12, 12.0]:
+	if value.get("version") not in [13, 13.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1038,10 +1080,10 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "gloomcaps"]:
 		if not (value[key] is int or value[key] is float):
 			return false
-	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0:
+	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.gloomcaps) < 0:
 		return false
 	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
 		return false
@@ -1102,7 +1144,7 @@ func valid_save(value: Variant) -> bool:
 			return false
 		if cell.has("elite") and not cell.elite is bool:
 			return false
-		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "slime", "goblin", "kobold", "ogre"]:
+		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "gloomcap", "slime", "goblin", "kobold", "ogre"]:
 			return false
 		var cell_key: String = "%d:%d" % [int(cell.row), int(cell.lane)]
 		if seen.has(cell_key):
@@ -1133,6 +1175,8 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.gems = 0
 	if not migrated.has("fish_caught"):
 		migrated.fish_caught = 0
+	if not migrated.has("gloomcaps"):
+		migrated.gloomcaps = 0
 	if not migrated.has("level"):
 		# Preserve veteran progress when migrating pre-level-system saves.
 		migrated.level = clampi(1 + int(migrated.get("wins", 0)) * 2 + floori(float(migrated.get("kills", 0)) / 10.0), 1, LEVEL_CAP)
@@ -1178,7 +1222,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 12
+	migrated.version = 13
 	return migrated
 
 func load_game() -> bool:
@@ -1189,7 +1233,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed

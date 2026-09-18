@@ -102,15 +102,7 @@ func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, 
 	return area
 
 func route_options_for_stage() -> Array:
-	var sets: Array = [
-		["moss", "forge", "fen"],
-		["treasure", "shrine", "frost"],
-		["moss", "frost", "fen"],
-		["forge", "treasure", "frost"],
-		["shrine", "fen", "forge"],
-		["frost", "fen", "treasure"]
-	]
-	return sets[int(state.data.stage) % sets.size()]
+	return State.route_options_for_stage_index(int(state.data.stage))
 
 func theme_for_environment(env_id: String) -> Dictionary:
 	# Muted, low-contrast palettes keep long sessions readable and relaxing.
@@ -160,6 +152,29 @@ func theme_for_environment(env_id: String) -> Dictionary:
 				"road_base": Color("5b5549"), "post": Color("927758"), "bark": Color("735f4c"),
 				"leaf_a": Color("47745e"), "leaf_b": Color("60886d"), "shrub": Color("688071"), "text": Color("eee1b8")
 			}
+
+func theme_for_route(route_id: String, base_theme: Dictionary) -> Dictionary:
+	if route_id != "gloomwood":
+		return base_theme
+	var theme: Dictionary = base_theme.duplicate(true)
+	theme.sky = Color("242a3d")
+	theme.ambient = Color("9aa0bd")
+	theme.ambient_energy = 0.26
+	theme.sun = Color("c7bad3")
+	theme.sun_energy = 0.34
+	theme.ground = Color("2f403f")
+	theme.shoulder = Color("435350")
+	theme.road_a = Color("68635f")
+	theme.road_b = Color("5d5957")
+	theme.road_finish = Color("827a76")
+	theme.road_base = Color("413d3d")
+	theme.post = Color("6d5d58")
+	theme.bark = Color("51443f")
+	theme.leaf_a = Color("3f625a")
+	theme.leaf_b = Color("536e69")
+	theme.shrub = Color("596860")
+	theme.text = Color("e1d4ef")
+	return theme
 
 func setup(game_state) -> void:
 	state = game_state
@@ -302,7 +317,7 @@ func apply_environment_lighting() -> void:
 
 func apply_environment() -> void:
 	var env_id: String = str(state.data.get("environment", "sunny"))
-	active_theme = theme_for_environment(env_id)
+	active_theme = theme_for_route(str(state.data.get("route", "moss")), theme_for_environment(env_id))
 	apply_environment_lighting()
 	clear_layer(weather_fx)
 	weather_fx = Node3D.new()
@@ -381,6 +396,8 @@ func build() -> void:
 			box(scenery, Vector3(lane * 4.15, 1.2, finish_z), Vector3(0.22, 2.7, 0.22), active_theme.post)
 		box(scenery, Vector3(0, 2.6, finish_z), Vector3(8.5, 0.3, 0.35), active_theme.post)
 		floating_text(scenery, "WAYPOINT", Vector3(0, 3.3, finish_z), active_theme.text, 42)
+		if str(state.data.route) == "gloomwood":
+			gloomwood_landmark(finish_z)
 	elif is_boss:
 		guardian()
 	elif is_road_end:
@@ -408,6 +425,14 @@ func build() -> void:
 		camera_target = Vector3(-1.35, 0.12, -3.95)
 	update_camera()
 	refresh_props()
+
+func gloomwood_landmark(finish_z: float) -> void:
+	var root_z: float = finish_z + 1.25
+	for side in [-1, 1]:
+		box(scenery, Vector3(side * 3.35, 1.65, root_z), Vector3(0.72, 3.30, 0.72), Color("4b3b38"))
+		var arm = box(scenery, Vector3(side * 1.75, 3.05, root_z), Vector3(3.1, 0.42, 0.48), Color("56423d"))
+		arm.rotation_degrees.z = float(side) * 12.0
+	floating_text(scenery, "WHISPERING HOLLOW ROOT", Vector3(0, 4.18, root_z), Color("d9c8e9"), 24)
 
 func environment_side_prop(row: int, side: int, local_rng: RandomNumberGenerator) -> void:
 	var env_id: String = str(state.data.get("environment", "sunny"))
@@ -659,13 +684,22 @@ func refresh_props() -> void:
 				box(props, pos + Vector3(0, 0.66, 0), Vector3(0.98, 0.18, 0.76), Color("9a7a51"))
 				box(props, pos + Vector3(0, 0.54, 0.38), Vector3(0.18, 0.24, 0.06), Color("d0b267"), true)
 				floating_text(props, "GEAR?", pos + Vector3(0, 1.18, 0), Color("d7bf80"), 24)
+			"gloomcap":
+				cone(props, pos + Vector3(0, 0.24, 0), 0.12, 0.46, Color("667a69"), 0.07)
+				cone(props, pos + Vector3(0, 0.55, 0), 0.42, 0.26, Color("8f7aaa"), 0.08)
+				floating_text(props, "GLOOMCAP", pos + Vector3(0, 1.20, 0), Color("d8c6e8"), 23)
 			"heal":
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.2, 0.6, 0.2), Color("a7eac2"), true)
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.6, 0.2, 0.2), Color("a7eac2"), true)
 			"spike":
-				for x in [-0.48, 0.0, 0.48]:
-					cone(props, pos + Vector3(x, 0.25, 0), 0.23, 0.6, Color("d69d86"))
-				floating_text(props, "JUMP", pos + Vector3(0, 1.0, 0), Color("efd094"), 25)
+				if str(state.data.route) == "gloomwood":
+					for x in [-0.52, -0.16, 0.20, 0.54]:
+						cone(props, pos + Vector3(x, 0.28, 0), 0.18, 0.70, Color("78657c"), 0.03)
+					floating_text(props, "JUMP  •  BRIARS", pos + Vector3(0, 1.05, 0), Color("d9c58e"), 22)
+				else:
+					for x in [-0.48, 0.0, 0.48]:
+						cone(props, pos + Vector3(x, 0.25, 0), 0.23, 0.6, Color("d69d86"))
+					floating_text(props, "JUMP", pos + Vector3(0, 1.0, 0), Color("efd094"), 25)
 			"slime", "goblin", "kobold", "ogre":
 				var active: bool = state.enemy_active(cell)
 				var elite: bool = state.enemy_elite(cell)
