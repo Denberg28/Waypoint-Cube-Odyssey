@@ -797,66 +797,40 @@ func hop_to(pos: Vector3) -> void:
 	# Backward-compatible alias for older tests and callers.
 	await jump_to(pos)
 
-func apply_adventure_idle() -> void:
-	# MMO-style idle: subtle breathing, weight shift, arm counter-swing, and
-	# occasional body look-around. This changes presentation only, never gameplay position.
-	var breath: float = sin(elapsed * 2.2)
-	var weight: float = sin(elapsed * 1.15)
-	var step_sway: float = sin(elapsed * 1.55)
-	var glance: float = sin(elapsed * 0.48)
-	actor.position = idle_anchor_position + Vector3(0, 0.018 + breath * 0.018, 0)
-	actor.scale = Vector3(1.0 - breath * 0.004, 1.0 + breath * 0.018, 1.0 - breath * 0.004)
-	actor.rotation.x = 0.0
-	actor.rotation.y = idle_base_yaw + glance * 0.035
-	actor.rotation.z = weight * 0.018
-	if is_instance_valid(left_foot):
-		left_foot.position = Vector3(-0.24, -0.13 + maxf(0.0, step_sway) * 0.018, 0.08)
-		left_foot.rotation.x = step_sway * 0.10
-	if is_instance_valid(right_foot):
-		right_foot.position = Vector3(0.24, -0.13 + maxf(0.0, -step_sway) * 0.018, 0.08)
-		right_foot.rotation.x = -step_sway * 0.10
-	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.010, 0)
-		left_arm.rotation.x = -step_sway * 0.11
-		left_arm.rotation.z = weight * 0.025
-	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.55, 0.20 + breath * 0.010, 0)
-		right_arm.rotation.x = step_sway * 0.11
-		right_arm.rotation.z = weight * 0.025
-
 func apply_camp_idle() -> void:
-	# Seated idle keeps the cube on the bench while adding breathing and small
-	# hand/foot movements so camp scenes feel alive without breaking the pose.
-	var breath: float = sin(elapsed * 1.8)
-	var sway: float = sin(elapsed * 0.9)
-	var foot_swing: float = sin(elapsed * 1.25)
-	actor.position = idle_anchor_position + Vector3(0, breath * 0.010, 0)
-	actor.scale = Vector3(1.0 - breath * 0.003, 1.0 + breath * 0.012, 1.0 - breath * 0.003)
+	# Industry-standard rest-space idle: restrained breathing and small seated
+	# gestures only. The character stays locked to the bench anchor and never
+	# gains autonomous travel while the player is inactive.
+	var breath: float = sin(elapsed * 1.65)
+	var sway: float = sin(elapsed * 0.72)
+	var foot_swing: float = sin(elapsed * 1.05)
+	var glance: float = sin(elapsed * 0.33)
+	actor.position = idle_anchor_position + Vector3(0, breath * 0.008, 0)
+	actor.scale = Vector3(1.0 - breath * 0.0025, 1.0 + breath * 0.010, 1.0 - breath * 0.0025)
 	actor.rotation.x = 0.0
-	actor.rotation.y = idle_base_yaw + sway * 0.018
-	actor.rotation.z = sway * 0.010
+	actor.rotation.y = idle_base_yaw + glance * 0.015
+	actor.rotation.z = sway * 0.008
 	if is_instance_valid(left_foot):
 		left_foot.position = Vector3(-0.24, -0.22, 0.34)
-		left_foot.rotation.x = -0.48 + foot_swing * 0.055
+		left_foot.rotation.x = -0.48 + foot_swing * 0.040
 	if is_instance_valid(right_foot):
 		right_foot.position = Vector3(0.24, -0.22, 0.34)
-		right_foot.rotation.x = -0.48 - foot_swing * 0.055
+		right_foot.rotation.x = -0.48 - foot_swing * 0.040
 	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.008, 0)
-		left_arm.rotation.x = -0.22 - sway * 0.035
-		left_arm.rotation.z = sway * 0.018
+		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.006, 0)
+		left_arm.rotation.x = -0.22 - sway * 0.028
+		left_arm.rotation.z = sway * 0.014
 	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.55, 0.20 + breath * 0.008, 0)
-		right_arm.rotation.x = -0.22 + sway * 0.035
-		right_arm.rotation.z = sway * 0.018
+		right_arm.position = Vector3(0.55, 0.20 + breath * 0.006, 0)
+		right_arm.rotation.x = -0.22 + sway * 0.028
+		right_arm.rotation.z = sway * 0.014
 
 func apply_idle_animation() -> void:
-	if entrance or showcase:
+	# Idle animation is intentionally camp-only. Adventure/travel readability
+	# stays static between player inputs so movement always communicates intent.
+	if entrance or showcase or str(state.data.mode) != "camp":
 		return
-	if str(state.data.mode) == "camp":
-		apply_camp_idle()
-	else:
-		apply_adventure_idle()
+	apply_camp_idle()
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(actor) or not is_instance_valid(camera):
@@ -867,5 +841,5 @@ func _process(delta: float) -> void:
 	update_camera()
 	if showcase:
 		actor.rotation.y = sin(elapsed * 0.8) * 0.4
-	elif not hopping:
+	elif not hopping and str(state.data.mode) == "camp":
 		apply_idle_animation()
