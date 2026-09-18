@@ -389,7 +389,7 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     assert "Your XP, Resolve" in defeat
     assert "RESOLVE %d%%" in main
     assert "positive motivation meter never decreases on defeat" in main
-    assert '"version":12' in state
+    assert '"version":13' in state
 
 
 def test_v11_pending_xp_is_migrated_into_credited_xp():
@@ -401,5 +401,5 @@ def test_v11_pending_xp_is_migrated_into_credited_xp():
     assert 'migrated.erase("pending_xp")' in state
     assert "carry_xp" in state
     assert "migrated.resolve = 0" in state
-    assert "migrated.version = 12" in state
+    assert "migrated.version = 13" in state
     assert "11, 11.0" in state
