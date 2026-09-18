@@ -70,5 +70,17 @@
     "hazards": [
       "bog thorns"
     ]
+  },
+  "gloomwood": {
+    "name": "Gloomwood Hollow",
+    "difficulty": 2,
+    "theme": "twilight forest and ancient roots",
+    "collectibles": [
+      "Gloomcap",
+      "Root Relic"
+    ],
+    "hazards": [
+      "ensnaring briars"
+    ]
   }
 }
