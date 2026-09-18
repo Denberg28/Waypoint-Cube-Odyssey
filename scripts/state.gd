@@ -20,7 +20,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":14,
+		"version":15,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -63,6 +63,9 @@ func reset() -> void:
 		"cat_offer":{},
 		"cat_satiety":0,
 		"gloomcaps":0,
+		"prismatic_pearls":0,
+		"ember_shards":0,
+		"skyfeathers":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
 	data.cat_offer = random_cat_design()
@@ -413,6 +416,16 @@ func roll_environment(route: String) -> String:
 		return "sunny"
 	if route == "gloomwood":
 		return "cloudy" if roll < 0.72 else "rainy"
+	if route == "sunken_grotto":
+		return "rainy" if roll < 0.62 else "cloudy"
+	if route == "cinder_caldera":
+		if roll < 0.56:
+			return "sand"
+		elif roll < 0.84:
+			return "sunny"
+		return "cloudy"
+	if route == "galecrest_spire":
+		return "winter" if roll < 0.68 else "cloudy"
 	if route == "moss":
 		if roll < 0.34:
 			return "sunny"
@@ -491,6 +504,26 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 			elif roll < 0.70:
 				return "goblin"
 			return "slime"
+		"sunken_grotto":
+			if roll < 0.10 + stage_bonus:
+				return "ogre"
+			elif roll < 0.46:
+				return "kobold"
+			elif roll < 0.70:
+				return "slime"
+			return "goblin"
+		"cinder_caldera":
+			if roll < 0.34 + stage_bonus:
+				return "ogre"
+			elif roll < 0.68:
+				return "goblin"
+			return "kobold"
+		"galecrest_spire":
+			if roll < 0.30 + stage_bonus:
+				return "ogre"
+			elif roll < 0.72:
+				return "kobold"
+			return "goblin"
 		"shrine":
 			if roll < 0.16 + stage_bonus:
 				return "kobold"
@@ -509,11 +542,11 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 static func route_options_for_stage_index(stage_index: int) -> Array:
 	var sets: Array = [
 		["moss", "forge", "gloomwood"],
-		["treasure", "shrine", "frost"],
-		["moss", "gloomwood", "fen"],
-		["forge", "treasure", "frost"],
-		["shrine", "fen", "gloomwood"],
-		["frost", "fen", "treasure"]
+		["treasure", "shrine", "sunken_grotto"],
+		["moss", "fen", "cinder_caldera"],
+		["forge", "frost", "galecrest_spire"],
+		["shrine", "sunken_grotto", "fen"],
+		["frost", "cinder_caldera", "galecrest_spire"]
 	]
 	return sets[stage_index % sets.size()].duplicate()
 
@@ -551,7 +584,7 @@ func make_room(route: String) -> void:
 	var local_rng = RandomNumberGenerator.new()
 	local_rng.seed = int(data.seed)
 	data.cells = []
-	var route_difficulty: int = clampi(int(Catalog.ROUTES[route].get("difficulty", 0)) + ai_difficulty_offset, 0, 3)
+	var route_difficulty: int = clampi(int(Catalog.ROUTES[route].get("difficulty", 0)) + ai_difficulty_offset, 0, 4)
 	for row in range(1, STAGE_STEPS):
 		var safe_lane: int = local_rng.randi_range(-1, 1)
 		var breather: bool = row in [1, 6, 12, 17]
@@ -564,14 +597,23 @@ func make_room(route: String) -> void:
 				kind = "coin" if roll < 0.58 else "empty"
 			else:
 				var spike_limit: float = 0.14 + float(route_difficulty) * 0.025
-				var enemy_limit: float = (0.52 if route == "forge" else 0.39) + float(route_difficulty) * 0.055
+				var base_enemy_limit: float = 0.39
+				if route == "forge":
+					base_enemy_limit = 0.52
+				elif route == "cinder_caldera":
+					base_enemy_limit = 0.58
+				elif route == "galecrest_spire":
+					base_enemy_limit = 0.54
+				elif route == "sunken_grotto":
+					base_enemy_limit = 0.43
+				var enemy_limit: float = base_enemy_limit + float(route_difficulty) * 0.055
 				if roll < spike_limit:
 					kind = "spike"
 				elif roll < enemy_limit:
 					kind = enemy_kind_for_route(route, local_rng)
 				elif roll < 0.69:
 					kind = "coin"
-				elif roll < 0.75 and route in ["frost", "fen"]:
+				elif roll < 0.75 and route in ["frost", "fen", "sunken_grotto", "cinder_caldera", "galecrest_spire"]:
 					kind = "gem"
 				elif roll < 0.77 and route == "gloomwood":
 					kind = "gloomcap"
@@ -590,13 +632,22 @@ func make_room(route: String) -> void:
 	# Optional roadside discoveries: players can stay on the safe corridor or detour.
 	place_special_cell(6, int(corridor_lanes[6]), "campfire", local_rng)
 	place_special_cell(12, int(corridor_lanes[12]), "fishing", local_rng)
-	if local_rng.randf() < (0.78 if route in ["frost", "fen"] else 0.48):
+	if local_rng.randf() < (0.90 if route in ["cinder_caldera", "galecrest_spire"] else (0.78 if route in ["frost", "fen", "sunken_grotto"] else 0.48)):
 		place_special_cell(15, int(corridor_lanes[15]), "gear_cache", local_rng)
 	if route == "fen":
 		place_special_cell(9, int(corridor_lanes[9]), "fishing", local_rng)
 	if route == "gloomwood":
 		place_special_cell(9, int(corridor_lanes[9]), "gloomcap", local_rng)
 		place_special_cell(14, int(corridor_lanes[14]), "gloomcap", local_rng)
+	elif route == "sunken_grotto":
+		place_special_cell(9, int(corridor_lanes[9]), "fishing", local_rng)
+		place_special_cell(14, int(corridor_lanes[14]), "prismatic_pearl", local_rng)
+	elif route == "cinder_caldera":
+		place_special_cell(9, int(corridor_lanes[9]), "ember_shard", local_rng)
+		place_special_cell(14, int(corridor_lanes[14]), "ember_shard", local_rng)
+	elif route == "galecrest_spire":
+		place_special_cell(9, int(corridor_lanes[9]), "skyfeather", local_rng)
+		place_special_cell(14, int(corridor_lanes[14]), "skyfeather", local_rng)
 	# Effective danger begins at 1 + route difficulty. Danger 3+ roads get one
 	# guaranteed elite profile encounter off the safe corridor; later elites
 	# still use the deterministic chance system.
@@ -678,6 +729,8 @@ func enemy_elite(cell: Dictionary) -> bool:
 		chance += 5
 	elif str(data.route) in ["frost", "fen"]:
 		chance += 9
+	elif str(data.route) in ["cinder_caldera", "galecrest_spire"]:
+		chance += 14
 	chance = mini(chance, 42)
 	var signature: int = absi(int(data.seed) + int(cell.row) * 37 + int(cell.lane) * 101 + int(data.stage) * 19) % 100
 	return signature < chance
@@ -754,6 +807,45 @@ func jumpable_cell(cell: Dictionary) -> bool:
 		return false
 	return str(cell.get("kind", "")) in ["spike"]
 
+func collect_region_collectible(kind: String) -> String:
+	match kind:
+		"prismatic_pearl":
+			data.prismatic_pearls += 1
+			add_relic_charge(8)
+			if int(data.prismatic_pearls) % 3 == 0:
+				data.gems += 1
+				return "Prismatic Pearl found! Every third pearl crystallizes into +1 gem."
+			return "Prismatic Pearl found. The grotto collection grows."
+		"ember_shard":
+			data.ember_shards += 1
+			add_relic_charge(12)
+			if int(data.ember_shards) % 3 == 0:
+				data.bag += 8
+				return "Magma Ember Shard secured! Third shard bonus: +8 expedition coins."
+			return "Magma Ember Shard secured. Relic energy surges."
+		"skyfeather":
+			data.skyfeathers += 1
+			add_relic_charge(10)
+			if int(data.skyfeathers) % 3 == 0:
+				data.resolve = mini(99, int(data.resolve) + 8)
+				return "Skyfeather Relic recovered! Third feather bonus: +8 Resolve."
+			return "Skyfeather Relic recovered from the high ruins."
+		_:
+			return ""
+
+func route_hazard_name() -> String:
+	match str(data.route):
+		"gloomwood":
+			return "ensnaring briars"
+		"sunken_grotto":
+			return "slick algae slope"
+		"cinder_caldera":
+			return "magma vent"
+		"galecrest_spire":
+			return "gale-force gust"
+		_:
+			return "thorns"
+
 func jump_distance(direction: int = 0) -> int:
 	if data.mode != "travel":
 		return 1
@@ -778,7 +870,7 @@ func jump_hop(direction: int = 0) -> String:
 	var obstacle_name: String = "obstacle"
 	if not obstacle.is_empty():
 		if str(obstacle.kind) == "spike":
-			obstacle_name = "ensnaring briars" if str(data.route) == "gloomwood" else "thorns"
+			obstacle_name = route_hazard_name()
 		obstacle.cleared = true
 	data.row += 2
 	var cell: Dictionary = cell_at(int(data.row), int(data.lane))
@@ -805,7 +897,7 @@ func jump_hop(direction: int = 0) -> String:
 				var thorn_damage: int = 2 if danger_level() >= 4 else 1
 				data.hp -= thorn_damage
 				data.streak = 0
-				landing_result = "Landed in thorns! Lost %d heart%s." % [thorn_damage, "" if thorn_damage == 1 else "s"]
+				landing_result = "Hit the %s! Lost %d heart%s." % [route_hazard_name(), thorn_damage, "" if thorn_damage == 1 else "s"]
 			"campfire":
 				data.mode = "campfire"
 				landing_result = "A roadside campfire crackles beside the trail."
@@ -820,6 +912,8 @@ func jump_hop(direction: int = 0) -> String:
 				landing_result = "Hidden cache: " + cache_loot
 			"gloomcap":
 				landing_result = collect_gloomcap()
+			"prismatic_pearl", "ember_shard", "skyfeather":
+				landing_result = collect_region_collectible(str(cell.kind))
 			"slime", "goblin", "kobold", "ogre":
 				landing_result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
 		cell.cleared = true
@@ -863,7 +957,7 @@ func hop(direction: int) -> String:
 				var thorn_damage: int = 2 if danger_level() >= 4 else 1
 				data.hp -= thorn_damage
 				data.streak = 0
-				result = "Thorns! Lost %d heart%s. Look for the clear tiles." % [thorn_damage, "" if thorn_damage == 1 else "s"]
+				result = "%s! Lost %d heart%s. Look for the clear tiles." % [route_hazard_name().capitalize(), thorn_damage, "" if thorn_damage == 1 else "s"]
 			"campfire":
 				data.mode = "campfire"
 				result = "A roadside campfire crackles beside the trail. No rush — listen and look around."
@@ -878,6 +972,8 @@ func hop(direction: int) -> String:
 				result = "Hidden cache: " + cache_loot
 			"gloomcap":
 				result = collect_gloomcap()
+			"prismatic_pearl", "ember_shard", "skyfeather":
+				result = collect_region_collectible(str(cell.kind))
 			"slime", "goblin", "kobold", "ogre":
 				result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
 		cell.cleared = true
@@ -1034,6 +1130,20 @@ func finish_room() -> void:
 	elif data.route == "fen":
 		add_relic_charge(18)
 		loot += "\n+18 relic charge"
+	elif data.route == "sunken_grotto":
+		data.gems += 1
+		loot += "\n+1 grotto gem"
+		if rng.randf() < 0.25:
+			data.fish_stock += 1
+			loot += "\n+1 preserved cave fish for the cat pantry"
+	elif data.route == "cinder_caldera":
+		add_relic_charge(24)
+		data.bag += 10
+		loot += "\n+24 relic charge\n+10 expedition coins from ember salvage"
+	elif data.route == "galecrest_spire":
+		add_relic_charge(22)
+		data.resolve = mini(99, int(data.resolve) + 6)
+		loot += "\n+22 relic charge\n+6 Resolve from summit mastery"
 	data.last = "Found: " + loot
 	if route_xp != "":
 		data.last += "\n" + route_xp
@@ -1203,7 +1313,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [14, 14.0]:
+	if value.get("version") not in [15, 15.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1216,10 +1326,10 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_satiety", "gloomcaps"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_satiety", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
 		if not (value[key] is int or value[key] is float):
 			return false
-	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.gloomcaps) < 0:
+	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.gloomcaps) < 0 or int(value.prismatic_pearls) < 0 or int(value.ember_shards) < 0 or int(value.skyfeathers) < 0:
 		return false
 	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
 		return false
@@ -1292,7 +1402,7 @@ func valid_save(value: Variant) -> bool:
 			return false
 		if cell.has("elite") and not cell.elite is bool:
 			return false
-		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "gloomcap", "slime", "goblin", "kobold", "ogre"]:
+		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "gloomcap", "prismatic_pearl", "ember_shard", "skyfeather", "slime", "goblin", "kobold", "ogre"]:
 			return false
 		var cell_key: String = "%d:%d" % [int(cell.row), int(cell.lane)]
 		if seen.has(cell_key):
@@ -1338,6 +1448,12 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.cat_satiety = 0
 	if not migrated.has("gloomcaps"):
 		migrated.gloomcaps = 0
+	if not migrated.has("prismatic_pearls"):
+		migrated.prismatic_pearls = 0
+	if not migrated.has("ember_shards"):
+		migrated.ember_shards = 0
+	if not migrated.has("skyfeathers"):
+		migrated.skyfeathers = 0
 	if not migrated.has("level"):
 		# Preserve veteran progress when migrating pre-level-system saves.
 		migrated.level = clampi(1 + int(migrated.get("wins", 0)) * 2 + floori(float(migrated.get("kills", 0)) / 10.0), 1, LEVEL_CAP)
@@ -1383,7 +1499,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 14
+	migrated.version = 15
 	return migrated
 
 func load_game() -> bool:
@@ -1394,7 +1510,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0, 14, 14.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed
