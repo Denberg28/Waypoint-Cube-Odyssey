@@ -56,6 +56,7 @@ var music_muted: bool = false
 var current_music_context: String = ""
 var current_music_variant: int = -1
 var current_ambient_key: String = ""
+var brand_subtitle_label: Label
 var rank_label: Label
 var swipe_start = Vector2.ZERO
 var swipe_tracking: bool = false
@@ -302,7 +303,7 @@ func build_ui() -> void:
 	header.offset_left = 24
 	header.offset_right = -24
 	header.offset_top = 20
-	header.offset_bottom = 118
+	header.offset_bottom = 134
 	header.add_theme_stylebox_override("panel", style(Color("183b3c"), 14, Color("39605a")))
 	ui.add_child(header)
 	var row = HBoxContainer.new()
@@ -326,9 +327,11 @@ func build_ui() -> void:
 		brightness_button.add_theme_font_size_override("font_size", 10)
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
-	# Keep the rank on the always-visible subtitle row so narrow Web layouts
-	# cannot clip it below the header.
-	rank_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED)
+	brand_subtitle_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED)
+	brand_subtitle_label.clip_text = true
+	brand.add_child(brand_subtitle_label)
+	rank_label = label("", 11, GOLD)
+	rank_label.clip_text = true
 	brand.add_child(rank_label)
 	health = label("", 20, MINT)
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -340,7 +343,7 @@ func build_ui() -> void:
 	row.add_child(gear_button)
 	row.add_child(button("Menu", func(): show_pause()))
 	var info = VBoxContainer.new()
-	info.position = Vector2(36, 144)
+	info.position = Vector2(36, 158)
 	info.add_theme_constant_override("separation", 7)
 	ui.add_child(info)
 	title = label("", 30)
@@ -430,7 +433,7 @@ func build_ui() -> void:
 	side_panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	side_panel.offset_left = -390
 	side_panel.offset_right = -20
-	side_panel.offset_top = 130
+	side_panel.offset_top = 144
 	side_panel.offset_bottom = -20
 	side_panel.add_theme_stylebox_override("panel", style(Color("153334"), 14, Color("41645b")))
 	ui.add_child(side_panel)
@@ -785,7 +788,7 @@ func apply_side_panel_mode() -> void:
 		side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 		side_panel.offset_left = -390
 		side_panel.offset_right = -20
-		side_panel.offset_top = 130
+		side_panel.offset_top = 144
 		side_panel.offset_bottom = -20
 		side_full_body.show()
 		side_compact_body.hide()
@@ -945,8 +948,11 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
+	if is_instance_valid(brand_subtitle_label):
+		brand_subtitle_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE"
+		brand_subtitle_label.add_theme_color_override("font_color", MUTED)
 	if is_instance_valid(rank_label):
-		rank_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE   •   " + game.star_rank_text() + "   •   " + game.level_progress_text()
+		rank_label.text = game.star_rank_text() + "   •   " + game.level_progress_text()
 		rank_label.add_theme_color_override("font_color", GOLD)
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
