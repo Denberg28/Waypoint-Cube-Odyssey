@@ -155,9 +155,20 @@ def persist_decision(
         for item in review.get("features", [])
         if isinstance(item, dict) and str(item.get("id", "")).strip()
     }
+    flagged = _read_json_api(FLAGGED_FEATURES_PATH, token, {"schema": 1, "features": []})
+    flagged_ids = {
+        str(item.get("id", ""))
+        for item in flagged.get("features", [])
+        if isinstance(item, dict) and bool(item.get("manual_clear_required", False))
+    }
     selected = [
         fid for fid in selected_ids
-        if fid in feature_map and not bool(feature_map[fid].get("locked", False))
+        if fid in feature_map
+        and (
+            not bool(feature_map[fid].get("locked", False))
+            or bool(feature_map[fid].get("rollback_flagged", False))
+            or fid in flagged_ids
+        )
     ]
     if decision == "accepted" and not selected:
         raise ReviewGateError("Select at least one available feature before accepting.")
@@ -173,7 +184,7 @@ def persist_decision(
         # Explicit owner re-acceptance is also the manual clearance path for a
         # previously rolled-back feature. This keeps rollback quarantine strict
         # until the owner deliberately selects the feature again.
-        flags = _read_json_api(FLAGGED_FEATURES_PATH, token, {"schema": 1, "features": []})
+        flags = flagged
         remaining_flags = [
             item for item in flags.get("features", [])
             if not (
