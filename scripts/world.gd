@@ -154,26 +154,82 @@ func theme_for_environment(env_id: String) -> Dictionary:
 			}
 
 func theme_for_route(route_id: String, base_theme: Dictionary) -> Dictionary:
-	if route_id != "gloomwood":
+	if route_id not in ["gloomwood", "sunken_grotto", "cinder_caldera", "galecrest_spire"]:
 		return base_theme
 	var theme: Dictionary = base_theme.duplicate(true)
-	theme.sky = Color("242a3d")
-	theme.ambient = Color("9aa0bd")
-	theme.ambient_energy = 0.26
-	theme.sun = Color("c7bad3")
-	theme.sun_energy = 0.34
-	theme.ground = Color("2f403f")
-	theme.shoulder = Color("435350")
-	theme.road_a = Color("68635f")
-	theme.road_b = Color("5d5957")
-	theme.road_finish = Color("827a76")
-	theme.road_base = Color("413d3d")
-	theme.post = Color("6d5d58")
-	theme.bark = Color("51443f")
-	theme.leaf_a = Color("3f625a")
-	theme.leaf_b = Color("536e69")
-	theme.shrub = Color("596860")
-	theme.text = Color("e1d4ef")
+	match route_id:
+		"gloomwood":
+			theme.sky = Color("242a3d")
+			theme.ambient = Color("9aa0bd")
+			theme.ambient_energy = 0.26
+			theme.sun = Color("c7bad3")
+			theme.sun_energy = 0.34
+			theme.ground = Color("2f403f")
+			theme.shoulder = Color("435350")
+			theme.road_a = Color("68635f")
+			theme.road_b = Color("5d5957")
+			theme.road_finish = Color("827a76")
+			theme.road_base = Color("413d3d")
+			theme.post = Color("6d5d58")
+			theme.bark = Color("51443f")
+			theme.leaf_a = Color("3f625a")
+			theme.leaf_b = Color("536e69")
+			theme.shrub = Color("596860")
+			theme.text = Color("e1d4ef")
+		"sunken_grotto":
+			theme.sky = Color("18343b")
+			theme.ambient = Color("79b7b5")
+			theme.ambient_energy = 0.24
+			theme.sun = Color("9fd9d3")
+			theme.sun_energy = 0.28
+			theme.ground = Color("29494b")
+			theme.shoulder = Color("365e5f")
+			theme.road_a = Color("547775")
+			theme.road_b = Color("466a69")
+			theme.road_finish = Color("6b918c")
+			theme.road_base = Color("304d4e")
+			theme.post = Color("4f6666")
+			theme.bark = Color("48615f")
+			theme.leaf_a = Color("4f8881")
+			theme.leaf_b = Color("69a49b")
+			theme.shrub = Color("5d8b84")
+			theme.text = Color("c8f0e8")
+		"cinder_caldera":
+			theme.sky = Color("3b2520")
+			theme.ambient = Color("b2765e")
+			theme.ambient_energy = 0.25
+			theme.sun = Color("f0a063")
+			theme.sun_energy = 0.58
+			theme.ground = Color("4b3029")
+			theme.shoulder = Color("654237")
+			theme.road_a = Color("735044")
+			theme.road_b = Color("64443b")
+			theme.road_finish = Color("8a5b47")
+			theme.road_base = Color("3e2b28")
+			theme.post = Color("68483c")
+			theme.bark = Color("503731")
+			theme.leaf_a = Color("805342")
+			theme.leaf_b = Color("9c6449")
+			theme.shrub = Color("7a5548")
+			theme.text = Color("ffd2a0")
+		"galecrest_spire":
+			theme.sky = Color("486477")
+			theme.ambient = Color("b4c9d6")
+			theme.ambient_energy = 0.27
+			theme.sun = Color("dde9ef")
+			theme.sun_energy = 0.48
+			theme.ground = Color("5a696f")
+			theme.shoulder = Color("76858b")
+			theme.road_a = Color("8b9699")
+			theme.road_b = Color("79878c")
+			theme.road_finish = Color("aab8bc")
+			theme.road_base = Color("586267")
+			theme.post = Color("69767d")
+			theme.bark = Color("5a6466")
+			theme.leaf_a = Color("7f9295")
+			theme.leaf_b = Color("98aaad")
+			theme.shrub = Color("89999d")
+			theme.text = Color("e8f2f6")
 	return theme
 
 func setup(game_state) -> void:
@@ -396,8 +452,15 @@ func build() -> void:
 			box(scenery, Vector3(lane * 4.15, 1.2, finish_z), Vector3(0.22, 2.7, 0.22), active_theme.post)
 		box(scenery, Vector3(0, 2.6, finish_z), Vector3(8.5, 0.3, 0.35), active_theme.post)
 		floating_text(scenery, "WAYPOINT", Vector3(0, 3.3, finish_z), active_theme.text, 42)
-		if str(state.data.route) == "gloomwood":
-			gloomwood_landmark(finish_z)
+		match str(state.data.route):
+			"gloomwood":
+				gloomwood_landmark(finish_z)
+			"sunken_grotto":
+				sunken_grotto_landmark(finish_z)
+			"cinder_caldera":
+				cinder_caldera_landmark(finish_z)
+			"galecrest_spire":
+				galecrest_spire_landmark(finish_z)
 	elif is_boss:
 		guardian()
 	elif is_road_end:
@@ -434,14 +497,48 @@ func gloomwood_landmark(finish_z: float) -> void:
 		arm.rotation_degrees.z = float(side) * 12.0
 	floating_text(scenery, "WHISPERING HOLLOW ROOT", Vector3(0, 4.18, root_z), Color("d9c8e9"), 24)
 
+func sunken_grotto_landmark(finish_z: float) -> void:
+	var z: float = finish_z + 1.15
+	for side in [-1, 1]:
+		cone(scenery, Vector3(side * 2.4, 1.20, z), 0.58, 2.45, Color("5faaa6"), 0.08)
+		cone(scenery, Vector3(side * 3.15, 0.75, z + 0.5), 0.34, 1.55, Color("8ed0c8"), 0.03)
+	box(scenery, Vector3(0, 0.02, z), Vector3(4.8, 0.08, 2.1), Color("3f7f84"), true)
+	floating_text(scenery, "THE LUMINESCENT CASCADE", Vector3(0, 3.55, z), Color("c8f3ea"), 24)
+
+func cinder_caldera_landmark(finish_z: float) -> void:
+	var z: float = finish_z + 1.25
+	for side in [-1, 1]:
+		cone(scenery, Vector3(side * 2.7, 0.85, z), 0.9, 1.75, Color("4a3630"), 0.20)
+		cone(scenery, Vector3(side * 2.7, 1.72, z), 0.46, 0.85, Color("d86f4f"), 0.05)
+	box(scenery, Vector3(0, 0.10, z), Vector3(3.0, 0.14, 1.55), Color("b8533e"), true)
+	floating_text(scenery, "THE OBSIDIAN HEARTH", Vector3(0, 3.35, z), Color("ffc28c"), 24)
+
+func galecrest_spire_landmark(finish_z: float) -> void:
+	var z: float = finish_z + 1.20
+	for side in [-1, 1]:
+		box(scenery, Vector3(side * 2.65, 1.55, z), Vector3(0.55, 3.1, 0.55), Color("78878e"))
+		cone(scenery, Vector3(side * 2.65, 3.45, z), 0.42, 1.10, Color("aabac1"), 0.06)
+	box(scenery, Vector3(0, 2.78, z), Vector3(5.6, 0.24, 0.42), Color("87969c"))
+	floating_text(scenery, "THE WHISPERING SUMMIT GATE", Vector3(0, 4.20, z), Color("e3f0f5"), 24)
+
 func environment_side_prop(row: int, side: int, local_rng: RandomNumberGenerator) -> void:
 	var env_id: String = str(state.data.get("environment", "sunny"))
 	var x: float = float(side) * local_rng.randf_range(5.8, 7.3)
 	var z: float = -row * ROW_SPACING + local_rng.randf_range(-0.45, 0.45)
-	if str(state.data.get("route", "moss")) == "fen" and row % 8 == 2:
+	var route_id: String = str(state.data.get("route", "moss"))
+	if route_id == "fen" and row % 8 == 2:
 		box(scenery, Vector3(x, 0.03, z), Vector3(1.8, 0.05, 1.15), Color("496f72"), true)
-	elif str(state.data.get("route", "moss")) == "frost" and row % 8 == 2:
+	elif route_id == "frost" and row % 8 == 2:
 		cone(scenery, Vector3(x, 0.45, z), 0.24, 0.90, Color("91b5bd"), 0.03)
+	elif route_id == "sunken_grotto":
+		box(scenery, Vector3(x, 0.02, z), Vector3(1.65, 0.05, 1.1), Color("3e7478"), true)
+		cone(scenery, Vector3(x + side * 0.55, 0.38, z), 0.18, 0.82, Color("72bdb4"), 0.02)
+	elif route_id == "cinder_caldera":
+		cone(scenery, Vector3(x, 0.30, z), 0.48, 0.68, Color("4b3832"), 0.18)
+		box(scenery, Vector3(x + side * 0.48, 0.05, z + 0.18), Vector3(0.72, 0.06, 0.48), Color("b64f39"), true)
+	elif route_id == "galecrest_spire":
+		box(scenery, Vector3(x, 0.34, z), Vector3(0.46, 0.68, 0.46), Color("7c898f"))
+		cone(scenery, Vector3(x + side * 0.42, 0.72, z), 0.18, 0.82, Color("afc0c6"), 0.04)
 	match env_id:
 		"rainy":
 			box(scenery, Vector3(x, 0.02, z), Vector3(1.5, 0.035, 0.72), Color("557f91"), true)
@@ -622,6 +719,12 @@ func add_waypoint_motif(parent: Node3D, route_id: String, pos: Vector3, style_da
 		"root":
 			for x in [-0.14, 0.14]:
 				cone(parent, pos + Vector3(x, 0.14, 0), 0.07, 0.38, trim.darkened(0.10), 0.02)
+		"crystal":
+			cone(parent, pos + Vector3(-0.09, 0.18, 0), 0.10, 0.40, accent, 0.02)
+			cone(parent, pos + Vector3(0.10, 0.13, 0), 0.08, 0.30, trim, 0.01)
+		"spire":
+			cone(parent, pos + Vector3(0, 0.20, 0), 0.12, 0.48, accent, 0.02)
+			box(parent, pos + Vector3(0, 0.02, 0), Vector3(0.30, 0.08, 0.30), trim)
 		_:
 			cone(parent, pos + Vector3(-0.09, 0.18, 0), 0.10, 0.34, trim, 0.03)
 			cone(parent, pos + Vector3(0.10, 0.14, 0), 0.09, 0.28, accent, 0.03)
@@ -863,18 +966,53 @@ func refresh_props() -> void:
 				cone(props, pos + Vector3(0, 0.24, 0), 0.12, 0.46, Color("667a69"), 0.07)
 				cone(props, pos + Vector3(0, 0.55, 0), 0.42, 0.26, Color("8f7aaa"), 0.08)
 				floating_text(props, "GLOOMCAP", pos + Vector3(0, 1.20, 0), Color("d8c6e8"), 23)
+			"prismatic_pearl":
+				var pearl = SphereMesh.new()
+				pearl.radius = 0.28
+				pearl.height = 0.56
+				var pearl_node = MeshInstance3D.new()
+				pearl_node.mesh = pearl
+				pearl_node.material_override = material(Color("9ce1d8"), true)
+				pearl_node.position = pos + Vector3(0, 0.42, 0)
+				props.add_child(pearl_node)
+				floating_text(props, "PRISMATIC PEARL", pos + Vector3(0, 1.12, 0), Color("c9f4ed"), 20)
+			"ember_shard":
+				cone(props, pos + Vector3(0, 0.40, 0), 0.28, 0.82, Color("dd7651"), 0.03)
+				cone(props, pos + Vector3(0, 0.80, 0), 0.14, 0.38, Color("ffb36d"), 0.01)
+				floating_text(props, "EMBER SHARD", pos + Vector3(0, 1.32, 0), Color("ffc18b"), 21)
+			"skyfeather":
+				var feather = box(props, pos + Vector3(0, 0.52, 0), Vector3(0.16, 0.92, 0.10), Color("cbe3ec"), true)
+				feather.rotation_degrees.z = 24
+				box(props, pos + Vector3(0.16, 0.58, 0), Vector3(0.34, 0.12, 0.08), Color("91b8c9"), true)
+				floating_text(props, "SKYFEATHER", pos + Vector3(0, 1.32, 0), Color("d9eef5"), 21)
 			"heal":
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.2, 0.6, 0.2), Color("a7eac2"), true)
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.6, 0.2, 0.2), Color("a7eac2"), true)
 			"spike":
-				if str(state.data.route) == "gloomwood":
-					for x in [-0.52, -0.16, 0.20, 0.54]:
-						cone(props, pos + Vector3(x, 0.28, 0), 0.18, 0.70, Color("78657c"), 0.03)
-					floating_text(props, "JUMP  •  BRIARS", pos + Vector3(0, 1.05, 0), Color("d9c58e"), 22)
-				else:
-					for x in [-0.48, 0.0, 0.48]:
-						cone(props, pos + Vector3(x, 0.25, 0), 0.23, 0.6, Color("d69d86"))
-					floating_text(props, "JUMP", pos + Vector3(0, 1.0, 0), Color("efd094"), 25)
+				match str(state.data.route):
+					"gloomwood":
+						for x in [-0.52, -0.16, 0.20, 0.54]:
+							cone(props, pos + Vector3(x, 0.28, 0), 0.18, 0.70, Color("78657c"), 0.03)
+						floating_text(props, "JUMP  •  BRIARS", pos + Vector3(0, 1.05, 0), Color("d9c58e"), 22)
+					"sunken_grotto":
+						box(props, pos + Vector3(0, 0.08, 0), Vector3(2.15, 0.10, 1.30), Color("497a76"), true)
+						for x in [-0.48, 0.0, 0.48]:
+							cone(props, pos + Vector3(x, 0.22, 0), 0.16, 0.45, Color("68a78f"), 0.08)
+						floating_text(props, "JUMP  •  SLICK ALGAE", pos + Vector3(0, 1.0, 0), Color("bfe8d9"), 20)
+					"cinder_caldera":
+						for x in [-0.50, 0.0, 0.50]:
+							cone(props, pos + Vector3(x, 0.30, 0), 0.24, 0.70, Color("d45c3e"), 0.04)
+						box(props, pos + Vector3(0, 0.04, 0), Vector3(2.0, 0.06, 0.85), Color("9f3f31"), true)
+						floating_text(props, "JUMP  •  MAGMA VENT", pos + Vector3(0, 1.10, 0), Color("ffc087"), 20)
+					"galecrest_spire":
+						for x in [-0.58, -0.18, 0.22, 0.60]:
+							var gust = box(props, pos + Vector3(x, 0.48, 0), Vector3(0.08, 0.88, 1.10), Color("b9d7e4"), true)
+							gust.rotation_degrees.z = 18
+						floating_text(props, "JUMP  •  GALE GUST", pos + Vector3(0, 1.18, 0), Color("e0f1f6"), 20)
+					_:
+						for x in [-0.48, 0.0, 0.48]:
+							cone(props, pos + Vector3(x, 0.25, 0), 0.23, 0.6, Color("d69d86"))
+						floating_text(props, "JUMP", pos + Vector3(0, 1.0, 0), Color("efd094"), 25)
 			"slime", "goblin", "kobold", "ogre":
 				var active: bool = state.enemy_active(cell)
 				var elite: bool = state.enemy_elite(cell)
