@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updated_utc": "20260918T193959Z",
+  "updated_utc": "20260918T223757Z",
   "active_queue_limit": 8,
   "locked_categories": [],
   "rollback_flagged_feature_ids": [],
@@ -580,6 +580,74 @@
       "lock_override": "",
       "acceptance_criteria": [
         "An in-game collection menu tracking discovered items and rewarding completionists upon fully exploring a route catalog.",
+        "Use existing architecture before adding a new subsystem.",
+        "Keep desktop and Web behavior aligned.",
+        "Add or update tests when feasible."
+      ],
+      "constraints": [
+        "Read AGENTS.md before implementation.",
+        "Do not auto-merge.",
+        "Do not modify unrelated gameplay/economy/content.",
+        "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
+        "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
+        "Preserve Godot 4.7.x Web compatibility."
+      ],
+      "validation": [
+        "python -m pytest tests_ai_lab -q",
+        "Run the repository Godot Web export workflow for Godot/UI changes."
+      ]
+    },
+    {
+      "schema": 1,
+      "task_id": "codex-6145039036f6",
+      "fingerprint": "6145039036f6",
+      "status": "queued",
+      "priority": "P2",
+      "category": "accessibility",
+      "title": "High-Contrast UI Focus Indicators",
+      "reason": "Clear focus states reduce cognitive load and navigation errors for accessibility-focused users.",
+      "source_ids": [
+        "20260918T223155Z-accessibility_ux-feature-1"
+      ],
+      "created_utc": "20260918T223757Z",
+      "branch_base": "ai-development",
+      "lock_override": "",
+      "acceptance_criteria": [
+        "Add distinct visual highlighting and focus rings to marketplace items, route selectors, and buttons.",
+        "Use existing architecture before adding a new subsystem.",
+        "Keep desktop and Web behavior aligned.",
+        "Add or update tests when feasible."
+      ],
+      "constraints": [
+        "Read AGENTS.md before implementation.",
+        "Do not auto-merge.",
+        "Do not modify unrelated gameplay/economy/content.",
+        "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
+        "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
+        "Preserve Godot 4.7.x Web compatibility."
+      ],
+      "validation": [
+        "python -m pytest tests_ai_lab -q",
+        "Run the repository Godot Web export workflow for Godot/UI changes."
+      ]
+    },
+    {
+      "schema": 1,
+      "task_id": "codex-38c3e908147b",
+      "fingerprint": "38c3e908147b",
+      "status": "queued",
+      "priority": "P2",
+      "category": "stability",
+      "title": "Movement Command Validation & Obstacle Input Buffering",
+      "reason": "Edge-case telemetry shows redundant walk commands attempting to queue against active hazard collisions, aligning with backlog item P3.",
+      "source_ids": [
+        "20260918T223155Z-qa_edge_cases-feature-1"
+      ],
+      "created_utc": "20260918T223757Z",
+      "branch_base": "ai-development",
+      "lock_override": "",
+      "acceptance_criteria": [
+        "Input handling gracefully ignores redundant walk commands against blocking terrain or provides immediate contextual feedback.",
         "Use existing architecture before adding a new subsystem.",
         "Keep desktop and Web behavior aligned.",
         "Add or update tests when feasible."

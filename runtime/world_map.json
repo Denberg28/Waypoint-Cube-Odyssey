@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": 5,
-  "updated_utc": "2026-09-18T19:39:59Z",
+  "revision": 6,
+  "updated_utc": "2026-09-18T22:37:57Z",
   "summary": "Waypoint regional map. Gloomwood Hollow is now part of the playable route set.",
   "nodes": [
     {
@@ -139,6 +139,25 @@
         "forge",
         "fen"
       ]
+    },
+    {
+      "id": "galecrest_spire",
+      "name": "Galecrest Spire",
+      "kind": "region",
+      "status": "planned",
+      "playable": false,
+      "difficulty": 4,
+      "theme": "alpine winds and ancient ruins",
+      "x": 0.89,
+      "y": 0.5,
+      "landmark": "The Whispering Summit Gate",
+      "hazard": "Gale-Force Wind Gusts",
+      "collectible": "Skyfeather Relics",
+      "rationale": "Extends the eastern boundary of the map beyond Frostfang Pass and Whispering Fen into a tier-4 alpine peak, providing high-difficulty spatial challenges, unique collectibles, and satisfying advanced exploration and combat mastery demands.",
+      "connect_to": [
+        "frost",
+        "fen"
+      ]
     }
   ],
   "edges": [
@@ -213,6 +232,14 @@
     {
       "from": "fen",
       "to": "cinder_caldera"
+    },
+    {
+      "from": "frost",
+      "to": "galecrest_spire"
+    },
+    {
+      "from": "fen",
+      "to": "galecrest_spire"
     }
   ],
   "planned_limit": 12

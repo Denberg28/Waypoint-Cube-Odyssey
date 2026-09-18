@@ -488,12 +488,5 @@
       "tester_name": "QA Edge-Case Tester",
       "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
     }
-  ],
-  "world_architect": {
-    "decision": "expand",
-    "summary": "Expanding the world map by adding 'Galecrest Spire', a planned high-difficulty vertical mountain region that connects Frostfang Pass and Whispering Fen. This satisfies the Explorer & Collector demand for route discovery and collection milestones while offering a fresh alpine biome with distinctive hazards and collectibles.",
-    "map_node_added": "galecrest_spire",
-    "map_revision": 6,
-    "specialist": "World Architect & Cartographer"
-  }
+  ]
 }

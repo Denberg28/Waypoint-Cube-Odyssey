@@ -1,0 +1,47 @@
+{
+  "session_summary": "Completed Ember Forge route (difficulty 2) starting from step 0 to step 13. Experienced redundant walk collision commands against an obstacle before successfully executing jumps, collecting multiple coin nodes, defeating a Slime enemy, and completing the route with +25 bonus coins resulting in 147 final coins and 84 HP.",
+  "fun_score": 3,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry and play trace show two consecutive redundant walk actions ('The obstacle blocks walking. Use Jump.') at step 2, causing player health damage (8 damage per hit) before switching to jump commands.",
+      "recommendation": "Implement input buffering or command validation to prevent redundant movement commands against active hazards from repeatedly draining player HP without state progression.",
+      "id": "20260918T223155Z-qa_edge_cases-obs-1"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Repeated Walk Input Not Suppressed on Obstacle Collision",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route Ember Forge",
+        "Walk forward until reaching the obstacle at step 2",
+        "Issue a 'walk' command instead of 'jump'"
+      ],
+      "expected": "The game should either buffer the input, prevent damage spam if the player is stationary against the exact same obstacle state, or immediately prompt/auto-correct the control instruction.",
+      "observed": "The player repeatedly attempts to walk into the obstacle twice, resulting in two separate obstacle hits and a loss of 16 total HP before jumping.",
+      "id": "20260918T223155Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Movement Command Validation & Obstacle Input Buffering",
+      "category": "stability",
+      "player_value": "Prevents accidental self-damage and frustrating control lockups when players spam or misclick movement keys against obstacles.",
+      "rationale": "Edge-case telemetry shows redundant walk commands attempting to queue against active hazard collisions, aligning with backlog item P3.",
+      "safe_content_only": false,
+      "desired_outcome": "Input handling gracefully ignores redundant walk commands against blocking terrain or provides immediate contextual feedback.",
+      "id": "20260918T223155Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clear instructional messaging when an obstacle blocks walking ('The obstacle blocks walking. Use Jump.').",
+    "Rewarding route completion payouts and smooth transition telemetry across steps."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}
