@@ -389,7 +389,7 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     assert "Your XP, Resolve" in defeat
     assert "RESOLVE %d%%" in main
     assert "positive motivation meter never decreases on defeat" in main
-    assert '"version":14' in state
+    assert '"version":15' in state
 
 
 def test_v11_pending_xp_is_migrated_into_credited_xp():
@@ -401,7 +401,7 @@ def test_v11_pending_xp_is_migrated_into_credited_xp():
     assert 'migrated.erase("pending_xp")' in state
     assert "carry_xp" in state
     assert "migrated.resolve = 0" in state
-    assert "migrated.version = 14" in state
+    assert "migrated.version = 15" in state
     assert "11, 11.0" in state
 
 
@@ -483,7 +483,7 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
     assert "const CAT_SATIETY_ROAD_COST: int = 10" in catalog
     assert "const CAT_PATTERNS" in catalog
 
-    assert '"version":14' in state
+    assert '"version":15' in state
     assert '"fish_stock":0' in state
     assert '"cat_owned":false' in state
     assert '"cat_design":{}' in state
@@ -530,7 +530,7 @@ def test_cat_satiety_is_progression_based_not_wall_clock():
     assert "cat_adventure_tick()" in state
 
 
-def test_v13_save_migrates_cat_companion_fields_to_v14():
+def test_v13_save_migrates_cat_companion_fields_through_v15():
     from pathlib import Path
 
     state = Path("scripts/state.gd").read_text(encoding="utf-8")
@@ -541,7 +541,7 @@ def test_v13_save_migrates_cat_companion_fields_to_v14():
     assert 'migrated.cat_design = {}' in state
     assert 'migrated.cat_offer = random_cat_design()' in state
     assert 'migrated.cat_satiety = 0' in state
-    assert "migrated.version = 14" in state
+    assert "migrated.version = 15" in state
 
 
 def test_waypoint_posts_are_standardized_and_location_specific():
@@ -563,3 +563,85 @@ def test_waypoint_posts_are_standardized_and_location_specific():
     assert "REST / SUPPLIES" in world
     assert '"difficulty_label"' in world
     assert "Crossroads reuses the destination-board grammar" in world
+
+
+def test_three_planned_regions_are_promoted_to_playable_routes():
+    import json
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+    routes = json.loads(Path("game_data/routes.json").read_text(encoding="utf-8"))
+    world_map = json.loads(Path("runtime/world_map.json").read_text(encoding="utf-8"))
+
+    for route_id in ["sunken_grotto", "cinder_caldera", "galecrest_spire"]:
+        assert f'"{route_id}":{{' in catalog
+        assert route_id in routes
+        node = next(x for x in world_map["nodes"] if x["id"] == route_id)
+        assert node["status"] == "active"
+        assert node["playable"] is True
+        assert node["kind"] == "route"
+        assert node.get("promoted_from_plan") is True
+
+    assert '"sunken_grotto"' in state
+    assert '"cinder_caldera"' in state
+    assert '"galecrest_spire"' in state
+    assert "sunken_grotto_landmark" in world
+    assert "cinder_caldera_landmark" in world
+    assert "galecrest_spire_landmark" in world
+
+
+def test_expansion_routes_have_distinct_hazards_collectibles_and_rewards():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    for field in ["prismatic_pearls", "ember_shards", "skyfeathers"]:
+        assert f'"{field}":0' in state
+
+    assert '"prismatic_pearl"' in state
+    assert '"ember_shard"' in state
+    assert '"skyfeather"' in state
+    assert "func collect_region_collectible(kind: String) -> String:" in state
+    assert '"slick algae slope"' in state
+    assert '"magma vent"' in state
+    assert '"gale-force gust"' in state
+
+    assert '"prismatic_pearl":' in world
+    assert '"ember_shard":' in world
+    assert '"skyfeather":' in world
+    assert 'JUMP  •  SLICK ALGAE' in world
+    assert 'JUMP  •  MAGMA VENT' in world
+    assert 'JUMP  •  GALE GUST' in world
+
+
+def test_expansion_routes_enter_stage_rotation_and_preserve_safe_corridor():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+
+    assert '["treasure", "shrine", "sunken_grotto"]' in state
+    assert '["moss", "fen", "cinder_caldera"]' in state
+    assert '["forge", "frost", "galecrest_spire"]' in state
+    assert "corridor_lanes" in state
+    assert 'place_special_cell(14, int(corridor_lanes[14]), "prismatic_pearl"' in state
+    assert 'place_special_cell(9, int(corridor_lanes[9]), "ember_shard"' in state
+    assert 'place_special_cell(9, int(corridor_lanes[9]), "skyfeather"' in state
+    assert "place_elite_encounter(route, corridor_lanes, local_rng)" in state
+
+
+def test_v14_cat_save_migrates_to_expansion_schema_v15():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+
+    assert "14, 14.0" in state
+    assert '"prismatic_pearls":0' in state
+    assert '"ember_shards":0' in state
+    assert '"skyfeathers":0' in state
+    assert "migrated.prismatic_pearls = 0" in state
+    assert "migrated.ember_shards = 0" in state
+    assert "migrated.skyfeathers = 0" in state
+    assert "migrated.version = 15" in state
