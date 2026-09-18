@@ -827,8 +827,8 @@ func collect_region_collectible(kind: String) -> String:
 			data.skyfeathers += 1
 			add_relic_charge(10)
 			if int(data.skyfeathers) % 3 == 0:
-				data.resolve = mini(99, int(data.resolve) + 8)
-				return "Skyfeather Relic recovered! Third feather bonus: +8 Resolve."
+				var feather_resolve: String = add_resolve(8)
+				return "Skyfeather Relic recovered! Third feather bonus: " + feather_resolve
 			return "Skyfeather Relic recovered from the high ruins."
 		_:
 			return ""
@@ -1142,8 +1142,10 @@ func finish_room() -> void:
 		loot += "\n+24 relic charge\n+10 expedition coins from ember salvage"
 	elif data.route == "galecrest_spire":
 		add_relic_charge(22)
-		data.resolve = mini(99, int(data.resolve) + 6)
-		loot += "\n+22 relic charge\n+6 Resolve from summit mastery"
+		var summit_resolve: String = add_resolve(6)
+		loot += "\n+22 relic charge"
+		if summit_resolve != "":
+			loot += "\n" + summit_resolve + " from summit mastery"
 	data.last = "Found: " + loot
 	if route_xp != "":
 		data.last += "\n" + route_xp
