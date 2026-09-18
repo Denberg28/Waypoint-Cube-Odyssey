@@ -52,6 +52,18 @@ const COSMETICS = [
 	{"id":"face_star_mark", "name":"Star Mark", "slot":"face", "price":210, "style":"star_mark", "color":"ead98c", "text":"A glowing cheek-side star mark."}
 ]
 
+# Persistent camp companion. The market rolls one procedural cat appearance at a
+# time; the adopted design is stored in the save so the companion never changes
+# unexpectedly after purchase.
+const CAT_PRICE: int = 160
+const CAT_SATIETY_PER_FISH: int = 30
+const CAT_SATIETY_ROAD_COST: int = 10
+const CAT_NAMES = ["Miso", "Pebble", "Juniper", "Mochi", "Soot", "Pippin", "Nimbus", "Maple"]
+const CAT_BODY_COLORS = ["c99068", "8d8177", "d6c0a2", "59656b", "b36e61", "d9d4c7"]
+const CAT_ACCENT_COLORS = ["f0e1c0", "4b3f3a", "b86f52", "758e88", "d7a0a0", "eee8dc"]
+const CAT_EYE_COLORS = ["e7c96f", "7fc6a4", "79a9d6", "c88bd1", "d99d63"]
+const CAT_PATTERNS = ["solid", "tuxedo", "tabby", "calico", "point"]
+
 static func cosmetic(id: String) -> Dictionary:
 	for item in COSMETICS:
 		if item.id == id:
