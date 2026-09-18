@@ -150,10 +150,11 @@ def test_star_rank_header_is_layout_stable_and_cached():
     assert "var cached_rank_text: String = \"\"" in main
     assert "header.offset_bottom = 90" in main
     assert "brand.custom_minimum_size.x = 560.0" in main
-    assert "rank_label.custom_minimum_size = Vector2(168.0, 20.0)" in main
-    assert "health_box.custom_minimum_size.x = 154.0" in main
+    assert "progression_box.custom_minimum_size.x = 170.0" in main
+    assert "rank_label.custom_minimum_size = Vector2(170.0, 17.0)" in main
+    assert "xp_bar.custom_minimum_size = Vector2(170.0, 5.0)" in main
+    assert "health.custom_minimum_size = Vector2(154.0, 18.0)" in main
     assert "economy.custom_minimum_size.x = 228.0" in main
-    assert "rank_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL" in main
     assert 'gear_button = button("Gear"' in main
     assert "if next_rank_text != cached_rank_text:" in main
     assert "rank_label.text = cached_rank_text" in main
@@ -192,17 +193,19 @@ def test_web_export_uses_commit_hashed_assets():
     assert 'Cache-Control' in workflow
 
 
-def test_header_places_rank_autosave_and_light_yellow_xp_meter():
+def test_header_places_rank_and_light_yellow_xp_meter_below_day_row():
     from pathlib import Path
 
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "var xp_bar: ProgressBar" in main
-    assert "brand_top.add_child(rank_label)" in main
     assert 'save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)' in main
-    assert "brand.add_child(save_label)" in main
+    assert "identity_box.add_child(save_label)" in main
     assert 'bottom.add_child(save_label)' not in main
-    assert "xp_bar.custom_minimum_size = Vector2(154.0, 5.0)" in main
+    assert "progression_box.add_child(brightness_box)" in main
+    assert "progression_box.add_child(rank_label)" in main
+    assert "progression_box.add_child(xp_bar)" in main
+    assert "xp_bar.custom_minimum_size = Vector2(170.0, 5.0)" in main
     assert 'xp_fill.bg_color = Color("ead77a")' in main
     assert "xp_bar.value = 100.0" in main
     assert "game.xp_to_next()" in main

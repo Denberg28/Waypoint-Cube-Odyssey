@@ -321,27 +321,44 @@ func build_ui() -> void:
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	header.add_child(row)
-	var brand = VBoxContainer.new()
+	var brand = HBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	brand.custom_minimum_size.x = 560.0
-	brand.add_theme_constant_override("separation", 1)
+	brand.add_theme_constant_override("separation", 16)
 	row.add_child(brand)
 
-	var brand_top = HBoxContainer.new()
-	brand_top.alignment = BoxContainer.ALIGNMENT_CENTER
-	brand_top.add_theme_constant_override("separation", 8)
-	brand.add_child(brand_top)
+	# Identity column stays on the far left.
+	var identity_box = VBoxContainer.new()
+	identity_box.custom_minimum_size.x = 190.0
+	identity_box.add_theme_constant_override("separation", 1)
+	brand.add_child(identity_box)
 
 	var waypoint_label := label("W A Y P O I N T", 20, GOLD)
 	waypoint_label.custom_minimum_size.x = 190.0
 	waypoint_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	brand_top.add_child(waypoint_label)
+	identity_box.add_child(waypoint_label)
+
+	brand_subtitle_label = label("CUBE ODYSSEY  /  FREE ADVENTURE", 8, MUTED)
+	brand_subtitle_label.custom_minimum_size = Vector2(190.0, 12.0)
+	brand_subtitle_label.clip_text = true
+	identity_box.add_child(brand_subtitle_label)
+
+	save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)
+	save_label.custom_minimum_size = Vector2(190.0, 11.0)
+	save_label.clip_text = true
+	identity_box.add_child(save_label)
+
+	# Progression column: DAY/DUSK/NIGHT -> LV/stars -> XP bar.
+	var progression_box = VBoxContainer.new()
+	progression_box.custom_minimum_size.x = 170.0
+	progression_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	progression_box.add_theme_constant_override("separation", 2)
+	brand.add_child(progression_box)
 
 	var brightness_box = HBoxContainer.new()
 	brightness_box.add_theme_constant_override("separation", 3)
-	brightness_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	brand_top.add_child(brightness_box)
+	progression_box.add_child(brightness_box)
 	brightness_buttons = []
 	for entry in [["DAY", 0, "Day brightness"], ["DUSK", 1, "Dusk brightness"], ["NIGHT", 2, "Night brightness"]]:
 		var brightness_index: int = int(entry[1])
@@ -351,47 +368,16 @@ func build_ui() -> void:
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
 
-	# Flexible spacer keeps rank visually separated from DAY/DUSK/NIGHT.
-	var rank_spacer = Control.new()
-	rank_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand_top.add_child(rank_spacer)
-
 	cached_rank_text = game.star_rank_text()
 	rank_label = label(cached_rank_text, 9, GOLD)
-	rank_label.custom_minimum_size = Vector2(168.0, 20.0)
-	rank_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rank_label.custom_minimum_size = Vector2(170.0, 17.0)
 	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	rank_label.clip_text = true
-	brand_top.add_child(rank_label)
-
-	brand_subtitle_label = label("CUBE ODYSSEY  /  FREE ADVENTURE", 8, MUTED)
-	brand_subtitle_label.custom_minimum_size = Vector2(220.0, 12.0)
-	brand_subtitle_label.clip_text = true
-	brand.add_child(brand_subtitle_label)
-
-	# Autosave state belongs with identity/status, not in the movement controls.
-	save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)
-	save_label.custom_minimum_size = Vector2(220.0, 11.0)
-	save_label.clip_text = true
-	brand.add_child(save_label)
-
-	# Health gets its own RPG-style XP meter directly underneath.
-	var health_box = VBoxContainer.new()
-	health_box.custom_minimum_size.x = 154.0
-	health_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	health_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	health_box.add_theme_constant_override("separation", 2)
-	row.add_child(health_box)
-
-	health = label("", 16, MINT)
-	health.custom_minimum_size.y = 18.0
-	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	health_box.add_child(health)
+	progression_box.add_child(rank_label)
 
 	xp_bar = ProgressBar.new()
-	xp_bar.custom_minimum_size = Vector2(154.0, 5.0)
+	xp_bar.custom_minimum_size = Vector2(170.0, 5.0)
 	xp_bar.min_value = 0.0
 	xp_bar.max_value = 100.0
 	xp_bar.value = 0.0
@@ -405,7 +391,15 @@ func build_ui() -> void:
 	xp_fill.set_corner_radius_all(3)
 	xp_bar.add_theme_stylebox_override("background", xp_bg)
 	xp_bar.add_theme_stylebox_override("fill", xp_fill)
-	health_box.add_child(xp_bar)
+	progression_box.add_child(xp_bar)
+
+	# HEARTS remains a simple right-side status; XP no longer lives here.
+	health = label("", 16, MINT)
+	health.custom_minimum_size = Vector2(154.0, 18.0)
+	health.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(health)
 	economy = label("", 13, GOLD)
 	economy.custom_minimum_size.x = 228.0
 	economy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
