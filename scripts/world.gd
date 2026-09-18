@@ -393,6 +393,9 @@ func build() -> void:
 	elif not entrance and state.data.mode == "camp":
 		pose_actor_at_camp()
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
+	if not entrance and state.data.mode == "camp":
+		# Frame the seated character, bench, and bonfire together.
+		camera_target = Vector3(0, 0.12, -3.05)
 	update_camera()
 	refresh_props()
 
@@ -466,6 +469,12 @@ func camp() -> void:
 	box(scenery, Vector3(3.8, 1.3, -7), Vector3(0.2, 2.8, 0.2), active_theme.post)
 	box(scenery, Vector3(3.8, 2.7, -7), Vector3(0.7, 0.8, 0.7), active_theme.text, true)
 	floating_text(scenery, "LANTERN CAMP", Vector3(0, 3.5, -8), active_theme.text, 48)
+
+	# Camp actions stay in the 3D scene so the bonfire/rest view is never covered
+	# by an automatic modal after returning home.
+	var continue_pos := Vector3(-4.9, 2.02, -4.72)
+	clickable_board(scenery, continue_pos, Vector3(2.75, 0.58, 0.22), Color("78906f"), "", false, false, true)
+	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 20)
 
 	# Clickable camp market stall.
 	box(scenery, Vector3(4.9, 0.55, -4.8), Vector3(2.2, 1.0, 1.45), Color("6f5b45"))
