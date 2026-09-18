@@ -2,9 +2,9 @@
 
 This queue is generated from bounded Gemini council/development evidence. It is a handoff for Codex using the ChatGPT product workflow; it does **not** call the OpenAI API from GitHub Actions.
 
-Generated: `20260918T170921Z`
-New tasks this run: **3**
-Queue files present: **16**
+Generated: `20260918T193959Z`
+New tasks this run: **2**
+Queue files present: **18**
 Optimization-locked categories: **none**
 
 ## Next tasks

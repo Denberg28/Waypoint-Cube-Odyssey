@@ -1,0 +1,47 @@
+{
+  "session_summary": "Evaluated state transitions and edge-case behaviors on the Ember Forge route. Confirmed successful route completion, coin collection telemetry, and obstacle interaction handling, noting repetitive input locking against active obstacles.",
+  "fun_score": 4,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry shows two consecutive 'obstacle_hit' events at step 2 (`from_step: 2, to_step: 2`) with duplicate 'The obstacle blocks walking. Use Jump.' messages before the player successfully issued a Jump action.",
+      "recommendation": "Implement input command buffering or automatic action switching when a walk command is received against a blocked state to prevent redundant error spam.",
+      "id": "20260918T193357Z-qa_edge_cases-obs-1"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Redundant Walk Commands Do Not Increment Step Counter on Blocked Obstacle",
+      "severity": "low",
+      "repro_steps": [
+        "Start route on Ember Forge",
+        "Walk forward until reaching an obstacle at step 2",
+        "Issue multiple walk commands without jumping"
+      ],
+      "expected": "Player position remains stable or movement command is rejected gracefully without duplicate message stacking.",
+      "observed": "Multiple walk commands are accepted by the input parser while the player is blocked, resulting in duplicate error messages at step 2 (`from_step: 2, to_step: 2`) before jumping.",
+      "id": "20260918T193357Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Input Buffering for Obstacle Interaction",
+      "category": "accessibility",
+      "player_value": "Improves responsiveness and reduces frustration when players press movement keys rapidly near obstacles.",
+      "rationale": "Edge-case testing shows players frequently attempt to keep walking into obstacles before realizing a jump is required.",
+      "safe_content_only": false,
+      "desired_outcome": "Automatically buffer or prompt the correct jump input when a walk action is entered against a known hazard.",
+      "id": "20260918T193357Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clean route completion handling and reward allocation (+25 coins on Ember Forge completion).",
+    "Accurate telemetry tracking for obstacle hits, jumps, and coin collections."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}

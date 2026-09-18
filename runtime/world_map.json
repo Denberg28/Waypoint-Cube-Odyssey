@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": 4,
-  "updated_utc": "2026-09-18T07:27:23Z",
+  "revision": 5,
+  "updated_utc": "2026-09-18T19:39:59Z",
   "summary": "Waypoint regional map. Gloomwood Hollow is now part of the playable route set.",
   "nodes": [
     {
@@ -120,6 +120,25 @@
         "gloomwood",
         "treasure"
       ]
+    },
+    {
+      "id": "cinder_caldera",
+      "name": "Cinder Caldera",
+      "kind": "region",
+      "status": "planned",
+      "playable": false,
+      "difficulty": 4,
+      "theme": "volcanic rift and magma flows",
+      "x": 0.63,
+      "y": 0.15,
+      "landmark": "The Obsidian Hearth",
+      "hazard": "Magma Vents",
+      "collectible": "Magma Ember Shards",
+      "rationale": "Introduces a high-difficulty tier-4 volcanic zone connecting Bramble Forge and Whispering Fen, fulfilling player demand for intense combat encounters and demanding navigation hazards.",
+      "connect_to": [
+        "forge",
+        "fen"
+      ]
     }
   ],
   "edges": [
@@ -186,6 +205,14 @@
     {
       "from": "treasure",
       "to": "sunken_grotto"
+    },
+    {
+      "from": "forge",
+      "to": "cinder_caldera"
+    },
+    {
+      "from": "fen",
+      "to": "cinder_caldera"
     }
   ],
   "planned_limit": 12
