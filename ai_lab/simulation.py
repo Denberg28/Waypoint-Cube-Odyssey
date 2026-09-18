@@ -4,7 +4,7 @@ from streamlit_lab.core import ROUTES, COSMETICS, new_state, choose_route, move,
 
 PERSONA_ROUTES = {
     "first_time_player": "moss",
-    "explorer_collector": "fen",
+    "explorer_collector": "gloomwood",
     "combat_challenger": "frost",
     "economy_optimizer": "treasure",
     "accessibility_ux": "shrine",
