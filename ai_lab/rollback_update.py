@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REQUEST = ROOT / "runtime" / "rollback_request.json"
 GATE = ROOT / "runtime" / "development_gate.json"
 FLAGS = ROOT / "runtime" / "flagged_features.json"
+IMPLEMENTATION = ROOT / "runtime" / "implementation_request.json"
 
 SAFE_PREFIXES = (
     "scripts/",
@@ -62,6 +63,7 @@ def valid_sha(value: str) -> bool:
 def main() -> int:
     request = load(REQUEST, {})
     gate = load(GATE, {})
+    implementation = load(IMPLEMENTATION, {})
     flags = load(FLAGS, {"schema": 1, "features": []})
 
     if request.get("status") != "requested":
@@ -71,30 +73,22 @@ def main() -> int:
     bundle = str(request.get("bundle_id", ""))
     if bundle != str(gate.get("bundle_id", "")):
         raise RollbackError("Rollback request does not match the active accepted bundle.")
-    if str(gate.get("decision", "")) != "accepted":
-        raise RollbackError("Rollback requires an accepted bundle.")
-    checkpoint = str(request.get("checkpoint_sha", ""))
-    if checkpoint != str(gate.get("rollback_checkpoint_sha", "")) or not valid_sha(checkpoint):
-        raise RollbackError("Rollback checkpoint is missing or does not match the accepted gate.")
+    if str(implementation.get("request_id", "")) != str(request.get("implementation_request_id", "")):
+        raise RollbackError("Rollback request does not match the latest completed implementation batch.")
 
-    # Critical safety invariant: never infer the implementation file set from all
-    # commits since acceptance. That could erase unrelated work. The implementation
-    # worker/agent must record exactly which files it changed for this bundle.
-    changed = [str(x).replace("\\", "/") for x in gate.get("implementation_changed_files", [])]
+    checkpoint = str(request.get("checkpoint_sha", ""))
+    if not valid_sha(checkpoint):
+        raise RollbackError("Rollback checkpoint is missing or invalid.")
+
+    changed = [str(x).replace("\\", "/") for x in request.get("changed_files", [])]
     changed = sorted({x for x in changed if allowed_path(x)})
     if not changed:
         request["status"] = "blocked"
-        request["blocked_reason"] = (
-            "No implementation_changed_files manifest exists. Rollback stopped safely "
-            "instead of reverting unrelated changes."
-        )
-        request["updated_utc"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        request["blocked_reason"] = "No safe changed-file manifest exists for this implementation batch."
         save(REQUEST, request)
-        save(GATE, {**gate, "rollback_status": "blocked_no_manifest"})
         print(json.dumps({"ok": False, "action": "blocked", "reason": request["blocked_reason"]}))
         return 3
 
-    # Check checkpoint exists and is an ancestor of current HEAD.
     run("git", "cat-file", "-e", f"{checkpoint}^{{commit}}")
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", checkpoint, "HEAD"],
@@ -109,8 +103,6 @@ def main() -> int:
     run("git", "branch", backup_branch, "HEAD")
     run("git", "push", "origin", backup_branch)
 
-    # Restore only the implementation manifest paths from the checkpoint. This
-    # creates a forward rollback commit and leaves repository history intact.
     for path in changed:
         exists_at_checkpoint = subprocess.run(
             ["git", "cat-file", "-e", f"{checkpoint}:{path}"],
@@ -158,29 +150,55 @@ def main() -> int:
     }
     save(FLAGS, flags)
 
+    remaining_accepted = [
+        item for item in gate.get("selected_features", [])
+        if isinstance(item, dict) and str(item.get("id", "")) not in selected_ids
+    ]
+    remaining_accepted_ids = [str(item.get("id", "")) for item in remaining_accepted]
+    remaining_implemented = [
+        str(x) for x in gate.get("implemented_feature_ids", [])
+        if str(x) not in selected_ids
+    ]
+
     request.update({
         "status": "completed",
         "completed_utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "restored_files": changed,
         "backup_branch": backup_branch,
     })
+    implementation["status"] = "rolled_back"
+    implementation["rolled_back_utc"] = request["completed_utc"]
+
     gate.update({
-        "implementation_authorized": False,
+        "selected_features": remaining_accepted,
+        "selected_feature_ids": remaining_accepted_ids,
+        "implemented_feature_ids": remaining_implemented,
+        "implementation_authorized": bool(remaining_accepted_ids),
+        "decision": "accepted" if remaining_accepted_ids else "hold",
         "rollback_status": "completed",
         "rollback_completed_utc": request["completed_utc"],
         "rolled_back_files": changed,
         "flagged_feature_ids": sorted(selected_ids),
+        "implementation_changed_files": [],
+        "implementation_requested_feature_ids": [],
     })
+
     save(REQUEST, request)
+    save(IMPLEMENTATION, implementation)
     save(GATE, gate)
 
-    run("git", "add", "--", *changed, str(REQUEST.relative_to(ROOT)), str(GATE.relative_to(ROOT)), str(FLAGS.relative_to(ROOT)))
-    if run("git", "diff", "--cached", "--quiet", check=False) == "":
-        # diff --quiet emits no output; use return code explicitly below.
-        pass
+    run(
+        "git", "add", "--",
+        *changed,
+        str(REQUEST.relative_to(ROOT)),
+        str(GATE.relative_to(ROOT)),
+        str(FLAGS.relative_to(ROOT)),
+        str(IMPLEMENTATION.relative_to(ROOT)),
+    )
     proc = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT)
     if proc.returncode == 0:
         raise RollbackError("Rollback produced no repository changes.")
+
     run("git", "commit", "-m", f"rollback: restore pre-implementation state for {bundle}")
     run("git", "push", "origin", "HEAD:ai-development")
     print(json.dumps({
@@ -189,7 +207,7 @@ def main() -> int:
         "bundle_id": bundle,
         "files": changed,
         "backup_branch": backup_branch,
-        "flagged_features": sorted(selected_ids),
+        "returned_to_review": sorted(selected_ids),
     }))
     return 0
 
