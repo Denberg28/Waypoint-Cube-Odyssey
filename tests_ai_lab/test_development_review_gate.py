@@ -389,7 +389,7 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     assert "Your XP, Resolve" in defeat
     assert "RESOLVE %d%%" in main
     assert "positive motivation meter never decreases on defeat" in main
-    assert '"version":13' in state
+    assert '"version":14' in state
 
 
 def test_v11_pending_xp_is_migrated_into_credited_xp():
@@ -401,7 +401,7 @@ def test_v11_pending_xp_is_migrated_into_credited_xp():
     assert 'migrated.erase("pending_xp")' in state
     assert "carry_xp" in state
     assert "migrated.resolve = 0" in state
-    assert "migrated.version = 13" in state
+    assert "migrated.version = 14" in state
     assert "11, 11.0" in state
 
 
@@ -468,3 +468,77 @@ def test_streamlit_review_has_refresh_and_sync_visibility():
     assert "rebuild_recommendation_tally_from_history" in review
     assert 'tally["sync_id"] = sync_id' in review
     assert '"sync_id": sync_id' in review
+
+
+def test_cat_companion_market_feeding_and_mood_loop_present():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "const CAT_PRICE: int = 160" in catalog
+    assert "const CAT_SATIETY_PER_FISH: int = 30" in catalog
+    assert "const CAT_SATIETY_ROAD_COST: int = 10" in catalog
+    assert "const CAT_PATTERNS" in catalog
+
+    assert '"version":14' in state
+    assert '"fish_stock":0' in state
+    assert '"cat_owned":false' in state
+    assert '"cat_design":{}' in state
+    assert '"cat_offer":{}' in state
+    assert '"cat_satiety":0' in state
+    assert "func random_cat_design() -> Dictionary:" in state
+    assert "func refresh_cat_offer() -> bool:" in state
+    assert "func adopt_cat() -> bool:" in state
+    assert "func feed_cat() -> bool:" in state
+    assert "func cat_mood() -> String:" in state
+    assert '"PURRING"' in state
+    assert '"CONTENT"' in state
+    assert '"CURIOUS"' in state
+    assert '"HUNGRY"' in state
+    assert '"GRUMPY"' in state
+    assert "data.fish_stock += fish_portions" in state
+    assert "data.cat_satiety = mini(100" in state
+    assert "data.cat_satiety = maxi(0" in state
+    assert "var cat_status: String = cat_adventure_tick()" in state
+
+    assert 'for category in ["skin", "head", "back", "face", "cat"]' in main
+    assert 'func show_cat_market() -> void:' in main
+    assert 'Refresh random cat design' in main
+    assert 'func show_cat_companion() -> void:' in main
+    assert 'Feed 1 fish' in main
+    assert '"cat_adopted"' in main
+    assert '"cat_fed"' in main
+
+    assert "func build_cat_companion() -> void:" in world
+    assert "build_cat_companion()" in world
+    assert 'state.cat_mood()' in world
+
+
+def test_cat_satiety_is_progression_based_not_wall_clock():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    cat_tick = state.split("func cat_adventure_tick() -> String:", 1)[1].split("func owns_cosmetic", 1)[0]
+
+    assert "Time.get_" not in cat_tick
+    assert "delta" not in cat_tick
+    assert "CAT_SATIETY_ROAD_COST" in cat_tick
+    assert "finish_room()" in state
+    assert "cat_adventure_tick()" in state
+
+
+def test_v13_save_migrates_cat_companion_fields_to_v14():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+
+    assert "13, 13.0" in state
+    assert 'migrated.fish_stock = 0' in state
+    assert 'migrated.cat_owned = false' in state
+    assert 'migrated.cat_design = {}' in state
+    assert 'migrated.cat_offer = random_cat_design()' in state
+    assert 'migrated.cat_satiety = 0' in state
+    assert "migrated.version = 14" in state
