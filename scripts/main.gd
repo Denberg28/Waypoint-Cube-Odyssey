@@ -789,6 +789,10 @@ func feedback_context() -> Dictionary:
 		"coins_bag": int(game.data.get("bag", 0)),
 		"gems": int(game.data.get("gems", 0)),
 		"fish_caught": int(game.data.get("fish_caught", 0)),
+		"fish_stock": int(game.data.get("fish_stock", 0)),
+		"cat_owned": bool(game.data.get("cat_owned", false)),
+		"cat_satiety": int(game.data.get("cat_satiety", 0)),
+		"cat_mood": game.cat_mood(),
 		"equipped": game.data.get("equipped", {}).duplicate(true),
 		"owned_gear_count": game.data.get("inventory", []).size(),
 		"owned_cosmetics_count": game.data.get("cosmetics_owned", []).size(),
@@ -1073,7 +1077,10 @@ func update_hud() -> void:
 		side_equipment.text = "\n".join(eq) + "\nOwned gear: %d / %d" % [game.data.inventory.size(), Catalog.GEAR.size()]
 		side_potions.text = "Healing ×%d    Mana ×%d" % [int(game.data.potions.heal), int(game.data.potions.mana)]
 		var relic_text: String = "READY — NEXT GEAR RARE+" if int(game.data.relic_charge) >= 100 else "%d%%" % int(game.data.relic_charge)
-		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%   •   FISH %d   •   CAPS %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_caught), int(game.data.gloomcaps)]
+		var cat_hud: String = "NO CAT"
+		if bool(game.data.get("cat_owned", false)):
+			cat_hud = "CAT %s %d%%" % [game.cat_mood(), int(game.data.cat_satiety)]
+		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%   •   FISH %d/%d   •   %s" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_stock), int(game.data.fish_caught), cat_hud]
 		if is_instance_valid(compact_message):
 			compact_message.text = str(game.data.last).replace("\n", " ")
 
@@ -1168,6 +1175,7 @@ func show_mode() -> void:
 			modal("04 / HALFWAY WAYPOINT", "Take a breath.", "All expedition coins are banked. Hearts and mana carry forward; use supplies if needed. Equip your new finds before the next three trails.")
 			action("Equipment", func(): show_inventory(), true)
 			action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
+	action("Cat Companion", func(): show_cat_companion())
 			action("Continue the expedition   →", func(): game.data.mode = "choice"; commit())
 			action("Return home with your banked rewards", func(): game.return_camp(); commit())
 		"boss_intro":
@@ -1283,11 +1291,16 @@ func cosmetic_slot_name(slot: String) -> String:
 			return "BACK"
 		"face":
 			return "FACE"
+		"cat":
+			return "CAT"
 		_:
 			return slot.to_upper()
 
 func show_marketplace(slot: String = "skin") -> void:
 	if at_title or busy or game.data.mode not in ["camp", "rest", "choice"]:
+		return
+	if slot == "cat":
+		show_cat_market()
 		return
 	if slot not in ["skin", "head", "back", "face"]:
 		slot = "skin"
@@ -1296,7 +1309,7 @@ func show_marketplace(slot: String = "skin") -> void:
 	var tabs = HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 5)
 	stack.add_child(tabs)
-	for category in ["skin", "head", "back", "face"]:
+	for category in ["skin", "head", "back", "face", "cat"]:
 		var category_id: String = category
 		var tab = button(cosmetic_slot_name(category_id), func(): show_marketplace(category_id), category_id == slot)
 		tab.custom_minimum_size.y = 34
@@ -1350,10 +1363,89 @@ func show_marketplace(slot: String = "skin") -> void:
 	action("Done", func(): show_mode(), true)
 	schedule_modal_fit()
 
+func cat_design_summary(design: Dictionary) -> String:
+	if design.is_empty():
+		return "No cat"
+	return "%s  •  %s  •  body #%s  •  accent #%s" % [
+		str(design.get("name", "Cat")),
+		str(design.get("pattern", "solid")).capitalize(),
+		str(design.get("body", "")),
+		str(design.get("accent", ""))
+	]
+
+func show_cat_market() -> void:
+	if at_title or busy or game.data.mode not in ["camp", "rest", "choice"]:
+		return
+	modal("MARKETPLACE / CAT COMPANION", "Adopt a camp companion.", "The market shows one randomly designed cat at a time. Refreshing the offer is free. Cats do not add combat stats; they turn fishing into a persistent care loop.")
+	stack.add_child(label("BANK  %d COINS   •   ADOPTION %d" % [int(game.data.coins), Catalog.CAT_PRICE], FONT_BODY, GOLD))
+	if bool(game.data.get("cat_owned", false)):
+		stack.add_child(label("ADOPTED  •  %s" % cat_design_summary(game.data.cat_design), FONT_BODY, MINT))
+		stack.add_child(label("SATIETY %d%%  •  %s" % [int(game.data.cat_satiety), game.cat_mood()], FONT_BODY, GOLD))
+		stack.add_child(label(game.cat_mood_text(), FONT_CAPTION, MUTED))
+		action("Manage / Feed Cat", func(): show_cat_companion(), true)
+	else:
+		var offer: Dictionary = game.data.get("cat_offer", {})
+		stack.add_child(label("CURRENT OFFER", FONT_CAPTION, MUTED))
+		stack.add_child(label(cat_design_summary(offer), FONT_BODY, MINT))
+		action("Adopt for %d coins" % Catalog.CAT_PRICE, func():
+			if game.adopt_cat():
+				ai_telemetry.record("cat_adopted", game, {"name":str(game.data.cat_design.get("name", "")), "pattern":str(game.data.cat_design.get("pattern", "")), "price":Catalog.CAT_PRICE})
+				play_chime([392.0, 523.25, 659.25], 0.18, 0.03)
+			game.save_game()
+			world.refresh_actor()
+			world.build()
+			push_chat(str(game.data.last))
+			update_hud()
+			show_cat_market()
+		, true)
+		action("Refresh random cat design", func():
+			if game.refresh_cat_offer():
+				ai_telemetry.record("cat_market_refreshed", game, {"offer":game.data.cat_offer.duplicate(true)})
+			game.save_game()
+			push_chat(str(game.data.last))
+			show_cat_market()
+		)
+	action("Back to Wardrobe", func(): show_marketplace("skin"))
+	action("Done", func(): show_mode(), true)
+	schedule_modal_fit()
+
+func show_cat_companion() -> void:
+	if at_title or busy or game.data.mode not in ["camp", "rest", "choice"]:
+		return
+	if not bool(game.data.get("cat_owned", false)):
+		show_cat_market()
+		return
+	var name: String = str(game.data.cat_design.get("name", "Cat"))
+	modal("CAT COMPANION / %s" % name.to_upper(), game.cat_mood(), game.cat_mood_text())
+	stack.add_child(label("SATIETY  %d / 100" % int(game.data.cat_satiety), FONT_BODY, GOLD))
+	stack.add_child(label("FISH PANTRY  ×%d   •   LIFETIME CATCHES ×%d" % [int(game.data.fish_stock), int(game.data.fish_caught)], FONT_BODY, MINT))
+	stack.add_child(label(cat_design_summary(game.data.cat_design), FONT_CAPTION, MUTED))
+	var feed_text: String = "Feed 1 fish  •  +%d satiety" % Catalog.CAT_SATIETY_PER_FISH
+	var feed_btn = button(feed_text, func():
+		var before_mood: String = game.cat_mood()
+		if game.feed_cat():
+			ai_telemetry.record("cat_fed", game, {"before_mood":before_mood, "after_mood":game.cat_mood(), "satiety":int(game.data.cat_satiety), "fish_stock":int(game.data.fish_stock)})
+			play_chime([440.0, 587.33, 659.25], 0.12, 0.025)
+		game.save_game()
+		world.build()
+		push_chat(str(game.data.last))
+		update_hud()
+		show_cat_companion()
+	, true)
+	feed_btn.disabled = int(game.data.fish_stock) <= 0 or int(game.data.cat_satiety) >= 100
+	stack.add_child(feed_btn)
+	if int(game.data.fish_stock) <= 0:
+		stack.add_child(label("Adventure motivation: find a fishing pool and bring a catch home.", FONT_CAPTION, GOLD))
+	else:
+		stack.add_child(label("Each completed road lowers satiety by %d. Feed at safe waypoints." % Catalog.CAT_SATIETY_ROAD_COST, FONT_CAPTION, MUTED))
+	action("Marketplace", func(): show_cat_market())
+	action("Done", func(): show_mode(), true)
+	schedule_modal_fit()
+
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over.\n\nGLOOMWOOD HOLLOW: a twilight route around the Whispering Hollow Root. Jump over Ensnaring Briars and detour for Gloomcaps. Every Gloomcap adds Resolve; every third Gloomcap also grants 1 gem. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over.\n\nGLOOMWOOD HOLLOW: a twilight route around the Whispering Hollow Root. Jump over Ensnaring Briars and detour for Gloomcaps. Every Gloomcap adds Resolve; every third Gloomcap also grants 1 gem. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats. CAT COMPANION: the marketplace can show a random adoptable cat design. Fishing can stock the cat pantry; feeding raises satiety and changes mood. Each completed road lowers satiety slightly, giving fishing a persistent non-combat purpose.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func return_from_quit_window() -> void:
