@@ -17,6 +17,12 @@ Expanding the world map by introducing a new planned region, 'Gloomwood Hollow',
 - Landmark: The Whispering Hollow Root
 - Hazard: Ensnaring Briars
 - Collectible: Gloomcaps
-- Status remains **planned / non-playable** until a later core-route promotion step validates gameplay support.
+- Architect status at council time: **planned / non-playable**, pending separate implementation.
 
 > Guardrail: the World Architect may expand the planning graph but cannot delete or rewrite existing playable routes and cannot promote a proposal to playable by itself.
+
+## Implementation status
+
+- **PROMOTED TO PLAYABLE** on the `ai-development` branch after engineering implementation.
+- Gloomwood Hollow now has a dedicated twilight biome, Ensnaring Briar hazard presentation, the Whispering Hollow Root landmark, and persistent Gloomcap collection.
+- The World Architect remains planning-only; this promotion was performed by the implementation workflow.
