@@ -14,6 +14,7 @@ BRANCH = "ai-development"
 GATE_PATH = "runtime/development_gate.json"
 REVIEW_PATH = "runtime/development_review.json"
 ROLLBACK_REQUEST_PATH = "runtime/rollback_request.json"
+IMPLEMENTATION_REQUEST_PATH = "runtime/implementation_request.json"
 FLAGGED_FEATURES_PATH = "runtime/flagged_features.json"
 DECISIONS_PATH = "runtime/development_decisions.json"
 API_ROOT = f"https://api.github.com/repos/{REPOSITORY}"
@@ -223,6 +224,57 @@ def persist_decision(
     )
     return gate
 
+
+def request_implementation(*, token: str, gate: dict) -> dict:
+    if not token:
+        raise ReviewGateError("Missing GitHub contents token.")
+    if str(gate.get("decision", "")) != "accepted":
+        raise ReviewGateError("Only an accepted development bundle can be implemented.")
+    if not bool(gate.get("implementation_authorized", False)):
+        raise ReviewGateError("This development bundle is not implementation-authorized.")
+    bundle_id = str(gate.get("bundle_id", "")).strip()
+    checkpoint = str(gate.get("rollback_checkpoint_sha", "")).strip()
+    if not bundle_id or not checkpoint:
+        raise ReviewGateError("Accepted bundle is missing its rollback checkpoint.")
+
+    rollback = fetch_remote_json(ROLLBACK_REQUEST_PATH, {}) or {}
+    if (
+        str(rollback.get("bundle_id", "")) == bundle_id
+        and str(rollback.get("status", "")) in {"requested", "completed"}
+    ):
+        raise ReviewGateError("This bundle has a rollback request and cannot start implementation.")
+
+    existing = fetch_remote_json(IMPLEMENTATION_REQUEST_PATH, {}) or {}
+    if (
+        str(existing.get("bundle_id", "")) == bundle_id
+        and str(existing.get("status", "")) in {"requested", "in_progress", "completed"}
+    ):
+        return existing
+
+    request = {
+        "schema": 1,
+        "request_id": f"implement-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}",
+        "bundle_id": bundle_id,
+        "checkpoint_sha": checkpoint,
+        "requested_utc": utc_now(),
+        "requested_by": "owner",
+        "status": "requested",
+        "selected_feature_ids": list(gate.get("selected_feature_ids", [])),
+        "selected_features": list(gate.get("selected_features", [])),
+        "auto_merge_authorized": False,
+        "policy": (
+            "Begin staged implementation for this accepted bundle only. "
+            "Record the exact implementation file manifest before source changes are considered rollback-ready. "
+            "Do not merge automatically."
+        ),
+    }
+    _write_json(
+        IMPLEMENTATION_REQUEST_PATH,
+        token,
+        request,
+        f"implement: request bundle {bundle_id}",
+    )
+    return request
 
 def request_rollback(*, token: str, gate: dict, reason: str) -> dict:
     if not token:
