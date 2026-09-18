@@ -112,6 +112,32 @@ jobs:
       - name: Prepare owner development review bundle
         if: steps.budget.outputs.run_council == 'true'
         run: python -m ai_lab.development_review
+      - name: Verify review and recommendation tally are synchronized
+        if: steps.budget.outputs.run_council == 'true'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          review = json.loads(Path("runtime/development_review.json").read_text(encoding="utf-8"))
+          tally = json.loads(Path("runtime/recommendation_tally.json").read_text(encoding="utf-8"))
+          review_sync = str(review.get("sync_id", ""))
+          tally_sync = str(tally.get("sync_id", ""))
+          if not review_sync or review_sync != tally_sync:
+              raise SystemExit(
+                  f"development review/tally sync mismatch: review={review_sync!r} tally={tally_sync!r}"
+              )
+          if str(review.get("council_id", "")) == "":
+              raise SystemExit("development review missing council_id")
+          print(
+              "review/tally synchronized:",
+              review_sync,
+              "council:",
+              review.get("council_id"),
+              "tally:",
+              tally.get("updated_utc"),
+          )
+          PY
       - name: Install test dependencies
         if: steps.budget.outputs.run_council == 'true'
         run: python -m pip install -r requirements-dev.txt
