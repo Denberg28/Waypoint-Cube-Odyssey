@@ -2,6 +2,9 @@ name: Waypoint Gemini Beta Tester Council
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/beta-manual-trigger"
   schedule:
     - cron: "5 * * * *"
 
