@@ -142,7 +142,7 @@ with review_tab:
             selected_ids = []
             for item in pending:
                 fid = str(item.get("id", ""))
-                rolled_back = fid in flagged_ids
+                rolled_back = fid in flagged_ids or bool(item.get("rollback_flagged", False))
                 locked = bool(item.get("locked", False)) and not rolled_back
                 impl = str(item.get("implementation_class", "review_required")).replace("_", " ").title()
                 prefix = "ROLLED BACK · " if rolled_back else ""
@@ -259,7 +259,7 @@ with accepted_tab:
 
             if is_implemented:
                 checked = st.checkbox(
-                    f"IMPLEMENTED · {item.get('title','Untitled')}",
+                    f"🟢 IMPLEMENTED · {item.get('title','Untitled')}",
                     value=in_latest_batch,
                     disabled=not in_latest_batch or rollback_active,
                     key=f"implemented-{bundle_id}-{fid}",
@@ -269,7 +269,7 @@ with accepted_tab:
                 st.success(f"✓ {item.get('title','Untitled')} — implemented")
             else:
                 checked = st.checkbox(
-                    f"ACCEPTED · {item.get('title','Untitled')}",
+                    f"🟢 ACCEPTED · {item.get('title','Untitled')}",
                     value=False,
                     disabled=implementation_active or latest_batch_implemented or rollback_active,
                     key=f"accepted-{bundle_id}-{fid}",
