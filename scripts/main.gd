@@ -127,7 +127,11 @@ func _ready() -> void:
 			action("Stay at Road-End Waypoint", func(): show_mode())
 	)
 	world.continue_clicked.connect(func():
-		if not at_title and not busy and game.data.mode == "choice":
+		if at_title or busy:
+			return
+		if game.data.mode == "camp":
+			start_adventure()
+		elif game.data.mode == "choice":
 			show_routes()
 	)
 	world.marketplace_clicked.connect(func():
@@ -1022,28 +1026,12 @@ func show_mode() -> void:
 			overlay.hide()
 			show_fishing_game()
 		"camp":
-			modal("01 / LANTERN CAMP", "Rest by the fire.", "Your character is seated at the bonfire. Recover, manage gear, or leave camp when you are ready for another expedition.")
-			action("Head to Crossroads   →", func(): start_adventure(), true)
-			action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
-			action("Equipment", func(): show_inventory())
-			action("Choose New Character", func(): show_selector())
-			var cost: int = 40 * (int(game.data.camp_level) + 1)
-			if int(game.data.camp_level) < 3:
-				action("Restore camp  •  %d banked coins  •  +1 maximum heart" % cost, func():
-					if int(game.data.coins) >= cost:
-						game.data.coins -= cost
-						game.data.camp_level += 1
-						game.data.hp = game.max_hp()
-						game.data.last = "Another lantern lit. Your camp has grown."
-						commit()
-					else:
-						game.data.last = "You need %d more banked coins." % (cost - int(game.data.coins))
-						update_hud()
-				)
-			else:
-				stack.add_child(label("CAMP FULLY RESTORED  /  +3 maximum hearts", 17, GOLD))
-			stack.add_child(label("Expeditions %d    ·    Guardians defeated %d    ·    Gear %d / %d" % [int(game.data.runs), int(game.data.wins), game.data.inventory.size(), Catalog.GEAR.size()], 15, MUTED))
-			action("How to play", func(): show_help())
+			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
+			# so the seated character, bench, and bonfire are visible immediately.
+			overlay.hide()
+			route_panel.hide()
+			if is_instance_valid(fishing_layer):
+				fishing_layer.hide()
 		"choice":
 			overlay.hide()
 			route_panel.hide()
