@@ -705,17 +705,15 @@ func after_reward() -> void:
 		next_stage()
 
 func next_stage() -> void:
+	if int(data.stage) >= 6:
+		data.mode = "boss_intro"
+		return
 	if int(data.stage) == 3:
 		bank()
 		data.hp = max_hp()
 		data.mana = max_mana()
-		data.mode = "rest"
-	elif int(data.stage) >= 6:
-		data.mode = "boss_intro"
-	else:
-		# Every completed road now ends at a road-end waypoint first. The player
-		# returns to Lantern Camp, then deliberately walks back out to Crossroads.
-		data.mode = "road_end"
+	# Every normal road ends at one simple marker that sends the player to camp.
+	data.mode = "road_end"
 
 func bank() -> void:
 	data.coins += int(data.bag)
@@ -871,7 +869,7 @@ func valid_save(value: Variant) -> bool:
 		return false
 	if not (value.potions.heal is int or value.potions.heal is float) or not (value.potions.mana is int or value.potions.mana is float):
 		return false
-	if value.mode not in ["camp", "choice", "travel", "campfire", "fishing", "reward", "rest", "shrine", "traveler", "boss_intro", "boss", "victory", "defeat"]:
+	if value.mode not in ["camp", "road_end", "choice", "travel", "campfire", "fishing", "reward", "rest", "shrine", "traveler", "boss_intro", "boss", "victory", "defeat"]:
 		return false
 	if value.route not in Catalog.ROUTES or not value.last is String:
 		return false

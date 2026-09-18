@@ -343,6 +343,7 @@ func build() -> void:
 	var is_trail: bool = not entrance and state.data.mode in ["travel", "campfire", "fishing", "reward", "shrine", "traveler"]
 	var is_boss: bool = not entrance and state.data.mode in ["boss", "boss_intro", "victory"]
 	var is_crossroads: bool = not entrance and state.data.mode == "choice"
+	var is_road_end: bool = not entrance and state.data.mode == "road_end"
 	var count: int = State.STAGE_STEPS + 1 if is_trail else (6 if is_crossroads else 5)
 	var local_rng = RandomNumberGenerator.new()
 	local_rng.seed = int(state.data.seed)
@@ -380,6 +381,9 @@ func build() -> void:
 		floating_text(scenery, "WAYPOINT", Vector3(0, 3.3, finish_z), active_theme.text, 42)
 	elif is_boss:
 		guardian()
+	elif is_road_end:
+		var finish_z: float = -float(count - 1) * ROW_SPACING
+		road_end_waypoint(finish_z)
 	elif is_crossroads:
 		var finish_z: float = -float(count - 1) * ROW_SPACING
 		crossroads(finish_z)
@@ -388,14 +392,16 @@ func build() -> void:
 	actor.position = Vector3(int(state.data.lane) * LANE_SPACING, 0.16, -int(state.data.row) * ROW_SPACING) if is_trail else Vector3(0, 0.16, 0)
 	if is_boss:
 		actor.position = Vector3(int(state.data.lane) * LANE_SPACING, 0.16, 0)
+	elif is_road_end:
+		actor.position = Vector3(0, 0.16, -float(count - 1) * ROW_SPACING + ROW_SPACING * 1.35)
 	elif is_crossroads:
 		actor.position = Vector3(0, 0.16, -float(count - 1) * ROW_SPACING + ROW_SPACING * 1.35)
 	elif not entrance and state.data.mode == "camp":
 		pose_actor_at_camp()
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	if not entrance and state.data.mode == "camp":
-		# Frame the seated character, bench, and bonfire together.
-		camera_target = Vector3(0, 0.12, -3.05)
+		# Frame the side bench, seated character, and bonfire together.
+		camera_target = Vector3(-1.35, 0.12, -3.95)
 	update_camera()
 	refresh_props()
 
@@ -459,49 +465,56 @@ func camp() -> void:
 	cone(scenery, Vector3(0, 0.58, fire_z), 0.46, 1.28, Color("ffb65c"), 0.06)
 	cone(scenery, Vector3(0, 0.82, fire_z), 0.26, 0.72, Color("ffe08a"), 0.03)
 
-	# Bench faces the bonfire. The actor is posed onto this seat in build().
-	var bench_z: float = -2.85
-	box(scenery, Vector3(0, 0.36, bench_z), Vector3(2.35, 0.22, 0.76), active_theme.post)
-	box(scenery, Vector3(0, 0.86, bench_z + 0.34), Vector3(2.35, 0.82, 0.18), active_theme.post)
-	for x in [-0.85, 0.85]:
-		box(scenery, Vector3(x, 0.16, bench_z), Vector3(0.18, 0.55, 0.18), active_theme.post)
+	# Side bench: the cube rests off the centerline and looks diagonally into the fire.
+	var bench_x: float = -3.15
+	var bench_z: float = -3.05
+	box(scenery, Vector3(bench_x, 0.36, bench_z), Vector3(2.35, 0.22, 0.76), active_theme.post)
+	box(scenery, Vector3(bench_x, 0.86, bench_z + 0.34), Vector3(2.35, 0.82, 0.18), active_theme.post)
+	for offset_x in [-0.85, 0.85]:
+		box(scenery, Vector3(bench_x + offset_x, 0.16, bench_z), Vector3(0.18, 0.55, 0.18), active_theme.post)
 
 	box(scenery, Vector3(3.8, 1.3, -7), Vector3(0.2, 2.8, 0.2), active_theme.post)
 	box(scenery, Vector3(3.8, 2.7, -7), Vector3(0.7, 0.8, 0.7), active_theme.text, true)
 	floating_text(scenery, "LANTERN CAMP", Vector3(0, 3.5, -8), active_theme.text, 48)
 
-	# Camp actions stay in the 3D scene so the bonfire/rest view is never covered
-	# by an automatic modal after returning home.
-	var continue_pos := Vector3(-4.9, 2.02, -4.72)
-	clickable_board(scenery, continue_pos, Vector3(2.75, 0.58, 0.22), Color("78906f"), "", false, false, true)
+	# Keep camp navigation intentionally simple: one clear way back to the adventure.
+	var continue_pos := Vector3(4.55, 1.95, -4.70)
+	clickable_board(scenery, continue_pos, Vector3(3.05, 0.62, 0.24), Color("78906f"), "", false, false, true)
 	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 20)
-
-	# Clickable camp market stall.
-	box(scenery, Vector3(4.9, 0.55, -4.8), Vector3(2.2, 1.0, 1.45), Color("6f5b45"))
-	box(scenery, Vector3(4.9, 1.42, -4.8), Vector3(2.55, 0.18, 1.65), Color("b78b57"))
-	clickable_board(scenery, Vector3(4.9, 2.02, -4.72), Vector3(2.35, 0.58, 0.22), Color("c6a66d"), "", true)
-	floating_text(scenery, "MARKET  •  CLICK", Vector3(4.9, 2.05, -4.56), Color("fff0bd"), 24)
 	for i in range(int(state.data.camp_level)):
 		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
 
 func pose_actor_at_camp() -> void:
-	actor.position = Vector3(0, 0.52, -2.86)
-	actor.rotation = Vector3(0, PI, 0)
+	actor.position = Vector3(-3.15, 0.52, -3.06)
+	var fire_position := Vector3(0.0, 0.58, -5.15)
+	var to_fire: Vector3 = fire_position - actor.position
+	# The character face is built on local +Z, so point +Z directly at the bonfire.
+	actor.rotation = Vector3(0, atan2(to_fire.x, to_fire.z), 0)
 	if is_instance_valid(left_foot):
 		left_foot.position = Vector3(-0.24, -0.22, 0.34)
-		left_foot.rotation.x = -0.35
+		left_foot.rotation.x = -0.48
 	if is_instance_valid(right_foot):
 		right_foot.position = Vector3(0.24, -0.22, 0.34)
-		right_foot.rotation.x = -0.35
+		right_foot.rotation.x = -0.48
 	if is_instance_valid(left_arm):
-		left_arm.position.y = 0.22
-		left_arm.rotation.x = -0.18
+		left_arm.position.y = 0.20
+		left_arm.rotation.x = -0.22
 	if is_instance_valid(right_arm):
-		right_arm.position.y = 0.22
-		right_arm.rotation.x = -0.18
+		right_arm.position.y = 0.20
+		right_arm.rotation.x = -0.22
+
+func road_end_waypoint(finish_z: float) -> void:
+	# The end of every normal road has one obvious destination: Lantern Camp.
+	box(scenery, Vector3(0, 1.55, finish_z), Vector3(0.30, 3.4, 0.30), Color("8f6848"))
+	var camp_pos := Vector3(0, 1.42, finish_z + 0.12)
+	clickable_board(scenery, camp_pos, Vector3(3.35, 0.68, 0.26), Color("6b806b"), "", false, true)
+	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.04, 0.17), Color("fff0bd"), 24)
+	floating_text(scenery, "ROAD COMPLETE  •  RETURN TO CAMP", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 20)
+	for x in [-2.2, 0.0, 2.2]:
+		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 
 func crossroads(finish_z: float) -> void:
-	# Road-end crossroads: route selection no longer happens inside Lantern Camp.
+	# Route selection happens only after the player leaves Lantern Camp.
 	box(scenery, Vector3(0, 1.55, finish_z), Vector3(0.30, 3.4, 0.30), Color("8f6848"))
 	var options: Array = route_options_for_stage()
 	var board_layout: Array = [
@@ -517,15 +530,7 @@ func crossroads(finish_z: float) -> void:
 		clickable_board(scenery, board.pos, board.size, board_color, route_id)
 		floating_text(scenery, str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 22)
 
-	# High-level road-end choices. Lantern Camp asks for confirmation in main.gd;
-	# Continue Adventure opens the route chooser while keeping the player here.
-	var continue_pos := Vector3(-2.55, 0.66, finish_z + 0.15)
-	clickable_board(scenery, continue_pos, Vector3(2.75, 0.50, 0.24), Color("8c7352"), "", false, false, true)
-	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 19)
-	var camp_pos := Vector3(2.55, 0.66, finish_z + 0.15)
-	clickable_board(scenery, camp_pos, Vector3(2.55, 0.50, 0.24), Color("6b806b"), "", false, true)
-	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
-	floating_text(scenery, "ROAD-END WAYPOINT  •  CHOOSE YOUR NEXT STEP", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 20)
+	floating_text(scenery, "CROSSROADS  •  CHOOSE YOUR NEXT ROAD", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 20)
 	for x in [-2.2, 0.0, 2.2]:
 		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 

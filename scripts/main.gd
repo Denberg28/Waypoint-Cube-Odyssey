@@ -117,22 +117,18 @@ func _ready() -> void:
 	world.setup(game)
 	world.route_clicked.connect(func(route_id: String): preview_route(route_id))
 	world.camp_clicked.connect(func():
-		if not at_title and not busy and game.data.mode == "choice":
-			modal("RETURN TO CAMP", "Go to Lantern Camp?", "Leave the road-end waypoint and return to Lantern Camp. Your banked progress and permanent gear remain safe.")
-			action("Go to Lantern Camp", func():
-				game.return_camp()
-				push_chat("Returned to Lantern Camp.")
-				commit()
-			, true)
-			action("Stay at Road-End Waypoint", func(): show_mode())
+		if not at_title and not busy and game.data.mode == "road_end":
+			game.return_camp()
+			push_chat("Road complete. Returned to Lantern Camp.")
+			commit()
 	)
 	world.continue_clicked.connect(func():
-		if at_title or busy:
+		if at_title or busy or game.data.mode != "camp":
 			return
-		if game.data.mode == "camp":
-			start_adventure()
-		elif game.data.mode == "choice":
-			show_routes()
+		game.leave_camp_for_crossroads()
+		current_music_variant = -1
+		push_chat("Leaving Lantern Camp. The crossroads is ahead.")
+		commit()
 	)
 	world.marketplace_clicked.connect(func():
 		if not at_title and not busy and game.data.mode in ["camp", "rest", "choice"]:
@@ -945,7 +941,14 @@ func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
-	title.text = str(route.name) if game.data.mode in ["travel", "campfire", "fishing"] else "Lantern Camp"
+	if game.data.mode in ["travel", "campfire", "fishing"]:
+		title.text = str(route.name)
+	elif game.data.mode == "road_end":
+		title.text = "Road End"
+	elif game.data.mode == "choice":
+		title.text = "Crossroads"
+	else:
+		title.text = "Lantern Camp"
 	if game.data.mode in ["boss", "boss_intro"]:
 		title.text = "The Heartwood Keeper"
 	subtitle.text = "MOSSWOOD   /   A LITTLE CUBE. A LONG WAY HOME."
@@ -992,9 +995,9 @@ func commit(rebuild: bool = true) -> void:
 func start_adventure() -> void:
 	if at_title or busy or game.data.mode != "camp":
 		return
-	game.begin(str(game.data.class_id))
+	game.leave_camp_for_crossroads()
 	current_music_variant = -1
-	push_chat("Adventure started. Walk to the road-end crossroads and choose your next route.")
+	push_chat("Leaving Lantern Camp. The crossroads is ahead.")
 	commit()
 
 func show_mode() -> void:
@@ -1025,9 +1028,13 @@ func show_mode() -> void:
 		"fishing":
 			overlay.hide()
 			show_fishing_game()
+		"road_end":
+			overlay.hide()
+			route_panel.hide()
+			push_chat("Road complete. Follow the LANTERN CAMP marker to rest.")
 		"camp":
 			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
-			# so the seated character, bench, and bonfire are visible immediately.
+			# so the side bench, seated character, and bonfire are visible immediately.
 			overlay.hide()
 			route_panel.hide()
 			if is_instance_valid(fishing_layer):
@@ -1035,7 +1042,7 @@ func show_mode() -> void:
 		"choice":
 			overlay.hide()
 			route_panel.hide()
-			push_chat("Road-end waypoint: select CONTINUE ADVENTURE to choose the next route, or LANTERN CAMP to return home.")
+			push_chat("Crossroads ahead. Choose one of the route signs.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
@@ -1247,7 +1254,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt Lantern Camp, open Marketplace / Wardrobe from the camp menu or click the MARKET stall. Rest by the bonfire, then head to the road-end waypoint. Select CONTINUE ADVENTURE to choose the next route, or select LANTERN CAMP and confirm to return home. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt the end of a road, follow the LANTERN CAMP marker home. Your cube sits on the side bench facing the bonfire. Select CONTINUE ADVENTURE at camp to return to the crossroads and choose the next route. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
