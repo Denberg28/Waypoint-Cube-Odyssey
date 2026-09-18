@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "policy_version": "1.0",
+  "updated_utc": "20260918T010636Z",
+  "active_milestone_id": "M1-core-playability-ui",
+  "locked_categories": [],
+  "beta_cadence_hours": 1,
+  "development_cadence_hours": 3,
+  "milestones": [
+    {
+      "id": "M1-core-playability-ui",
+      "title": "Core playability and UI stability",
+      "categories": [
+        "onboarding",
+        "ux",
+        "accessibility",
+        "stability"
+      ],
+      "min_stable_councils": 6,
+      "max_councils": 12,
+      "status": "active",
+      "activated_utc": "20260918T010034Z",
+      "locked_utc": "",
+      "lock_reason": "",
+      "councils_seen": 1,
+      "stable_streak": 1,
+      "optimization_freeze": false,
+      "last_evaluation": {
+        "council_id": "beta-20260918T010034Z",
+        "stable": true,
+        "recent_high_severity_councils": 0
+      }
+    },
+    {
+      "id": "M2-progression-economy",
+      "title": "Progression and economy",
+      "categories": [
+        "progression",
+        "economy",
+        "marketplace"
+      ],
+      "min_stable_councils": 6,
+      "max_councils": 12,
+      "status": "queued",
+      "activated_utc": "",
+      "locked_utc": "",
+      "lock_reason": "",
+      "councils_seen": 0,
+      "stable_streak": 0,
+      "optimization_freeze": false,
+      "last_evaluation": {}
+    },
+    {
+      "id": "M3-exploration-content",
+      "title": "Exploration, content, and retention",
+      "categories": [
+        "exploration",
+        "content",
+        "retention"
+      ],
+      "min_stable_councils": 6,
+      "max_councils": 12,
+      "status": "queued",
+      "activated_utc": "",
+      "locked_utc": "",
+      "lock_reason": "",
+      "councils_seen": 0,
+      "stable_streak": 0,
+      "optimization_freeze": false,
+      "last_evaluation": {}
+    },
+    {
+      "id": "M4-release-hardening",
+      "title": "Release hardening and regression watch",
+      "categories": [
+        "stability",
+        "ux",
+        "accessibility"
+      ],
+      "min_stable_councils": 8,
+      "max_councils": 16,
+      "status": "queued",
+      "activated_utc": "",
+      "locked_utc": "",
+      "lock_reason": "",
+      "councils_seen": 0,
+      "stable_streak": 0,
+      "optimization_freeze": false,
+      "last_evaluation": {}
+    }
+  ]
+}

@@ -2,33 +2,33 @@
   {
     "source": "real_public_playtests_aggregate",
     "window_hours": 72,
-    "sample_events": 2374,
-    "unique_sessions": 3,
+    "sample_events": 3248,
+    "unique_sessions": 4,
     "event_counts": {
-      "movement": 1241,
-      "music_context": 216,
-      "music_shuffle": 410,
+      "movement": 1698,
+      "music_context": 291,
+      "music_shuffle": 556,
       "obstacle_jump": 3,
-      "route_preview": 76,
-      "fishing_result": 10,
-      "route_complete": 67,
-      "route_selected": 71,
-      "enemy_encounter": 276,
+      "route_preview": 115,
+      "fishing_result": 11,
+      "route_complete": 92,
+      "route_selected": 95,
+      "enemy_encounter": 383,
       "cosmetic_equipped": 4
     },
     "route_activity": {
-      "fen": 551,
-      "moss": 134,
-      "forge": 542,
-      "frost": 472,
-      "shrine": 224,
-      "treasure": 451
+      "fen": 743,
+      "moss": 194,
+      "forge": 793,
+      "frost": 617,
+      "shrine": 322,
+      "treasure": 579
     },
     "music": {
       "mute_events": 0,
-      "shuffle_events": 410,
-      "context_changes": 216
+      "shuffle_events": 556,
+      "context_changes": 291
     },
-    "generated_at": "2026-09-17T22:14:45.152302+00:00"
+    "generated_at": "2026-09-18T01:00:33.945478+00:00"
   }
 ]

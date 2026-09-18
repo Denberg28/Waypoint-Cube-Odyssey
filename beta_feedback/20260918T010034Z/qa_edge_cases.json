@@ -1,0 +1,47 @@
+{
+  "session_summary": "Evaluated the Ember Forge route as the QA Edge-Case Tester, focusing on movement validation, obstacle collisions, state transitions, and input buffering. Observed that repeating 'walk' commands against an obstacle results in redundant telemetry events and player damage without command throttling or input buffering.",
+  "fun_score": 3,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry shows two consecutive 'obstacle_hit' events (damage: 8) when the player repeatedly sent walk commands against a step 2 obstacle before issuing a jump command.",
+      "recommendation": "Implement input buffering or command throttling for movement commands when blocked by obstacles to prevent spamming damage.",
+      "id": "20260918T010034Z-qa_edge_cases-obs-1"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Redundant Walk Collision Damage Spam",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route Ember Forge.",
+        "Walk forward to step 2 where an obstacle blocks movement.",
+        "Repeatedly issue 'walk' commands without jumping."
+      ],
+      "expected": "Player should either halt at the obstacle or receive a single collision notification without taking duplicate rapid damage ticks from redundant inputs.",
+      "observed": "Player took damage multiple times (2x 8 damage) and generated redundant 'obstacle_hit' telemetry events before switching to jump.",
+      "id": "20260918T010034Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Movement Command Input Buffering",
+      "category": "stability",
+      "player_value": "Prevents accidental self-damage and jittery state transitions when repeatedly pressing movement keys against environmental blocks.",
+      "rationale": "Edge-case telemetry shows players attempt to queue walk commands against active hazard collisions. Buffering or ignoring invalid movement commands improves handling feel.",
+      "safe_content_only": false,
+      "desired_outcome": "Movement inputs queued against obstacles are filtered or buffered safely until the obstacle is cleared.",
+      "id": "20260918T010034Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clear route progression states and reliable completion triggers upon reaching final steps.",
+    "Responsive jump mechanics once successfully triggered."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}

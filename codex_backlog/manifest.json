@@ -1,7 +1,9 @@
 {
   "schema": 1,
-  "updated_utc": "20260917T221449Z",
+  "updated_utc": "20260918T010636Z",
   "active_queue_limit": 8,
+  "locked_categories": [],
+  "rollback_flagged_feature_ids": [],
   "tasks": [
     {
       "schema": 1,
@@ -145,6 +147,108 @@
         "Read AGENTS.md before implementation.",
         "Do not auto-merge.",
         "Do not modify unrelated gameplay/economy/content.",
+        "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
+        "Preserve Godot 4.7.x Web compatibility."
+      ],
+      "validation": [
+        "python -m pytest tests_ai_lab -q",
+        "Run the repository Godot Web export workflow for Godot/UI changes."
+      ]
+    },
+    {
+      "schema": 1,
+      "task_id": "codex-156858f18c5d",
+      "fingerprint": "156858f18c5d",
+      "status": "queued",
+      "priority": "P2",
+      "category": "combat",
+      "title": "Elite Enemy Waves & Aggressive Encounter Pacing on Difficulty 3+ Routes",
+      "reason": "Current high-difficulty routes feature sparse enemy spacing, making combat feel trivial rather than challenging.",
+      "source_ids": [
+        "20260918T010034Z-combat_challenger-feature-1"
+      ],
+      "created_utc": "20260918T010636Z",
+      "branch_base": "ai-development",
+      "lock_override": "",
+      "acceptance_criteria": [
+        "Add elite enemy variants and increased encounter frequency to routes with difficulty 3 or higher.",
+        "Use existing architecture before adding a new subsystem.",
+        "Keep desktop and Web behavior aligned.",
+        "Add or update tests when feasible."
+      ],
+      "constraints": [
+        "Read AGENTS.md before implementation.",
+        "Do not auto-merge.",
+        "Do not modify unrelated gameplay/economy/content.",
+        "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
+        "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
+        "Preserve Godot 4.7.x Web compatibility."
+      ],
+      "validation": [
+        "python -m pytest tests_ai_lab -q",
+        "Run the repository Godot Web export workflow for Godot/UI changes."
+      ]
+    },
+    {
+      "schema": 1,
+      "task_id": "codex-5dc04027aeab",
+      "fingerprint": "5dc04027aeab",
+      "status": "queued",
+      "priority": "P2",
+      "category": "accessibility",
+      "title": "Keyboard Navigation Shortcuts for Marketplace & Inventory",
+      "reason": "Improves overall keyboard usability and reduces input friction during shopping sessions.",
+      "source_ids": [
+        "20260918T010034Z-accessibility_ux-feature-1"
+      ],
+      "created_utc": "20260918T010636Z",
+      "branch_base": "ai-development",
+      "lock_override": "",
+      "acceptance_criteria": [
+        "Add hotkey indicators and direct keyboard mapping for common marketplace and menu actions.",
+        "Use existing architecture before adding a new subsystem.",
+        "Keep desktop and Web behavior aligned.",
+        "Add or update tests when feasible."
+      ],
+      "constraints": [
+        "Read AGENTS.md before implementation.",
+        "Do not auto-merge.",
+        "Do not modify unrelated gameplay/economy/content.",
+        "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
+        "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
+        "Preserve Godot 4.7.x Web compatibility."
+      ],
+      "validation": [
+        "python -m pytest tests_ai_lab -q",
+        "Run the repository Godot Web export workflow for Godot/UI changes."
+      ]
+    },
+    {
+      "schema": 1,
+      "task_id": "codex-169c647b9d8f",
+      "fingerprint": "169c647b9d8f",
+      "status": "queued",
+      "priority": "P2",
+      "category": "stability",
+      "title": "Movement Command Input Buffering",
+      "reason": "Edge-case telemetry shows players attempt to queue walk commands against active hazard collisions. Buffering or ignoring invalid movement commands improves handling feel.",
+      "source_ids": [
+        "20260918T010034Z-qa_edge_cases-feature-1"
+      ],
+      "created_utc": "20260918T010636Z",
+      "branch_base": "ai-development",
+      "lock_override": "",
+      "acceptance_criteria": [
+        "Movement inputs queued against obstacles are filtered or buffered safely until the obstacle is cleared.",
+        "Use existing architecture before adding a new subsystem.",
+        "Keep desktop and Web behavior aligned.",
+        "Add or update tests when feasible."
+      ],
+      "constraints": [
+        "Read AGENTS.md before implementation.",
+        "Do not auto-merge.",
+        "Do not modify unrelated gameplay/economy/content.",
+        "Do not reopen optimization-locked milestone categories unless this task is a documented material regression.",
         "Prefer deletion/simplification over adding compatibility layers when cleaning architecture.",
         "Preserve Godot 4.7.x Web compatibility."
       ],

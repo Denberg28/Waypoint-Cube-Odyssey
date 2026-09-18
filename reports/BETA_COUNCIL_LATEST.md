@@ -1,29 +1,30 @@
-# Waypoint Beta Tester Council — 20260917T101331Z
+# Waypoint Beta Tester Council — 20260918T010034Z
 
 Synthetic Gemini beta testers: **6**
 
-Average fun: **3.67/5** · clarity: **4.33/5** · friction: **2.33/5**
+Average fun: **3.5/5** · clarity: **4.17/5** · friction: **2.17/5**
 
 ## Safe content feature requests
-- `20260917T101331Z-first_time_player-feature-1` **Onboarding Tutorial Prompt** — Add a brief narrative hint or welcome message at step 0 explaining how walking and enemy encounters work. (First-Time Player)
-- `20260917T101331Z-explorer_collector-feature-1` **Route Discovery Log and Collector Milestones** — A menu section displaying collected items per route and rewarding completionists with unique cosmetic tints. (Explorer & Collector)
-- `20260917T101331Z-combat_challenger-feature-1` **Add Elite Enemy Encounters to Difficulty 3+ Routes** — Incorporate elite variants with distinct behavior profiles into higher-tier routes via content pack adjustments. (Combat Challenger)
-- `20260917T101331Z-economy_optimizer-feature-1` **Coin Bundle Special for Route Completion** — Introduce a temporary marketplace special or route-incentive bonus to smooth out the coin threshold gap. (Economy Optimizer)
-- `20260917T101331Z-accessibility_ux-feature-1` **High-Contrast UI Theme Option** — Add an optional high-contrast mode toggle in the settings menu. (Accessibility & UI Tester)
-- `20260917T101331Z-qa_edge_cases-feature-1` **Explicit Input Buffering Feedback for Obstacles** — Add explicit descriptive hints when invalid movement commands collide with static hazards. (QA Edge-Case Tester)
+- `20260918T010034Z-first_time_player-feature-1` **Onboarding Tutorial Prompt System** — Display clear, friendly introductory guidance and UI callouts during the first few steps of the initial route. (First-Time Player)
+- `20260918T010034Z-explorer_collector-feature-1` **Route Discovery Ledger and Collection Milestones UI** — Add an in-game ledger or collection tracker showing item counts and completion percentages per route. (Explorer & Collector)
+- `20260918T010034Z-explorer_collector-feature-2` **Thematic Cosmetic Pack Expansion** — Introduce a fresh batch of region-themed cosmetic items and hats to the marketplace. (Explorer & Collector)
+- `20260918T010034Z-economy_optimizer-feature-1` **Enemy Bounty Coin Drops** — Configure minor coin yields (e.g., +2 to +5 coins) upon defeating standard route enemies to smooth out the currency curve. (Economy Optimizer)
+- `20260918T010034Z-economy_optimizer-feature-2` **Marketplace Wishlist & Savings Tracker** — Add a UI wishlist indicator in the marketplace showing how many more runs are needed to afford locked high-tier items. (Economy Optimizer)
 
 ## Source/review feature requests
-- None this council.
+- `20260918T010034Z-combat_challenger-feature-1` **Elite Enemy Waves & Aggressive Encounter Pacing on Difficulty 3+ Routes** — Add elite enemy variants and increased encounter frequency to routes with difficulty 3 or higher. (Combat Challenger)
+- `20260918T010034Z-accessibility_ux-feature-1` **Keyboard Navigation Shortcuts for Marketplace & Inventory** — Add hotkey indicators and direct keyboard mapping for common marketplace and menu actions. (Accessibility & UI Tester)
+- `20260918T010034Z-qa_edge_cases-feature-1` **Movement Command Input Buffering** — Movement inputs queued against obstacles are filtered or buffered safely until the obstacle is cleared. (QA Edge-Case Tester)
 
 ## High severity bugs
 - None reported.
 
 ## Per-agent summaries
-- **First-Time Player** — As a first-time player, I selected the 'moss' route (Moss Trail) and completed all 12 steps, engaging with three encounters (Goblin, Slime, Kobold) along the way. The session finished successfully with a reward of 25 coins and ending health at 100.
-- **Explorer & Collector** — As the Explorer & Collector persona, I traversed Whispering Fen, collected route rewards, and successfully purchased the Trail Cap cosmetic from the market, ending with 88 coins. The current world state highlights a featured Moss Trail with a Moss Token Rumor content pack.
-- **Combat Challenger** — Completed Frostfang Pass (difficulty 3) encountering only two minor combat instances (Slime and Kobold) across 12 steps, finishing with full HP and 141 coins. Combat pacing felt overly sparse for a ridge route.
-- **Economy Optimizer** — During the Treasure Run route session, the player successfully gathered initial coins (5 coins found + 25 route completion bonus), defeated two Goblins, and immediately engaged with the marketplace. They purchased two items in succession (Trail Cap for 45 coins and Moon Hood for 80 coins), leaving their balance at 21 coins and falling short of the Waypoint Crown.
-- **Accessibility & UI Tester** — Completed the Moon Shrine route, successfully navigating 12 steps, defeating 3 Slimes, collecting coins, and purchasing the Trail Cap cosmetic for 45 coins, ending with 126 coins.
-- **QA Edge-Case Tester** — Evaluated state transitions and edge-case behaviors on the Ember Forge route. Confirmed repeated walk commands against stationary obstacles correctly trigger telemetry events and state penalties (damage), and successfully resolve upon proper jump input.
+- **First-Time Player** — Completed the introductory Moss Trail route from step 0 to step 12. Encountered three routine enemy fights (Goblin, Slime, Kobold) spaced along the walk actions, finishing the route cleanly with full HP (100) and earning 25 coins.
+- **Explorer & Collector** — Completed a run on Whispering Fen, earned 25 coins, and successfully purchased and equipped the Trail Cap cosmetic from the marketplace for 45 coins, ending with 88 coins.
+- **Combat Challenger** — Tested Frostfang Pass (Difficulty 3) as the Combat Challenger. Encountered only 2 enemies (a Slime and a Kobold) across 12 steps, with the remaining actions dominated by linear walking and simple obstacle jumps. Completed the route with full 100 HP, indicating very low combat friction or threat.
+- **Economy Optimizer** — Completed a single Treasure Run route, yielding 30 total coins (5 from exploration steps + 25 route completion bonus). Successfully purchased two mid-tier marketplace cosmetics (Trail Cap for 45 coins and Moon Hood for 80 coins), leaving the player with 21 coins and unable to afford the high-tier waypoint_crown item without further grinding.
+- **Accessibility & UI Tester** — Completed Moon Shrine route (12 steps, 3 Slime encounters, coin collection totaling 126 coins) and purchased the Trail Cap cosmetic item for 45 coins. From an accessibility and UI standpoint, the flow was clean and readable, but keyboard focus rings and high-contrast styling still need attention per the backlog.
+- **QA Edge-Case Tester** — Evaluated the Ember Forge route as the QA Edge-Case Tester, focusing on movement validation, obstacle collisions, state transitions, and input buffering. Observed that repeating 'walk' commands against an obstacle results in redundant telemetry events and player damage without command throttling or input buffering.
 
 > These are synthetic AI beta-test reports based on executable play traces and data snapshots, not human playtest results or direct observation of rendered Godot visuals.

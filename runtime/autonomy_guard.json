@@ -1,0 +1,21 @@
+{
+  "schema": 2,
+  "failure_streak": 0,
+  "latched_stop": false,
+  "latched_stop_utc": "",
+  "latched_reason": "",
+  "manual_resume_required": false,
+  "last_success_utc": "2026-09-18T01:06:36Z",
+  "last_failure_utc": "",
+  "last_failure_reason": "",
+  "updated_utc": "2026-09-18T01:06:36Z",
+  "free_tier_only": true,
+  "gemini_free_tier_confirmed": false,
+  "basic_gemini_allowed": false,
+  "chatgpt_development_allowed": false,
+  "chatgpt_plus_end_utc": "",
+  "chatgpt_development_cutoff_utc": "",
+  "stop_threshold": 3,
+  "reason": "No verified ChatGPT Plus end date configured; paid-quality autonomous development fails closed.",
+  "policy": "After repeated autonomous request failures, latch all model autonomy off until explicit manual resume. Never auto-resume after quota, subscription, credential, provider, or billing failures."
+}

@@ -1,23 +1,163 @@
 {
   "schema": 1,
-  "revision": 1,
-  "updated_utc": "2026-09-17T12:15:00Z",
+  "revision": 2,
+  "updated_utc": "2026-09-18T01:06:36Z",
   "summary": "Waypoint regional map. Active routes are playable; planned regions are bounded World Architect proposals.",
   "nodes": [
-    {"id":"camp","name":"Lantern Camp","kind":"hub","status":"active","playable":true,"difficulty":0,"theme":"home waypoint","x":0.50,"y":0.50},
-    {"id":"moss","name":"Moss Trail","kind":"route","status":"active","playable":true,"difficulty":1,"theme":"verdant ruins","x":0.24,"y":0.28},
-    {"id":"forge","name":"Bramble Forge","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"ash and iron","x":0.50,"y":0.20},
-    {"id":"fen","name":"Whispering Fen","kind":"route","status":"active","playable":true,"difficulty":3,"theme":"misty marsh","x":0.76,"y":0.28},
-    {"id":"treasure","name":"Lantern Crossing","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"merchant road","x":0.22,"y":0.72},
-    {"id":"shrine","name":"Moonlit Steps","kind":"route","status":"active","playable":true,"difficulty":2,"theme":"moonlit stones","x":0.50,"y":0.80},
-    {"id":"frost","name":"Frostfang Pass","kind":"route","status":"active","playable":true,"difficulty":3,"theme":"snowbound ridge","x":0.78,"y":0.72}
+    {
+      "id": "camp",
+      "name": "Lantern Camp",
+      "kind": "hub",
+      "status": "active",
+      "playable": true,
+      "difficulty": 0,
+      "theme": "home waypoint",
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "id": "moss",
+      "name": "Moss Trail",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 1,
+      "theme": "verdant ruins",
+      "x": 0.24,
+      "y": 0.28
+    },
+    {
+      "id": "forge",
+      "name": "Bramble Forge",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 2,
+      "theme": "ash and iron",
+      "x": 0.5,
+      "y": 0.2
+    },
+    {
+      "id": "fen",
+      "name": "Whispering Fen",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 3,
+      "theme": "misty marsh",
+      "x": 0.76,
+      "y": 0.28
+    },
+    {
+      "id": "treasure",
+      "name": "Lantern Crossing",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 2,
+      "theme": "merchant road",
+      "x": 0.22,
+      "y": 0.72
+    },
+    {
+      "id": "shrine",
+      "name": "Moonlit Steps",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 2,
+      "theme": "moonlit stones",
+      "x": 0.5,
+      "y": 0.8
+    },
+    {
+      "id": "frost",
+      "name": "Frostfang Pass",
+      "kind": "route",
+      "status": "active",
+      "playable": true,
+      "difficulty": 3,
+      "theme": "snowbound ridge",
+      "x": 0.78,
+      "y": 0.72
+    },
+    {
+      "id": "gloomwood",
+      "name": "Gloomwood Hollow",
+      "kind": "region",
+      "status": "planned",
+      "playable": false,
+      "difficulty": 2,
+      "theme": "twilight forest and ancient roots",
+      "x": 0.12,
+      "y": 0.5,
+      "landmark": "The Whispering Hollow Root",
+      "hazard": "Ensnaring Briars",
+      "collectible": "Gloomcaps",
+      "rationale": "Bridges the western gap between Moss Trail and Lantern Crossing, offering a twilight forest theme with unique collectibles to satisfy collector demand.",
+      "connect_to": [
+        "moss",
+        "treasure"
+      ]
+    }
   ],
   "edges": [
-    {"from":"camp","to":"moss"}, {"from":"camp","to":"forge"}, {"from":"camp","to":"fen"},
-    {"from":"camp","to":"treasure"}, {"from":"camp","to":"shrine"}, {"from":"camp","to":"frost"},
-    {"from":"moss","to":"forge"}, {"from":"forge","to":"fen"},
-    {"from":"treasure","to":"shrine"}, {"from":"shrine","to":"frost"},
-    {"from":"moss","to":"treasure"}, {"from":"fen","to":"frost"}
+    {
+      "from": "camp",
+      "to": "moss"
+    },
+    {
+      "from": "camp",
+      "to": "forge"
+    },
+    {
+      "from": "camp",
+      "to": "fen"
+    },
+    {
+      "from": "camp",
+      "to": "treasure"
+    },
+    {
+      "from": "camp",
+      "to": "shrine"
+    },
+    {
+      "from": "camp",
+      "to": "frost"
+    },
+    {
+      "from": "moss",
+      "to": "forge"
+    },
+    {
+      "from": "forge",
+      "to": "fen"
+    },
+    {
+      "from": "treasure",
+      "to": "shrine"
+    },
+    {
+      "from": "shrine",
+      "to": "frost"
+    },
+    {
+      "from": "moss",
+      "to": "treasure"
+    },
+    {
+      "from": "fen",
+      "to": "frost"
+    },
+    {
+      "from": "moss",
+      "to": "gloomwood"
+    },
+    {
+      "from": "treasure",
+      "to": "gloomwood"
+    }
   ],
   "planned_limit": 12
 }
