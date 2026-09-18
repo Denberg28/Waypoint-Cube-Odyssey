@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "revision": 6,
-  "updated_utc": "2026-09-18T22:37:57Z",
-  "summary": "Waypoint regional map. Gloomwood Hollow is now part of the playable route set.",
+  "revision": 7,
+  "updated_utc": "2026-09-18T23:40:00Z",
+  "summary": "Sunken Grotto, Cinder Caldera, and Galecrest Spire are now promoted into the playable Godot route set.",
   "nodes": [
     {
       "id": "camp",
@@ -105,9 +105,9 @@
     {
       "id": "sunken_grotto",
       "name": "Sunken Grotto",
-      "kind": "region",
-      "status": "planned",
-      "playable": false,
+      "kind": "route",
+      "status": "active",
+      "playable": true,
       "difficulty": 2,
       "theme": "subterranean crystal pools",
       "x": 0.08,
@@ -119,14 +119,16 @@
       "connect_to": [
         "gloomwood",
         "treasure"
-      ]
+      ],
+      "implementation": "procedural_route_v1",
+      "promoted_from_plan": true
     },
     {
       "id": "cinder_caldera",
       "name": "Cinder Caldera",
-      "kind": "region",
-      "status": "planned",
-      "playable": false,
+      "kind": "route",
+      "status": "active",
+      "playable": true,
       "difficulty": 4,
       "theme": "volcanic rift and magma flows",
       "x": 0.63,
@@ -138,14 +140,16 @@
       "connect_to": [
         "forge",
         "fen"
-      ]
+      ],
+      "implementation": "procedural_route_v1",
+      "promoted_from_plan": true
     },
     {
       "id": "galecrest_spire",
       "name": "Galecrest Spire",
-      "kind": "region",
-      "status": "planned",
-      "playable": false,
+      "kind": "route",
+      "status": "active",
+      "playable": true,
       "difficulty": 4,
       "theme": "alpine winds and ancient ruins",
       "x": 0.89,
@@ -157,7 +161,9 @@
       "connect_to": [
         "frost",
         "fen"
-      ]
+      ],
+      "implementation": "procedural_route_v1",
+      "promoted_from_plan": true
     }
   ],
   "edges": [
