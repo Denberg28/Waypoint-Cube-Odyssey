@@ -205,131 +205,112 @@ with beta:
 
 with review_tab:
     st.subheader("Prepared Development Update")
-    st.caption("Review the feature bundle prepared from beta-tester feedback and development analysis. Accept authorizes only the selected items for staged implementation/validation; Hold freezes this bundle. Neither action authorizes auto-merge.")
+    st.caption("Only pending features stay here. Accepted features move to Accepted Updates. Rolled-back features return here for a fresh decision.")
 
     review = fetch_remote_json("runtime/development_review.json", {})
     gate = fetch_remote_json("runtime/development_gate.json", {})
+    flagged = fetch_remote_json("runtime/flagged_features.json", {"features": []})
+
     if not review:
         st.info("No prepared development bundle is available yet.")
     else:
         bundle_id = str(review.get("bundle_id", ""))
         same_gate = isinstance(gate, dict) and str(gate.get("bundle_id", "")) == bundle_id
-        if same_gate:
-            decision = str(gate.get("decision", "pending")).upper()
-            if decision == "ACCEPTED":
-                st.success(f"Current bundle status: {decision}")
-            elif decision == "HOLD":
-                st.warning(f"Current bundle status: {decision}")
-            selected_previous = set(gate.get("selected_feature_ids", []))
-        else:
-            st.info("Current bundle status: PREPARED — owner decision required.")
-            selected_previous = set()
-
-        features = [x for x in review.get("features", []) if isinstance(x, dict)]
         accepted_ids = set(gate.get("selected_feature_ids", [])) if same_gate and str(gate.get("decision", "")) == "accepted" else set()
-        selected_ids = []
-        for item in features:
-            locked = bool(item.get("locked", False))
-            impl = str(item.get("implementation_class", "review_required")).replace("_", " ").title()
-            accepted_marker = " · ACCEPTED" if str(item.get("id", "")) in accepted_ids else ""
-            label = f"{item.get('priority','P3')} · {item.get('title','Untitled')} · {impl}{accepted_marker}"
-            checked = st.checkbox(
-                label,
-                value=(str(item.get("id", "")) in selected_previous) if same_gate else not locked,
-                disabled=locked or (same_gate and str(gate.get("decision", "")) == "accepted"),
-                key=f"review-{bundle_id}-{item.get('id','')}",
-            )
-            if checked and not locked:
-                selected_ids.append(str(item.get("id", "")))
-            with st.expander(f"Details — {item.get('title','Untitled')}"):
-                st.write("**Beta tester:**", item.get("tester") or "Development analysis")
-                st.write("**Category:**", item.get("category", "—"))
-                st.write("**Desired outcome:**", item.get("desired_outcome") or "—")
-                st.write("**Reason:**", item.get("reason") or "—")
-                if locked:
-                    st.warning("This category is milestone-locked and cannot be accepted for ordinary optimization.")
+        flagged_ids = {
+            str(item.get("id", ""))
+            for item in flagged.get("features", [])
+            if isinstance(item, dict) and bool(item.get("manual_clear_required", False))
+        }
 
-        st.divider()
-        st.caption(f"Bundle: {bundle_id} · Selected: {len(selected_ids)} / {len(features)}")
-        review_pin = st.text_input("Owner approval passphrase", type="password", key=f"pin-{bundle_id}")
-        try:
-            expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
-            github_token = str(st.secrets.get("WAYPOINT_REVIEW_GITHUB_TOKEN", ""))
-        except Exception:
-            expected_pin = ""
-            github_token = ""
+        all_features = [x for x in review.get("features", []) if isinstance(x, dict)]
+        pending = [x for x in all_features if str(x.get("id", "")) not in accepted_ids]
 
-        controls_ready = bool(expected_pin and github_token)
-        if not controls_ready:
-            st.warning("Owner decision controls are read-only until WAYPOINT_REVIEW_PIN and WAYPOINT_REVIEW_GITHUB_TOKEN are configured in Streamlit secrets.")
+        if not pending:
+            st.success("All features in this prepared bundle are already accepted. Manage them in Accepted Updates.")
+        else:
+            selected_ids = []
+            for item in pending:
+                fid = str(item.get("id", ""))
+                rolled_back = fid in flagged_ids
+                locked = bool(item.get("locked", False)) and not rolled_back
+                impl = str(item.get("implementation_class", "review_required")).replace("_", " ").title()
+                prefix = "ROLLED BACK · " if rolled_back else ""
+                checked = st.checkbox(
+                    f"{prefix}{item.get('priority','P3')} · {item.get('title','Untitled')} · {impl}",
+                    value=False,
+                    disabled=locked,
+                    key=f"pending-{bundle_id}-{fid}",
+                )
+                if checked and not locked:
+                    selected_ids.append(fid)
+                with st.expander(f"Details — {item.get('title','Untitled')}"):
+                    st.write("**Beta tester:**", item.get("tester") or "Development analysis")
+                    st.write("**Category:**", item.get("category", "—"))
+                    st.write("**Desired outcome:**", item.get("desired_outcome") or "—")
+                    st.write("**Reason:**", item.get("reason") or "—")
+                    if rolled_back:
+                        st.warning("This feature was rolled back. Selecting and accepting it again is an explicit owner decision to reconsider it.")
+                    elif locked:
+                        st.warning("This category is milestone-locked and cannot be accepted for ordinary optimization.")
 
-        a, b = st.columns(2)
-        if a.button("ACCEPT selected update", type="primary", use_container_width=True, disabled=not controls_ready):
-            if not pin_matches(review_pin, expected_pin):
-                st.error("Owner passphrase is incorrect.")
-            else:
-                try:
-                    persist_decision(token=github_token, review=review, decision="accepted", selected_ids=selected_ids)
-                except ReviewGateError as exc:
-                    st.error(str(exc))
-                else:
-                    st.success("Accepted. Selected features are authorized for staged implementation and validation; auto-merge remains disabled.")
-                    st.rerun()
-
-        if b.button("HOLD prepared update", use_container_width=True, disabled=not controls_ready):
-            if not pin_matches(review_pin, expected_pin):
-                st.error("Owner passphrase is incorrect.")
-            else:
-                try:
-                    persist_decision(token=github_token, review=review, decision="hold", selected_ids=[])
-                except ReviewGateError as exc:
-                    st.error(str(exc))
-                else:
-                    st.warning("Held. This prepared bundle is not authorized for source implementation.")
-                    st.rerun()
-
-        if same_gate and str(gate.get("decision", "")) == "accepted":
             st.divider()
-            st.write("### Rollback protection")
-            checkpoint = str(gate.get("rollback_checkpoint_sha", ""))
-            manifest = [str(x) for x in gate.get("implementation_changed_files", [])]
-            st.caption(
-                f"Checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'} · "
-                f"Implementation files recorded: {len(manifest)}"
-            )
-            if not manifest:
-                st.info("Rollback checkpoint is armed. The implementation worker must record its exact changed-file manifest before source changes are considered rollback-ready.")
-            rollback_reason = st.text_input(
-                "Rollback reason",
-                placeholder="Example: accepted update causes crash on route start",
-                key=f"rollback-reason-{bundle_id}",
-            )
-            if st.button(
-                "ROLL BACK accepted update",
+            st.caption(f"Pending: {len(pending)} · Selected: {len(selected_ids)}")
+            review_pin = st.text_input("Owner approval passphrase", type="password", key=f"review-pin-{bundle_id}")
+            try:
+                expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
+                github_token = str(st.secrets.get("WAYPOINT_REVIEW_GITHUB_TOKEN", ""))
+            except Exception:
+                expected_pin = ""
+                github_token = ""
+            controls_ready = bool(expected_pin and github_token)
+            if not controls_ready:
+                st.warning("Review controls are read-only until the Streamlit review secrets are configured.")
+
+            a, b = st.columns(2)
+            if a.button(
+                "ACCEPT selected",
+                type="primary",
                 use_container_width=True,
-                disabled=not controls_ready or not bool(checkpoint) or not bool(manifest),
-                key=f"rollback-{bundle_id}",
+                disabled=(not controls_ready or not selected_ids),
+                key=f"accept-pending-{bundle_id}",
             ):
                 if not pin_matches(review_pin, expected_pin):
                     st.error("Owner passphrase is incorrect.")
                 else:
                     try:
-                        request_rollback(token=github_token, gate=gate, reason=rollback_reason)
+                        persist_decision(token=github_token, review=review, decision="accepted", selected_ids=selected_ids)
                     except ReviewGateError as exc:
                         st.error(str(exc))
                     else:
-                        st.warning("Rollback requested. The recovery worker will restore only the recorded implementation files from the pre-implementation checkpoint, preserve a backup branch, and flag the rolled-back features.")
+                        st.success("Accepted features moved to Accepted Updates.")
+                        st.rerun()
+
+            if b.button(
+                "HOLD pending",
+                use_container_width=True,
+                disabled=not controls_ready,
+                key=f"hold-pending-{bundle_id}",
+            ):
+                if not pin_matches(review_pin, expected_pin):
+                    st.error("Owner passphrase is incorrect.")
+                else:
+                    try:
+                        persist_decision(token=github_token, review=review, decision="hold", selected_ids=[])
+                    except ReviewGateError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.info("Pending features remain in Development Review.")
                         st.rerun()
 
 
 with accepted_tab:
     st.subheader("Accepted Development Updates")
-    st.caption("Keep this simple: IMPLEMENT starts staged work. After implementation is recorded, the same control area changes to ROLLBACK.")
+    st.caption("Select accepted features, then IMPLEMENT. Implemented features stay green. The latest implemented batch can be rolled back as one safe unit.")
 
     gate = fetch_remote_json("runtime/development_gate.json", {})
     implementation_request = fetch_remote_json("runtime/implementation_request.json", {})
     rollback_request = fetch_remote_json("runtime/rollback_request.json", {})
-    flagged = fetch_remote_json("runtime/flagged_features.json", {"features": []})
 
     try:
         expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
@@ -339,103 +320,113 @@ with accepted_tab:
         github_token = ""
     controls_ready = bool(expected_pin and github_token)
 
-    current_is_accepted = isinstance(gate, dict) and str(gate.get("decision", "")) == "accepted"
-    if not current_is_accepted:
-        st.info("There is no currently accepted development bundle.")
+    accepted_features = [
+        x for x in gate.get("selected_features", [])
+        if isinstance(x, dict)
+    ] if isinstance(gate, dict) and str(gate.get("decision", "")) == "accepted" else []
+    implemented_ids = set(str(x) for x in gate.get("implemented_feature_ids", [])) if isinstance(gate, dict) else set()
+
+    if not accepted_features:
+        st.info("No accepted development features are waiting here.")
     else:
         bundle_id = str(gate.get("bundle_id", ""))
-        features = [x for x in gate.get("selected_features", []) if isinstance(x, dict)]
-        manifest = [str(x) for x in gate.get("implementation_changed_files", [])]
-        checkpoint = str(gate.get("rollback_checkpoint_sha", ""))
+        impl_matches = isinstance(implementation_request, dict) and str(implementation_request.get("bundle_id", "")) == bundle_id
+        impl_status = str(implementation_request.get("status", "")) if impl_matches else ""
+        active_batch_ids = set(str(x) for x in implementation_request.get("selected_feature_ids", [])) if impl_matches else set()
+        rollback_matches = isinstance(rollback_request, dict) and str(rollback_request.get("bundle_id", "")) == bundle_id
+        rollback_status = str(rollback_request.get("status", "")) if rollback_matches else ""
 
-        impl_status = ""
-        if isinstance(implementation_request, dict) and str(implementation_request.get("bundle_id", "")) == bundle_id:
-            impl_status = str(implementation_request.get("status", ""))
-
-        rollback_status = ""
-        if isinstance(rollback_request, dict) and str(rollback_request.get("bundle_id", "")) == bundle_id:
-            rollback_status = str(rollback_request.get("status", ""))
-
-        implemented = bool(manifest) or impl_status == "completed"
         implementation_active = impl_status in {"requested", "in_progress"}
-        rollback_active = rollback_status in {"requested", "completed"}
+        latest_batch_implemented = impl_status == "completed" and bool(active_batch_ids)
+        rollback_active = rollback_status == "requested"
 
-        if rollback_status == "completed":
-            st.warning("This accepted update was rolled back and its affected features are flagged.")
-        elif implemented:
-            st.success("IMPLEMENTED — rollback protection is available.")
-        elif implementation_active:
-            st.info("IMPLEMENTATION REQUESTED — staged work is pending/in progress.")
-        else:
-            st.success("ACCEPTED — ready to implement.")
-
-        for item in features:
+        selected_for_implement = []
+        selected_for_rollback = []
+        for item in accepted_features:
             fid = str(item.get("id", ""))
-            flagged_now = any(
-                isinstance(flag, dict)
-                and str(flag.get("id", "")) == fid
-                and bool(flag.get("manual_clear_required", False))
-                for flag in flagged.get("features", [])
-            )
-            if flagged_now:
-                status = "ROLLED BACK / FLAGGED"
-            elif implemented:
-                status = "IMPLEMENTED"
-            elif implementation_active:
-                status = "IMPLEMENTATION REQUESTED"
+            is_implemented = fid in implemented_ids
+            in_latest_batch = fid in active_batch_ids and latest_batch_implemented
+
+            if is_implemented:
+                checked = st.checkbox(
+                    f"IMPLEMENTED · {item.get('title','Untitled')}",
+                    value=in_latest_batch,
+                    disabled=not in_latest_batch or rollback_active,
+                    key=f"implemented-{bundle_id}-{fid}",
+                )
+                if checked and in_latest_batch:
+                    selected_for_rollback.append(fid)
+                st.success(f"✓ {item.get('title','Untitled')} — implemented")
             else:
-                status = "ACCEPTED"
-            st.markdown(f"**{status} · {item.get('title','Untitled')}**")
+                checked = st.checkbox(
+                    f"ACCEPTED · {item.get('title','Untitled')}",
+                    value=False,
+                    disabled=implementation_active or latest_batch_implemented or rollback_active,
+                    key=f"accepted-{bundle_id}-{fid}",
+                )
+                if checked:
+                    selected_for_implement.append(fid)
 
         st.divider()
-        owner_pin = st.text_input("Owner approval passphrase", type="password", key=f"accepted-action-pin-{bundle_id}")
-
+        owner_pin = st.text_input("Owner approval passphrase", type="password", key=f"accepted-pin-{bundle_id}")
         if not controls_ready:
-            st.warning("Action is read-only until the Streamlit review secrets are configured.")
+            st.warning("Actions are read-only until the Streamlit review secrets are configured.")
 
-        if not implemented and not rollback_active:
-            if st.button(
-                "IMPLEMENT accepted update",
-                type="primary",
-                use_container_width=True,
-                disabled=(not controls_ready or implementation_active),
-                key=f"implement-{bundle_id}",
-            ):
-                if not pin_matches(owner_pin, expected_pin):
-                    st.error("Owner passphrase is incorrect.")
-                else:
-                    try:
-                        request_implementation(token=github_token, gate=gate)
-                    except ReviewGateError as exc:
-                        st.error(str(exc))
-                    else:
-                        st.success("Implementation requested. The bundle remains protected by its pre-implementation checkpoint.")
-                        st.rerun()
-        else:
-            st.caption(
-                f"Rollback checkpoint: {checkpoint[:12] + '…' if checkpoint else 'not captured'} · "
-                f"Recorded implementation files: {len(manifest)}"
-            )
+        if latest_batch_implemented:
+            st.caption("Rollback applies to the latest implemented batch as one unit. Keep all its checked boxes selected to roll it back safely.")
             rollback_reason = st.text_input(
                 "Rollback reason",
                 placeholder="Example: update breaks route loading",
                 key=f"rollback-reason-{bundle_id}",
             )
             if st.button(
-                "ROLL BACK implemented update",
+                "ROLL BACK selected implemented batch",
                 use_container_width=True,
-                disabled=(not controls_ready or not implemented or rollback_active or not bool(checkpoint) or not bool(manifest)),
-                key=f"rollback-{bundle_id}",
+                disabled=(
+                    not controls_ready
+                    or rollback_active
+                    or set(selected_for_rollback) != active_batch_ids
+                ),
+                key=f"rollback-batch-{bundle_id}",
             ):
                 if not pin_matches(owner_pin, expected_pin):
                     st.error("Owner passphrase is incorrect.")
                 else:
                     try:
-                        request_rollback(token=github_token, gate=gate, reason=rollback_reason)
+                        request_rollback(
+                            token=github_token,
+                            gate=gate,
+                            selected_ids=selected_for_rollback,
+                            reason=rollback_reason,
+                        )
                     except ReviewGateError as exc:
                         st.error(str(exc))
                     else:
-                        st.warning("Rollback requested. The system will restore only the recorded implementation files and flag the affected features.")
+                        st.warning("Rollback requested. Rolled-back features will return to Development Review.")
+                        st.rerun()
+        elif implementation_active:
+            st.info("Implementation requested for the checked batch. Wait for the implementation worker to finish before starting another batch.")
+        else:
+            if st.button(
+                "IMPLEMENT selected accepted features",
+                type="primary",
+                use_container_width=True,
+                disabled=(not controls_ready or not selected_for_implement),
+                key=f"implement-selected-{bundle_id}",
+            ):
+                if not pin_matches(owner_pin, expected_pin):
+                    st.error("Owner passphrase is incorrect.")
+                else:
+                    try:
+                        request_implementation(
+                            token=github_token,
+                            gate=gate,
+                            selected_ids=selected_for_implement,
+                        )
+                    except ReviewGateError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.success("Selected accepted features queued for implementation.")
                         st.rerun()
 
 with music:
