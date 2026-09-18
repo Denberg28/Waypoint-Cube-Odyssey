@@ -4,10 +4,18 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "runtime" / "development_review.json"
+TALLY = ROOT / "runtime" / "recommendation_tally.json"
+
+STOPWORDS = {
+    "a", "an", "and", "the", "of", "for", "to", "in", "on", "with", "from",
+    "add", "new", "feature", "features", "system", "option", "improved", "improve",
+    "enhanced", "enhance", "support",
+}
 
 
 def load_json(path: Path, default):
@@ -19,6 +27,130 @@ def load_json(path: Path, default):
 
 def norm(text: str) -> str:
     return " ".join(str(text).strip().lower().replace("&", "and").split())
+
+
+def title_tokens(text: str) -> set[str]:
+    tokens = re.findall(r"[a-z0-9]+", norm(text))
+    return {token for token in tokens if token not in STOPWORDS and len(token) > 1}
+
+
+def recommendation_similarity(a: str, b: str) -> float:
+    na, nb = norm(a), norm(b)
+    if not na or not nb:
+        return 0.0
+    if na == nb:
+        return 1.0
+    ta, tb = title_tokens(a), title_tokens(b)
+    if not ta or not tb:
+        return 0.0
+    overlap = len(ta & tb)
+    if overlap < 2:
+        return 0.0
+    jaccard = overlap / max(1, len(ta | tb))
+    containment = overlap / max(1, min(len(ta), len(tb)))
+    return max(jaccard, containment)
+
+
+def categories_compatible(feature_category: str, family: dict) -> bool:
+    category = norm(feature_category)
+    categories = {norm(x) for x in family.get("categories", []) if str(x).strip()}
+    if not categories:
+        return True
+    if category in categories:
+        return True
+    # Development-analysis entries often restate a beta finding under the
+    # generic "development" category. Allow title similarity to bridge it.
+    return category == "development" or "development" in categories
+
+
+def family_key(title: str) -> str:
+    return "finding-" + hashlib.sha1(norm(title).encode("utf-8")).hexdigest()[:12]
+
+
+def find_family(feature: dict, families: list[dict]) -> dict | None:
+    title = str(feature.get("title", ""))
+    category = str(feature.get("category", ""))
+    best = None
+    best_score = 0.0
+    for family in families:
+        score = recommendation_similarity(title, str(family.get("canonical_title", "")))
+        if score < 0.60:
+            continue
+        if not categories_compatible(category, family) and score < 0.85:
+            continue
+        if score > best_score:
+            best = family
+            best_score = score
+    return best
+
+
+def update_recommendation_tally(
+    features: list[dict],
+    *,
+    council_id: str,
+    created_utc: str,
+    tally: dict,
+) -> tuple[list[dict], dict]:
+    families = [
+        dict(item) for item in tally.get("families", [])
+        if isinstance(item, dict) and str(item.get("key", "")).strip()
+    ]
+
+    assigned: dict[str, dict] = {}
+    for item in features:
+        family = find_family(item, families)
+        if family is None:
+            family = {
+                "key": family_key(str(item.get("title", ""))),
+                "canonical_title": str(item.get("title", "Untitled recommendation"))[:160],
+                "latest_title": str(item.get("title", "Untitled recommendation"))[:160],
+                "categories": [],
+                "sources": [],
+                "testers": [],
+                "council_ids": [],
+                "count": 0,
+                "first_seen_utc": created_utc,
+                "last_seen_utc": created_utc,
+            }
+            families.append(family)
+
+        category = str(item.get("category", "")).strip()
+        source = str(item.get("source", "")).strip()
+        tester = str(item.get("tester", "")).strip()
+        for field, value in [("categories", category), ("sources", source), ("testers", tester)]:
+            values = [str(x) for x in family.get(field, []) if str(x).strip()]
+            if value and value not in values:
+                values.append(value)
+            family[field] = values[-20:]
+
+        councils = [str(x) for x in family.get("council_ids", []) if str(x).strip()]
+        if council_id and council_id not in councils:
+            councils.append(council_id)
+        family["council_ids"] = councils[-100:]
+        family["count"] = len(family["council_ids"])
+        family["latest_title"] = str(item.get("title", family.get("canonical_title", "")))[:160]
+        family["last_seen_utc"] = created_utc
+        if not family.get("first_seen_utc"):
+            family["first_seen_utc"] = created_utc
+        assigned[str(item.get("id", ""))] = family
+
+    annotated: list[dict] = []
+    for raw in features:
+        item = dict(raw)
+        family = assigned.get(str(item.get("id", "")))
+        if family:
+            item["recommendation_key"] = str(family.get("key", ""))
+            item["repeat_count"] = int(family.get("count", 0))
+            item["first_seen_utc"] = str(family.get("first_seen_utc", ""))
+            item["last_seen_utc"] = str(family.get("last_seen_utc", ""))
+        annotated.append(item)
+
+    families.sort(key=lambda x: (-int(x.get("count", 0)), str(x.get("canonical_title", ""))))
+    return annotated, {
+        "schema": 1,
+        "updated_utc": created_utc,
+        "families": families[:200],
+    }
 
 
 def bundle_id(council_id: str, features: list[dict]) -> str:
@@ -116,8 +248,6 @@ def main() -> None:
 
     features = dedupe(features)
 
-    # Correct the beta "safe_content" label when later development analysis says
-    # source/UI/engine work is required.
     for item in features:
         if item.get("requires_code_change") is True:
             item["implementation_class"] = "source_change"
@@ -131,8 +261,15 @@ def main() -> None:
 
     created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     council_id = str(council.get("council_id", ""))
+    features, tally = update_recommendation_tally(
+        features,
+        council_id=council_id,
+        created_utc=created,
+        tally=load_json(TALLY, {"schema": 1, "families": []}),
+    )
+
     review = {
-        "schema": 1,
+        "schema": 2,
         "bundle_id": bundle_id(council_id, features),
         "created_utc": created,
         "council_id": council_id,
@@ -150,7 +287,13 @@ def main() -> None:
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(review, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(json.dumps({"ok": True, "bundle_id": review["bundle_id"], "features": len(review["features"])}))
+    TALLY.write_text(json.dumps(tally, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(json.dumps({
+        "ok": True,
+        "bundle_id": review["bundle_id"],
+        "features": len(review["features"]),
+        "repeated_findings": sum(1 for x in tally["families"] if int(x.get("count", 0)) > 1),
+    }))
 
 
 if __name__ == "__main__":

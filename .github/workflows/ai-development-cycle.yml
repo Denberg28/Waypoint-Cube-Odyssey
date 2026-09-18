@@ -106,7 +106,7 @@ jobs:
         run: |
           git config user.name "waypoint-ai-gm[bot]"
           git config user.email "waypoint-ai-gm[bot]@users.noreply.github.com"
-          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json runtime/development_governance.json runtime/autonomy_guard.json runtime/development_review.json generated_content reports codex_backlog
+          git add runtime/ai_world_state.json runtime/telemetry_snapshot.json runtime/development_governance.json runtime/autonomy_guard.json runtime/development_review.json runtime/recommendation_tally.json generated_content reports codex_backlog
           git diff --cached --quiet && exit 0
           git commit -m "ai: governed development cycle and Codex handoff"
           git push origin ai-development

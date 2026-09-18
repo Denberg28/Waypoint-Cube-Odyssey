@@ -107,6 +107,10 @@ def _snapshot(item: dict, *, bundle_id: str, council_id: str) -> dict:
         "tester": str(item.get("tester", ""))[:120],
         "desired_outcome": str(item.get("desired_outcome", ""))[:1200],
         "reason": str(item.get("reason", ""))[:1200],
+        "recommendation_key": str(item.get("recommendation_key", ""))[:100],
+        "repeat_count": max(1, int(item.get("repeat_count", 1))),
+        "first_seen_utc": str(item.get("first_seen_utc", ""))[:40],
+        "last_seen_utc": str(item.get("last_seen_utc", ""))[:40],
         "bundle_id": bundle_id[:200],
         "council_id": council_id[:200],
     }

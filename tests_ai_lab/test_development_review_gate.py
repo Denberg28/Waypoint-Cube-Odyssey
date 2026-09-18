@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ai_lab.development_review import recommendation_similarity, update_recommendation_tally
 from streamlit_lab.review_gate import pin_matches
 
 
@@ -9,21 +10,59 @@ def test_review_pin_requires_exact_nonempty_match():
     assert not pin_matches("owner-secret", "different")
 
 
-def test_acceptance_gate_policy_is_selective():
-    # Contract-level invariant for the review UI: accepting a bundle is scoped
-    # to selected feature IDs and never implies automatic merge.
+def test_monitoring_policy_has_no_auto_implementation():
     review = {
         "bundle_id": "review-test",
-        "features": [
-            {"id": "feature-a", "locked": False},
-            {"id": "feature-b", "locked": True},
-        ],
+        "features": [{"id": "feature-a"}],
         "policy": {
-            "owner_decision_required": True,
-            "accept_scope": "selected_features_only",
-            "auto_merge": False,
+            "mode": "advisory_monitoring_only",
+            "statuses": ["open", "pending", "close"],
+            "auto_implementation": False,
         },
     }
-    assert review["policy"]["owner_decision_required"] is True
-    assert review["policy"]["accept_scope"] == "selected_features_only"
-    assert review["policy"]["auto_merge"] is False
+    assert review["policy"]["mode"] == "advisory_monitoring_only"
+    assert review["policy"]["statuses"] == ["open", "pending", "close"]
+    assert review["policy"]["auto_implementation"] is False
+
+
+def test_similar_recommendation_titles_match():
+    assert recommendation_similarity(
+        "Route Discovery Log and Collector Milestones",
+        "Route Discovery Ledger and Collection Milestones UI",
+    ) >= 0.60
+    assert recommendation_similarity(
+        "Movement Command Input Buffering",
+        "Movement Command Validation & Obstacle Input Buffering",
+    ) >= 0.60
+
+
+def test_tally_counts_distinct_councils_only():
+    feature = {
+        "id": "a",
+        "title": "High-Contrast UI Theme Option",
+        "category": "accessibility",
+        "source": "beta_council",
+        "tester": "Accessibility",
+    }
+    first, tally = update_recommendation_tally(
+        [feature],
+        council_id="council-1",
+        created_utc="2026-09-18T00:00:00Z",
+        tally={"schema": 1, "families": []},
+    )
+    rerun, tally = update_recommendation_tally(
+        [feature],
+        council_id="council-1",
+        created_utc="2026-09-18T00:05:00Z",
+        tally=tally,
+    )
+    second, tally = update_recommendation_tally(
+        [{**feature, "id": "b", "title": "High-Contrast UI Theme & Focus States"}],
+        council_id="council-2",
+        created_utc="2026-09-18T01:00:00Z",
+        tally=tally,
+    )
+    assert first[0]["repeat_count"] == 1
+    assert rerun[0]["repeat_count"] == 1
+    assert second[0]["repeat_count"] == 2
+    assert tally["families"][0]["count"] == 2

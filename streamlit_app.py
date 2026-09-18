@@ -209,6 +209,7 @@ with review_tab:
 
     review = fetch_remote_json("runtime/development_review.json", {})
     status_book = fetch_remote_json("runtime/development_status.json", {"schema": 1, "entries": []})
+    recommendation_tally = fetch_remote_json("runtime/recommendation_tally.json", {"schema": 1, "families": []})
 
     try:
         expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
@@ -230,6 +231,25 @@ with review_tab:
         }
 
         all_features = [x for x in review.get("features", []) if isinstance(x, dict)]
+        all_features.sort(key=lambda item: (-int(item.get("repeat_count", 1)), str(item.get("priority", "P9")), str(item.get("title", ""))))
+
+        repeated_families = [
+            x for x in recommendation_tally.get("families", [])
+            if isinstance(x, dict) and int(x.get("count", 0)) > 1
+        ]
+        repeated_families.sort(key=lambda item: (-int(item.get("count", 0)), str(item.get("canonical_title", ""))))
+        if repeated_families:
+            st.write("### Most repeated AI findings")
+            st.caption("Count = number of distinct beta-council runs in which the same or closely related recommendation appeared. Re-running the same council does not increase the count.")
+            rows = []
+            for family in repeated_families[:6]:
+                rows.append({
+                    "finding": family.get("canonical_title", "Untitled"),
+                    "councils": int(family.get("count", 0)),
+                    "last seen": str(family.get("last_seen_utc", ""))[:10],
+                })
+            st.dataframe(rows, use_container_width=True, hide_index=True)
+
         visible_features = []
         closed_count = 0
         pending_count = 0
@@ -263,9 +283,11 @@ with review_tab:
 
                 col_a, col_b = st.columns([4, 1.25])
                 with col_a:
+                    repeat_count = max(1, int(item.get("repeat_count", 1)))
+                    repeat_badge = f"🔁 ×{repeat_count} councils" if repeat_count > 1 else "NEW FINDING"
                     st.markdown(f"**{item.get('priority','P3')} · {item.get('title','Untitled')}**")
                     st.caption(
-                        f"{item.get('category','—')} · "
+                        f"{repeat_badge} · {item.get('category','—')} · "
                         f"{item.get('tester') or 'AI development analysis'}"
                     )
                 with col_b:
@@ -286,6 +308,11 @@ with review_tab:
                     st.write("**Category:**", item.get("category", "—"))
                     st.write("**Priority:**", item.get("priority", "—"))
                     st.write("**AI tester:**", item.get("tester") or "Development analysis")
+                    st.write("**Repeated finding count:**", max(1, int(item.get("repeat_count", 1))), "distinct council run(s)")
+                    if item.get("first_seen_utc"):
+                        st.write("**First seen:**", item.get("first_seen_utc"))
+                    if item.get("last_seen_utc"):
+                        st.write("**Last seen:**", item.get("last_seen_utc"))
                     st.caption(f"Recommendation ID: {fid}")
 
             st.divider()
@@ -341,6 +368,7 @@ with updates_tab:
                 st.write("**Category:**", item.get("category", "—"))
                 st.write("**AI tester:**", item.get("tester") or "Development analysis")
                 st.write("**Source:**", item.get("source", "—"))
+                st.write("**Repeated finding count:**", max(1, int(item.get("repeat_count", 1))), "distinct council run(s)")
                 st.write("**Closed:**", closed_utc)
                 st.caption(
                     f"Recommendation ID: {item.get('id','')} · "

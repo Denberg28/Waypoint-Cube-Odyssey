@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "bundle_id": "review-0788dffb0957",
   "created_utc": "2026-09-18T01:06:36Z",
   "council_id": "beta-20260918T010034Z",
@@ -21,7 +21,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "source_change"
+      "implementation_class": "source_change",
+      "recommendation_key": "finding-onboarding-tutorial-prompt-system",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-explorer_collector-feature-1",
@@ -37,7 +41,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "source_change"
+      "implementation_class": "source_change",
+      "recommendation_key": "finding-route-discovery-log-and-collector-milestones",
+      "repeat_count": 2,
+      "first_seen_utc": "2026-09-17T23:48:11Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-explorer_collector-feature-2",
@@ -53,7 +61,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "bounded_content"
+      "implementation_class": "bounded_content",
+      "recommendation_key": "finding-thematic-cosmetic-pack-expansion",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-combat_challenger-feature-1",
@@ -69,7 +81,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "review_required"
+      "implementation_class": "review_required",
+      "recommendation_key": "finding-add-elite-enemy-encounters-to-difficulty-3-route",
+      "repeat_count": 2,
+      "first_seen_utc": "2026-09-17T23:48:11Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-economy_optimizer-feature-1",
@@ -85,7 +101,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "bounded_content"
+      "implementation_class": "bounded_content",
+      "recommendation_key": "finding-enemy-bounty-coin-drops",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-economy_optimizer-feature-2",
@@ -101,7 +121,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "bounded_content"
+      "implementation_class": "bounded_content",
+      "recommendation_key": "finding-marketplace-wishlist-and-savings-tracker",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-accessibility_ux-feature-1",
@@ -117,7 +141,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "review_required"
+      "implementation_class": "review_required",
+      "recommendation_key": "finding-keyboard-navigation-shortcuts-for-marketplace-an",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "20260918T010034Z-qa_edge_cases-feature-1",
@@ -133,7 +161,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "review_required"
+      "implementation_class": "review_required",
+      "recommendation_key": "finding-movement-command-input-buffering",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "dev-e42a5cf74721",
@@ -149,7 +181,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "source_change"
+      "implementation_class": "source_change",
+      "recommendation_key": "finding-add-elite-enemy-encounters-to-difficulty-3-route",
+      "repeat_count": 2,
+      "first_seen_utc": "2026-09-17T23:48:11Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "dev-91062f67e430",
@@ -165,7 +201,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "source_change"
+      "implementation_class": "source_change",
+      "recommendation_key": "finding-high-contrast-ui-theme-option",
+      "repeat_count": 2,
+      "first_seen_utc": "2026-09-17T23:48:11Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     },
     {
       "id": "dev-e8b38f501c32",
@@ -181,7 +221,11 @@
       "locked": false,
       "rollback_flagged": false,
       "rollback_flag_reason": "",
-      "implementation_class": "source_change"
+      "implementation_class": "source_change",
+      "recommendation_key": "finding-movement-command-input-buffering",
+      "repeat_count": 1,
+      "first_seen_utc": "2026-09-18T01:06:36Z",
+      "last_seen_utc": "2026-09-18T01:06:36Z"
     }
   ],
   "policy": {
