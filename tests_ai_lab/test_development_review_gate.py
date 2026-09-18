@@ -227,8 +227,33 @@ def test_hearts_persist_between_trails_and_camp_visits():
     # Authored recovery remains intentional: trail-heal perks still work.
     assert 'data.hp = mini(max_hp(), int(data.hp) + stat("heal"))' in finish_room
 
-    # A genuinely new expedition still starts with full resources.
+    # Explicit new-character selection still starts with full resources.
     assert "data.hp = max_hp()" in begin
     assert "data.mana = max_mana()" in begin
 
     assert "Hearts carry over" in main
+
+
+def test_next_expedition_preserves_resources_and_defeat_revive_is_explicit():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    prepare = state.split("func prepare_new_expedition() -> void:", 1)[1].split("func begin(class_id: String = \"\") -> void:", 1)[0]
+    leave = state.split("func leave_camp_for_crossroads() -> void:", 1)[1].split("func equip(id: String) -> void:", 1)[0]
+    revive = state.split("func revive_at_camp() -> bool:", 1)[1].split("func leave_camp_for_crossroads() -> void:", 1)[0]
+
+    # Expedition turnover resets route state but never HP/mana.
+    assert "data.hp" not in prepare
+    assert "data.mana" not in prepare
+    assert "prepare_new_expedition()" in leave
+    assert "begin(" not in leave
+
+    # Zero-heart characters cannot depart until an explicit one-heart revival.
+    assert "if int(data.hp) <= 0:" in leave
+    assert "data.hp = 1" in revive
+    assert "data.mana =" not in revive
+    assert "LANTERN RECOVERY" in main
+    assert "Revive at lantern  •  1 heart" in main
+    assert "Hearts and mana carry into the next expedition." in main

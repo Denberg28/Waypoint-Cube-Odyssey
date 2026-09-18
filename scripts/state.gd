@@ -321,22 +321,28 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 				return "goblin"
 			return "slime"
 
-func begin(class_id: String = "") -> void:
-	if class_id in Catalog.CLASSES:
-		data.class_id = class_id
+func prepare_new_expedition() -> void:
 	data.popup = {}
 	data.row = 0
 	data.lane = 0
 	data.cells = []
 	data.runs += 1
-	data.hp = max_hp()
-	data.mana = max_mana()
 	data.stage = 0
 	data.bag = 0
 	data.blessing = 0
 	data.streak = 0
 	data.mode = "choice"
 	data.last = "Choose a route. Every road has something to offer."
+
+func begin(class_id: String = "") -> void:
+	# Explicit character creation/new-character selection starts at full resources.
+	# Ordinary expedition turnover must use leave_camp_for_crossroads(), which
+	# preserves the character's current hearts and mana.
+	if class_id in Catalog.CLASSES:
+		data.class_id = class_id
+	data.hp = max_hp()
+	data.mana = max_mana()
+	prepare_new_expedition()
 
 func make_room(route: String) -> void:
 	data.route = route
@@ -894,8 +900,8 @@ func return_camp() -> void:
 	data.mode = "camp"
 	# Camp is a navigation/supply hub, not a free full-heal trigger. Current
 	# hearts and mana persist. Explicit healing comes from trail-heal perks,
-	# potions, and other authored recovery sources. A brand-new expedition
-	# still starts at full resources in begin().
+	# potions, authored recovery sources, or a one-heart post-defeat revival.
+	# Only explicit new-character selection starts at full resources in begin().
 	data.hp = clampi(int(data.hp), 0, max_hp())
 	data.mana = clampi(int(data.mana), 0, max_mana())
 	data.blessing = 0
@@ -910,13 +916,25 @@ func return_camp() -> void:
 		data.bag = 0
 	data.last = "Lantern Camp is safe, but hearts do not refill automatically. Use supplies if needed."
 
+func revive_at_camp() -> bool:
+	if data.mode != "camp" or int(data.hp) > 0:
+		return false
+	# Defeat recovery is explicit and minimal: revive to one heart only.
+	# It never refills mana and cannot be repeated while already alive.
+	data.hp = 1
+	data.last = "The lantern rekindles one heart. Recover further with supplies or trail-heal effects."
+	return true
+
 func leave_camp_for_crossroads() -> void:
 	if data.mode != "camp":
 		return
-	# A stage-0 camp starts a new expedition; a later-stage camp resumes the
-	# existing expedition without resetting route progress.
+	if int(data.hp) <= 0:
+		data.last = "You need at least one heart before leaving Lantern Camp."
+		return
+	# Stage 0 with no active road means a new expedition cycle for the SAME
+	# character. Preserve current HP/mana instead of calling begin() and healing.
 	if int(data.stage) == 0 and data.cells.is_empty():
-		begin(str(data.class_id))
+		prepare_new_expedition()
 		return
 	data.popup = {}
 	data.mode = "choice"

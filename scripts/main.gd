@@ -131,9 +131,18 @@ func _ready() -> void:
 	world.continue_clicked.connect(func():
 		if at_title or busy or game.data.mode != "camp":
 			return
+		if int(game.data.hp) <= 0:
+			modal("LANTERN RECOVERY", "You cannot leave with zero hearts.", "Defeat no longer refills your health. The lantern can revive you to exactly 1 heart; further recovery requires supplies or trail-heal effects.")
+			action("Revive at lantern  •  1 heart", func():
+				if game.revive_at_camp():
+					push_chat(str(game.data.last))
+					commit()
+			, true)
+			action("Stay at camp", func(): show_mode())
+			return
 		game.leave_camp_for_crossroads()
 		current_music_variant = -1
-		push_chat("Leaving Lantern Camp. The crossroads is ahead.")
+		push_chat("Leaving Lantern Camp. Hearts and mana carry into the next expedition.")
 		commit()
 	)
 	world.marketplace_clicked.connect(func():
@@ -1078,9 +1087,13 @@ func commit(rebuild: bool = true) -> void:
 func start_adventure() -> void:
 	if at_title or busy or game.data.mode != "camp":
 		return
+	if int(game.data.hp) <= 0:
+		modal("LANTERN RECOVERY", "You cannot leave with zero hearts.", "Use the Lantern Camp continue marker to revive to 1 heart before starting another expedition.")
+		action("Back to camp", func(): show_mode(), true)
+		return
 	game.leave_camp_for_crossroads()
 	current_music_variant = -1
-	push_chat("Leaving Lantern Camp. The crossroads is ahead.")
+	push_chat("Leaving Lantern Camp. Hearts and mana carry into the next expedition.")
 	commit()
 
 func show_mode() -> void:
@@ -1149,7 +1162,7 @@ func show_mode() -> void:
 					update_hud()
 			)
 		"rest":
-			modal("04 / HALFWAY WAYPOINT", "Take a breath.", "All expedition coins are banked. Your hearts are restored. Equip your new finds before the next three trails.")
+			modal("04 / HALFWAY WAYPOINT", "Take a breath.", "All expedition coins are banked. Hearts and mana carry forward; use supplies if needed. Equip your new finds before the next three trails.")
 			action("Equipment", func(): show_inventory(), true)
 			action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
 			action("Continue the expedition   →", func(): game.data.mode = "choice"; commit())
@@ -1337,7 +1350,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail, and a brand-new expedition starts full. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
