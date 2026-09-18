@@ -1278,6 +1278,8 @@ func show_inventory() -> void:
 		action("Cycle unlocked color", func(): cycle_unlocked_skin())
 	stack.add_child(label(next_unlock, FONT_CAPTION, MUTED))
 	action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
+	if bool(game.data.get("cat_owned", false)):
+		action("Cat Companion / Feed", func(): show_cat_companion())
 	action("Done", func(): show_mode(), true)
 	schedule_modal_fit()
 
@@ -2047,7 +2049,7 @@ func request_play() -> void:
 	modal("NEW CHARACTER / EXPEDITION", "How do you want to continue?", "Keep Progression changes your character/class while retaining permanent progression. Fresh Character is a complete reset to the shipped baseline.")
 	action("New character  •  Keep progression", func(): show_selector(false), true)
 	action("Fresh character  •  Start from zero", func():
-		modal("FRESH CHARACTER", "Reset all character progression?", "This permanently resets level, XP, stars, banked coins, gems, gear, camp upgrades, wins, kills, cosmetics, potions, and expedition progress. Device settings such as audio and brightness are kept.")
+		modal("FRESH CHARACTER", "Reset all character progression?", "This permanently resets level, XP, stars, banked coins, gems, gear, camp upgrades, wins, kills, cosmetics, cat companion, fish pantry, potions, and expedition progress. Device settings such as audio and brightness are kept.")
 		action("Choose fresh character", func(): show_selector(true), true)
 		action("Cancel", func(): show_title())
 	)
@@ -2137,7 +2139,7 @@ func confirm_character() -> void:
 	if spinning:
 		return
 	if fresh_character_mode and has_save:
-		modal("CONFIRM FRESH START", "Erase previous character progression?", "This cannot be undone from inside the game. The new character starts at LV 1, 0 stars, 0 XP, with no gear, coins, gems, upgrades, wins, or cosmetics.")
+		modal("CONFIRM FRESH START", "Erase previous character progression?", "This cannot be undone from inside the game. The new character starts at LV 1, 0 stars, 0 XP, with no gear, coins, gems, upgrades, wins, cosmetics, or cat companion.")
 		action("Erase & start fresh", func(): execute_character_start(true), true)
 		action("Back to selector", func(): show_selector(true))
 		return
