@@ -20,7 +20,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":13,
+		"version":14,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -57,9 +57,15 @@ func reset() -> void:
 		"relic_charge":0,
 		"gems":0,
 		"fish_caught":0,
+		"fish_stock":0,
+		"cat_owned":false,
+		"cat_design":{},
+		"cat_offer":{},
+		"cat_satiety":0,
 		"gloomcaps":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
+	data.cat_offer = random_cat_design()
 
 func initialize_new_account_progression() -> void:
 	# A brand-new save always begins unranked: zero filled stars and zero XP.
@@ -196,6 +202,131 @@ func equip_best() -> void:
 			data.equipped[slot] = best_id
 	data.hp = mini(int(data.hp), max_hp())
 	data.last = "Best available equipment equipped."
+
+func random_cat_design() -> Dictionary:
+	return {
+		"name": str(Catalog.CAT_NAMES[rng.randi_range(0, Catalog.CAT_NAMES.size() - 1)]),
+		"body": str(Catalog.CAT_BODY_COLORS[rng.randi_range(0, Catalog.CAT_BODY_COLORS.size() - 1)]),
+		"accent": str(Catalog.CAT_ACCENT_COLORS[rng.randi_range(0, Catalog.CAT_ACCENT_COLORS.size() - 1)]),
+		"eyes": str(Catalog.CAT_EYE_COLORS[rng.randi_range(0, Catalog.CAT_EYE_COLORS.size() - 1)]),
+		"pattern": str(Catalog.CAT_PATTERNS[rng.randi_range(0, Catalog.CAT_PATTERNS.size() - 1)])
+	}
+
+func cat_design_signature(design: Dictionary) -> String:
+	if design.is_empty():
+		return ""
+	return "%s|%s|%s|%s|%s" % [
+		str(design.get("name", "")),
+		str(design.get("body", "")),
+		str(design.get("accent", "")),
+		str(design.get("eyes", "")),
+		str(design.get("pattern", ""))
+	]
+
+func valid_cat_design(design: Dictionary) -> bool:
+	if design.is_empty():
+		return false
+	for key in ["name", "body", "accent", "eyes", "pattern"]:
+		if not design.has(key) or not design[key] is String:
+			return false
+	return (
+		str(design.name) in Catalog.CAT_NAMES
+		and str(design.body) in Catalog.CAT_BODY_COLORS
+		and str(design.accent) in Catalog.CAT_ACCENT_COLORS
+		and str(design.eyes) in Catalog.CAT_EYE_COLORS
+		and str(design.pattern) in Catalog.CAT_PATTERNS
+	)
+
+func refresh_cat_offer() -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Visit a safe waypoint to browse companion cats."
+		return false
+	if bool(data.cat_owned):
+		data.last = "Your adopted cat is already waiting at Lantern Camp."
+		return false
+	var previous: String = cat_design_signature(data.cat_offer)
+	var next_offer: Dictionary = random_cat_design()
+	for _attempt in range(6):
+		if cat_design_signature(next_offer) != previous:
+			break
+		next_offer = random_cat_design()
+	data.cat_offer = next_offer
+	data.last = "The market keeper introduces a different cat."
+	return true
+
+func cat_mood() -> String:
+	if not bool(data.cat_owned):
+		return "NO CAT"
+	var satiety: int = clampi(int(data.cat_satiety), 0, 100)
+	if satiety >= 85:
+		return "PURRING"
+	if satiety >= 60:
+		return "CONTENT"
+	if satiety >= 35:
+		return "CURIOUS"
+	if satiety >= 15:
+		return "HUNGRY"
+	return "GRUMPY"
+
+func cat_mood_text() -> String:
+	match cat_mood():
+		"PURRING":
+			return "Purring beside the lantern."
+		"CONTENT":
+			return "Content and relaxed."
+		"CURIOUS":
+			return "Curious and watching the road."
+		"HUNGRY":
+			return "Hungry and waiting for a fish."
+		"GRUMPY":
+			return "Very hungry and distinctly unimpressed."
+		_:
+			return "No companion adopted yet."
+
+func adopt_cat() -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Visit a safe waypoint to adopt a companion."
+		return false
+	if bool(data.cat_owned):
+		data.last = "You already have a cat companion."
+		return false
+	if not valid_cat_design(data.cat_offer):
+		data.cat_offer = random_cat_design()
+	if int(data.coins) < Catalog.CAT_PRICE:
+		data.last = "You need %d more banked coins to adopt %s." % [Catalog.CAT_PRICE - int(data.coins), str(data.cat_offer.name)]
+		return false
+	data.coins -= Catalog.CAT_PRICE
+	data.cat_owned = true
+	data.cat_design = data.cat_offer.duplicate(true)
+	data.cat_satiety = 70
+	data.last = "Adopted %s! Your new cat is waiting at Lantern Camp." % str(data.cat_design.name)
+	return true
+
+func feed_cat() -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Feed your cat at a safe waypoint."
+		return false
+	if not bool(data.cat_owned):
+		data.last = "You have not adopted a cat yet."
+		return false
+	if int(data.fish_stock) <= 0:
+		data.last = "%s is %s, but your fish pantry is empty. Look for fishing pools on adventures." % [str(data.cat_design.get("name", "Your cat")), cat_mood().to_lower()]
+		return false
+	if int(data.cat_satiety) >= 100:
+		data.last = "%s is already full and refuses another fish." % str(data.cat_design.get("name", "Your cat"))
+		return false
+	data.fish_stock -= 1
+	data.cat_satiety = mini(100, int(data.cat_satiety) + Catalog.CAT_SATIETY_PER_FISH)
+	data.last = "Fed %s a trail fish. Satiety %d%%  •  %s." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
+	return true
+
+func cat_adventure_tick() -> String:
+	# Satiety changes only at authored progression beats, never from wall-clock
+	# time. The pet creates a gentle reason to fish without punishing time away.
+	if not bool(data.cat_owned):
+		return ""
+	data.cat_satiety = maxi(0, int(data.cat_satiety) - Catalog.CAT_SATIETY_ROAD_COST)
+	return "%s at camp: %s  •  satiety %d%%." % [str(data.cat_design.get("name", "Your cat")), cat_mood(), int(data.cat_satiety)]
 
 func owns_cosmetic(id: String) -> bool:
 	return id in data.cosmetics_owned
@@ -790,12 +921,14 @@ func resolve_fishing(accuracy: float) -> String:
 		data.last = "A river gem flashes beneath the water. +%d gem%s." % [gems_found, "" if gems_found == 1 else "s"]
 	else:
 		var fish_value: int = 4 + int(round(quality * 7.0))
+		var fish_portions: int = 2 if quality >= 0.90 else 1
 		data.bag += fish_value
+		data.fish_stock += fish_portions
 		if quality >= 0.90 and rng.randf() < 0.35:
 			data.potions.heal += 1
-			data.last = "Perfect catch! Rare fish worth %d coins + healing potion." % fish_value
+			data.last = "Perfect catch! Rare fish worth %d coins + %d cat-fish + healing potion." % [fish_value, fish_portions]
 		else:
-			data.last = "Caught a trail fish worth %d expedition coins." % fish_value
+			data.last = "Caught a trail fish worth %d expedition coins. +%d fish for the cat pantry." % [fish_value, fish_portions]
 	return str(data.last)
 
 func register_special_popup(chosen: Dictionary) -> void:
@@ -889,6 +1022,7 @@ func finish_room() -> void:
 	data.hp = mini(max_hp(), int(data.hp) + stat("heal"))
 	var route_xp: String = award_xp(20)
 	var route_resolve: String = add_resolve(12)
+	var cat_status: String = cat_adventure_tick()
 	var loot: String = award_gear()
 	if data.route == "forge":
 		loot += "\n" + award_gear()
@@ -905,6 +1039,8 @@ func finish_room() -> void:
 		data.last += "\n" + route_xp
 	if route_resolve != "":
 		data.last += "\n" + route_resolve
+	if cat_status != "":
+		data.last += "\n" + cat_status
 	data.last += "\nGear is permanent. Equip it at a rest area."
 	data.mode = "reward"
 
@@ -1067,7 +1203,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [13, 13.0]:
+	if value.get("version") not in [14, 14.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1080,10 +1216,10 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "gloomcaps"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_satiety", "gloomcaps"]:
 		if not (value[key] is int or value[key] is float):
 			return false
-	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.gloomcaps) < 0:
+	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.gloomcaps) < 0:
 		return false
 	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
 		return false
@@ -1097,6 +1233,18 @@ func valid_save(value: Variant) -> bool:
 		return false
 	if not value.cosmetics_owned is Array or not value.cosmetics_equipped is Dictionary:
 		return false
+	if not value.cat_owned is bool or not value.cat_design is Dictionary or not value.cat_offer is Dictionary:
+		return false
+	if not valid_cat_design(value.cat_offer):
+		return false
+	if bool(value.cat_owned):
+		if not valid_cat_design(value.cat_design):
+			return false
+	else:
+		if not value.cat_design.is_empty():
+			return false
+		if int(value.cat_satiety) != 0:
+			return false
 	for slot in ["skin", "head", "back", "face"]:
 		if not value.cosmetics_equipped.has(slot):
 			return false
@@ -1175,6 +1323,19 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.gems = 0
 	if not migrated.has("fish_caught"):
 		migrated.fish_caught = 0
+	if not migrated.has("fish_stock"):
+		migrated.fish_stock = 0
+	if not migrated.has("cat_owned") or not migrated.cat_owned is bool:
+		migrated.cat_owned = false
+	if not migrated.has("cat_design") or not migrated.cat_design is Dictionary:
+		migrated.cat_design = {}
+	if not migrated.has("cat_offer") or not migrated.cat_offer is Dictionary or not valid_cat_design(migrated.cat_offer):
+		migrated.cat_offer = random_cat_design()
+	if not migrated.has("cat_satiety"):
+		migrated.cat_satiety = 0
+	if not bool(migrated.cat_owned):
+		migrated.cat_design = {}
+		migrated.cat_satiety = 0
 	if not migrated.has("gloomcaps"):
 		migrated.gloomcaps = 0
 	if not migrated.has("level"):
@@ -1222,7 +1383,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 13
+	migrated.version = 14
 	return migrated
 
 func load_game() -> bool:
@@ -1233,7 +1394,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed
