@@ -32,7 +32,7 @@ HISTORY_NAME = "waypoint_ai_gm_history.jsonl"
 BACKLOG_NAME = "waypoint_ai_gm_backlog.json"
 LOG_NAME = "waypoint_ai_gm_nightwatch.log"
 
-ROUTES = {"moss", "forge", "shrine", "treasure", "frost", "fen"}
+ROUTES = {"moss", "forge", "shrine", "treasure", "frost", "fen", "gloomwood"}
 CHALLENGE_TYPES = {"route_complete", "featured_route_complete", "fishing_catch", "elite_defeat", "obstacle_jump"}
 
 RESPONSE_SCHEMA: dict[str, Any] = {
