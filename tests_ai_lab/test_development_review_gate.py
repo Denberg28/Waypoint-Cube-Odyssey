@@ -403,3 +403,68 @@ def test_v11_pending_xp_is_migrated_into_credited_xp():
     assert "migrated.resolve = 0" in state
     assert "migrated.version = 13" in state
     assert "11, 11.0" in state
+
+
+def test_recommendation_tally_rebuilds_from_history(tmp_path):
+    import json
+    from ai_lab.development_review import rebuild_recommendation_tally_from_history, annotate_features_from_tally
+
+    historical_dir = tmp_path / "beta_feedback" / "20260917T000000Z"
+    historical_dir.mkdir(parents=True)
+    historical_dir.joinpath("council.json").write_text(json.dumps({
+        "council_id": "beta-history-1",
+        "created_utc": "20260917T000000Z",
+        "all_feature_requests": [{
+            "id": "old-1",
+            "title": "Route Discovery Log and Collector Milestones",
+            "category": "exploration",
+            "tester_name": "Explorer & Collector",
+        }],
+    }), encoding="utf-8")
+
+    current = {
+        "council_id": "beta-current-2",
+        "created_utc": "20260918T000000Z",
+        "all_feature_requests": [{
+            "id": "new-1",
+            "title": "Route Discovery Ledger and Collection Milestones UI",
+            "category": "exploration",
+            "tester_name": "Explorer & Collector",
+        }],
+    }
+
+    tally = rebuild_recommendation_tally_from_history(
+        root=tmp_path,
+        current_council=current,
+        generated_utc="2026-09-18T00:01:00Z",
+    )
+    family = next(x for x in tally["families"] if x["count"] == 2)
+    assert family["council_ids"] == ["beta-history-1", "beta-current-2"]
+    assert family["last_seen_utc"] == "2026-09-18T00:00:00Z"
+
+    annotated = annotate_features_from_tally(
+        [{
+            "id": "new-1",
+            "title": "Route Discovery Ledger and Collection Milestones UI",
+            "category": "exploration",
+        }],
+        tally=tally,
+        generated_utc="2026-09-18T00:01:00Z",
+    )
+    assert annotated[0]["repeat_count"] == 2
+
+
+def test_streamlit_review_has_refresh_and_sync_visibility():
+    from pathlib import Path
+
+    app = Path("streamlit_app.py").read_text(encoding="utf-8")
+    review = Path("ai_lab/development_review.py").read_text(encoding="utf-8")
+
+    assert "Refresh AI review" in app
+    assert "Recommendation summary is stale relative to the latest Development Review." in app
+    assert "AI recommendation summary and Development Review are synchronized." in app
+    assert 'review.get("sync_id"' in app
+    assert 'recommendation_tally.get("sync_id"' in app
+    assert "rebuild_recommendation_tally_from_history" in review
+    assert 'tally["sync_id"] = sync_id' in review
+    assert '"sync_id": sync_id' in review
