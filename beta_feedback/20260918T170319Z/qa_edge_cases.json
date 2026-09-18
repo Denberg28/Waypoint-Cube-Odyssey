@@ -1,0 +1,54 @@
+{
+  "session_summary": "Completed a test run on Ember Forge (difficulty 2) focusing on state transitions, movement commands, and obstacle collision handling. Observed multiple redundant walk attempts against a blocking obstacle prior to executing a jump, resulting in damage ticks before successfully clearing the hazard.",
+  "fun_score": 3,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry shows two consecutive 'obstacle_hit' events (damage: 8) at step 2 when walking into an obstacle before the player input successfully switched to 'jump'.",
+      "recommendation": "Implement input buffering or automatic command validation to prevent redundant movement commands from queuing against active hazard collisions.",
+      "id": "20260918T170319Z-qa_edge_cases-obs-1"
+    },
+    {
+      "category": "progression",
+      "severity": "low",
+      "evidence": "Route completion successfully triggered and awarded 25 coins upon reaching step 13 on Ember Forge.",
+      "recommendation": "Maintain current route completion state transition logic as it resolves cleanly.",
+      "id": "20260918T170319Z-qa_edge_cases-obs-2"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Redundant Walk Commands Queue Against Active Obstacle Collisions",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route 'forge'.",
+        "Walk forward until reaching an obstacle at step 2.",
+        "Issue repeated 'walk' commands while blocked by the obstacle."
+      ],
+      "expected": "The game should either ignore invalid movement commands or automatically prompt/buffer a jump without repeatedly penalizing the player with damage ticks.",
+      "observed": "Multiple walk attempts registered against the obstacle, resulting in two successive obstacle hit events and taking 16 total damage before jumping.",
+      "id": "20260918T170319Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Movement Command Input Buffering & Obstacle Feedback",
+      "category": "accessibility",
+      "player_value": "Prevents accidental repetitive self-damage when players press directional walk keys against static obstacles.",
+      "rationale": "Edge-case telemetry shows players frequently attempt to keep walking into barriers before realizing a jump is required.",
+      "safe_content_only": false,
+      "desired_outcome": "Add input validation so that walking into an active hazard triggers an immediate contextual hint or buffers the necessary jump command.",
+      "id": "20260918T170319Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clean state transition on route completion awarding correct coin payouts.",
+    "Responsive enemy encounter handling during route traversal."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}

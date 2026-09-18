@@ -2,12 +2,12 @@
 
 Decision: **HOLD**
 
-Adding Sunken Grotto as a planned subterranean water-cave region connecting Gloomwood Hollow and Lantern Crossing, fulfilling explorer retention and route variety demand while respecting map bounds.
+Expanding the world map by introducing 'Sunken Grotto' as a planned region connected to Gloomwood Hollow and Lantern Crossing, directly addressing explorer and collector demand for specialized route revisits, unique regional collectibles, and expanded environmental variety.
 
 ## Council basis
-- Explorer & Collector feedback indicates strong demand for diverse thematic environments, collectibles, and secret paths.
-- Aggregate telemetry shows heavy traffic across western and central routes (Whispering Fen, Bramble Forge, Lantern Crossing), demonstrating active exploration and navigation demand.
-- The planned region Sunken Grotto integrates cleanly into the western cluster (Gloomwood Hollow and Lantern Crossing) without disrupting existing nodes or routes.
+- Explorer & Collector persona explicitly highlights the need for route discovery ledgers, secret collectibles, and diverse regional biomes.
+- Aggregate public telemetry confirms healthy ongoing route activity across multiple nodes (Whispering Fen, Bramble Forge, Lantern Crossing, Frostfang Pass), proving navigation and exploration demand.
+- The spatial coordinates (0.08, 0.65) cleanly extend the western subterranean perimeter without conflicting with existing nodes.
 
 ## Map action
 - No map node added. Expansion proposal failed map guardrails or the planned-region cap.

@@ -528,12 +528,5 @@
       "tester_name": "QA Edge-Case Tester",
       "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
     }
-  ],
-  "world_architect": {
-    "decision": "hold",
-    "summary": "Expanding the world map by introducing 'Sunken Grotto' as a planned region connected to Gloomwood Hollow and Lantern Crossing, directly addressing explorer and collector demand for specialized route revisits, unique regional collectibles, and expanded environmental variety.",
-    "map_node_added": null,
-    "map_revision": 4,
-    "specialist": "World Architect & Cartographer"
-  }
+  ]
 }
