@@ -156,3 +156,23 @@ def test_star_rank_header_is_layout_stable_and_cached():
     assert 'gear_button = button("Gear"' in main
     assert "if next_rank_text != cached_rank_text:" in main
     assert "rank_label.text = cached_rank_text" in main
+
+
+def test_gameplay_hud_uses_compact_focus_layout():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "header.offset_bottom = 82" in main
+    assert 'header.add_theme_stylebox_override("panel", compact_style' in main
+    assert "info.position = Vector2(24, 96)" in main
+    assert "footer.offset_right = 276" in main
+    assert "footer.offset_top = -74" in main
+    assert 'compact_details = button("Details"' in main
+    assert 'compact_best = button("Best"' in main
+    assert 'compact_heal = button("Heal"' in main
+    assert 'compact_mana = button("Mana"' in main
+    assert "side_panel.offset_top = -78" in main
+    assert "side_panel.offset_bottom = -12" in main
+    assert "side_header.hide()" in main
+    assert 'settings.get_value("ui", "status_minimized", true)' in main
