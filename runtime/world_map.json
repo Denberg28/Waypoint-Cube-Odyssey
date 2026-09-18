@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "revision": 3,
-  "updated_utc": "2026-09-18T04:00:00Z",
+  "revision": 4,
+  "updated_utc": "2026-09-18T07:27:23Z",
   "summary": "Waypoint regional map. Gloomwood Hollow is now part of the playable route set.",
   "nodes": [
     {
@@ -101,6 +101,25 @@
       ],
       "implementation": "procedural_route_v1",
       "promoted_from_plan": true
+    },
+    {
+      "id": "sunken_grotto",
+      "name": "Sunken Grotto",
+      "kind": "region",
+      "status": "planned",
+      "playable": false,
+      "difficulty": 2,
+      "theme": "subterranean crystal pools",
+      "x": 0.08,
+      "y": 0.65,
+      "landmark": "The Luminescent Cascade",
+      "hazard": "Slick Algae Slopes",
+      "collectible": "Prismatic Pearls",
+      "rationale": "Extends the western edge of the map into a subterranean water-cave theme, satisfying explorer discovery cravings and offering new themed collectibles.",
+      "connect_to": [
+        "gloomwood",
+        "treasure"
+      ]
     }
   ],
   "edges": [
@@ -159,6 +178,14 @@
     {
       "from": "treasure",
       "to": "gloomwood"
+    },
+    {
+      "from": "gloomwood",
+      "to": "sunken_grotto"
+    },
+    {
+      "from": "treasure",
+      "to": "sunken_grotto"
     }
   ],
   "planned_limit": 12

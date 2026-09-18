@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "policy_version": "1.0",
-  "updated_utc": "20260918T010636Z",
+  "updated_utc": "20260918T072724Z",
   "active_milestone_id": "M1-core-playability-ui",
   "locked_categories": [],
   "beta_cadence_hours": 1,
@@ -22,12 +22,12 @@
       "activated_utc": "20260918T010034Z",
       "locked_utc": "",
       "lock_reason": "",
-      "councils_seen": 1,
-      "stable_streak": 1,
+      "councils_seen": 2,
+      "stable_streak": 0,
       "optimization_freeze": false,
       "last_evaluation": {
-        "council_id": "beta-20260918T010034Z",
-        "stable": true,
+        "council_id": "beta-20260918T072121Z",
+        "stable": false,
         "recent_high_severity_councils": 0
       }
     },

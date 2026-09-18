@@ -1,30 +1,29 @@
-# Waypoint Beta Tester Council — 20260918T010034Z
+# Waypoint Beta Tester Council — 20260918T072121Z
 
 Synthetic Gemini beta testers: **6**
 
-Average fun: **3.5/5** · clarity: **4.17/5** · friction: **2.17/5**
+Average fun: **3.33/5** · clarity: **3.67/5** · friction: **2.33/5**
 
 ## Safe content feature requests
-- `20260918T010034Z-first_time_player-feature-1` **Onboarding Tutorial Prompt System** — Display clear, friendly introductory guidance and UI callouts during the first few steps of the initial route. (First-Time Player)
-- `20260918T010034Z-explorer_collector-feature-1` **Route Discovery Ledger and Collection Milestones UI** — Add an in-game ledger or collection tracker showing item counts and completion percentages per route. (Explorer & Collector)
-- `20260918T010034Z-explorer_collector-feature-2` **Thematic Cosmetic Pack Expansion** — Introduce a fresh batch of region-themed cosmetic items and hats to the marketplace. (Explorer & Collector)
-- `20260918T010034Z-economy_optimizer-feature-1` **Enemy Bounty Coin Drops** — Configure minor coin yields (e.g., +2 to +5 coins) upon defeating standard route enemies to smooth out the currency curve. (Economy Optimizer)
-- `20260918T010034Z-economy_optimizer-feature-2` **Marketplace Wishlist & Savings Tracker** — Add a UI wishlist indicator in the marketplace showing how many more runs are needed to afford locked high-tier items. (Economy Optimizer)
+- `20260918T072121Z-first_time_player-feature-1` **Initial Onboarding Tutorial Tooltips** — First-time players see clear, non-intrusive instructional text prompts during their initial steps on Moss Trail. (First-Time Player)
+- `20260918T072121Z-explorer_collector-feature-1` **Route Discovery & Collection Milestones Ledger** — Add an in-game menu interface tracking discovered route items, completion counts, and collection milestone rewards. (Explorer & Collector)
+- `20260918T072121Z-combat_challenger-feature-2` **Combat Mastery Modifiers (Flawless Bonus)** — Add a content modifier that grants bonus coin multipliers or rare crafting materials when completing routes with 100% HP. (Combat Challenger)
+- `20260918T072121Z-economy_optimizer-feature-1` **Elite Cosmetic Saving Progress Bar** — Add a UI progress tracker in the marketplace showing coin savings toward locked luxury items. (Economy Optimizer)
 
 ## Source/review feature requests
-- `20260918T010034Z-combat_challenger-feature-1` **Elite Enemy Waves & Aggressive Encounter Pacing on Difficulty 3+ Routes** — Add elite enemy variants and increased encounter frequency to routes with difficulty 3 or higher. (Combat Challenger)
-- `20260918T010034Z-accessibility_ux-feature-1` **Keyboard Navigation Shortcuts for Marketplace & Inventory** — Add hotkey indicators and direct keyboard mapping for common marketplace and menu actions. (Accessibility & UI Tester)
-- `20260918T010034Z-qa_edge_cases-feature-1` **Movement Command Input Buffering** — Movement inputs queued against obstacles are filtered or buffered safely until the obstacle is cleared. (QA Edge-Case Tester)
+- `20260918T072121Z-combat_challenger-feature-1` **Elite Combat Waves & Aggressive Enemy Behaviors** — Request engine support for elite enemy profiles and multi-wave encounter triggers on difficulty 3+ routes. (Combat Challenger)
+- `20260918T072121Z-accessibility_ux-feature-1` **Visible Keyboard Focus Rings and High-Contrast Theme Option** — Add distinct keyboard focus states and a high-contrast visual toggle in settings. (Accessibility & UI Tester)
+- `20260918T072121Z-qa_edge_cases-feature-1` **Obstacle Input Buffering & Command Feedback** — Add client-side command validation and input buffering so blocked walk commands prompt an immediate warning state rather than multiple penalty ticks. (QA Edge-Case Tester)
 
 ## High severity bugs
 - None reported.
 
 ## Per-agent summaries
-- **First-Time Player** — Completed the introductory Moss Trail route from step 0 to step 12. Encountered three routine enemy fights (Goblin, Slime, Kobold) spaced along the walk actions, finishing the route cleanly with full HP (100) and earning 25 coins.
-- **Explorer & Collector** — Completed a run on Whispering Fen, earned 25 coins, and successfully purchased and equipped the Trail Cap cosmetic from the marketplace for 45 coins, ending with 88 coins.
-- **Combat Challenger** — Tested Frostfang Pass (Difficulty 3) as the Combat Challenger. Encountered only 2 enemies (a Slime and a Kobold) across 12 steps, with the remaining actions dominated by linear walking and simple obstacle jumps. Completed the route with full 100 HP, indicating very low combat friction or threat.
-- **Economy Optimizer** — Completed a single Treasure Run route, yielding 30 total coins (5 from exploration steps + 25 route completion bonus). Successfully purchased two mid-tier marketplace cosmetics (Trail Cap for 45 coins and Moon Hood for 80 coins), leaving the player with 21 coins and unable to afford the high-tier waypoint_crown item without further grinding.
-- **Accessibility & UI Tester** — Completed Moon Shrine route (12 steps, 3 Slime encounters, coin collection totaling 126 coins) and purchased the Trail Cap cosmetic item for 45 coins. From an accessibility and UI standpoint, the flow was clean and readable, but keyboard focus rings and high-contrast styling still need attention per the backlog.
-- **QA Edge-Case Tester** — Evaluated the Ember Forge route as the QA Edge-Case Tester, focusing on movement validation, obstacle collisions, state transitions, and input buffering. Observed that repeating 'walk' commands against an obstacle results in redundant telemetry events and player damage without command throttling or input buffering.
+- **First-Time Player** — As a first-time player, I successfully traversed the Moss Trail route from step 0 to step 12. Along the way, I engaged and defeated three enemies (Goblin, Slime, Kobold) and completed the route, earning 25 coins and finishing with 149 total coins and full 100 HP. The session was straightforward, but entirely lacked introductory onboarding prompts or guidance at step 0.
+- **Explorer & Collector** — As the Explorer & Collector persona, I completed the Gloomwood Hollow route, gathered 25 coins upon completion, and successfully purchased and equipped the Trail Cap cosmetic from the marketplace, leaving a final coin balance of 88.
+- **Combat Challenger** — As the Combat Challenger, I reviewed the play trace on Frostfang Pass (Difficulty 3). The run featured a total of only two combat encounters (Slime and Kobold) interspersed with walking and jumping over ice spikes, finishing with 100 HP and +25 coins. Despite Frostfang Pass having a high difficulty rating, the sparseness of encounters offers very little pressure, tactical depth, or risk/reward tension.
+- **Economy Optimizer** — Evaluated coin flow and marketplace pacing from a single completed Treasure Run session yielding 30 total coins (5 from steps, 25 completion reward). The player successfully purchased two mid-tier cosmetic items (Trail Cap for 45 coins and Moon Hood for 80 coins), leaving them with a balance of 21 coins and failing to afford the elite Waypoint Crown. Coin acquisition rates and marketplace item tiers create a compelling saving curve, though early income generation could benefit from structured payout milestones.
+- **Accessibility & UI Tester** — The player successfully completed the Moon Shrine route, collected multiple coin drops (6, 12, and 4), successfully engaged and defeated 3 Slimes, and completed the route to earn a 25 coin bonus. The accumulated 126 coins were then used to purchase and equip the 'trail_cap' cosmetic in the marketplace.
+- **QA Edge-Case Tester** — Evaluated the Ember Forge route through the lens of state transitions, handling obstacles, and movement command validation. Observed redundant walk commands attempting to execute against active hazard collisions, resulting in duplicate obstacle hits and damage before a correct jump command was issued.
 
 > These are synthetic AI beta-test reports based on executable play traces and data snapshots, not human playtest results or direct observation of rendered Godot visuals.

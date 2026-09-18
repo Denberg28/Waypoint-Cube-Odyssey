@@ -1,0 +1,54 @@
+{
+  "session_summary": "Evaluated the Ember Forge route through the lens of state transitions, handling obstacles, and movement command validation. Observed redundant walk commands attempting to execute against active hazard collisions, resulting in duplicate obstacle hits and damage before a correct jump command was issued.",
+  "fun_score": 3,
+  "clarity_score": 4,
+  "friction_score": 3,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry shows multiple 'obstacle_hit' events (damage: 8) consecutively when walk commands are sent into an obstacle without a preceding jump.",
+      "recommendation": "Implement input buffering or command validation to prevent redundant walk commands from queuing or triggering repeated damage against stationary hazards.",
+      "id": "20260918T072121Z-qa_edge_cases-obs-1"
+    },
+    {
+      "category": "progression",
+      "severity": "low",
+      "evidence": "Completing Ember Forge granted +25 coins plus telemetry showing active route coin bonus experiments.",
+      "recommendation": "Ensure coin scaling modifiers correctly map to reward summaries without risking integer overflow or display desync on high multiplier routes.",
+      "id": "20260918T072121Z-qa_edge_cases-obs-2"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Redundant Walk Command Hazard Penalty Loop",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route 'forge'.",
+        "Walk into step 2 where an obstacle is present.",
+        "Issue repeated 'walk' commands instead of 'jump'."
+      ],
+      "expected": "The player should either automatically halt against the obstacle or the system should ignore duplicate walk inputs against a blocking state without repeatedly applying damage ticks.",
+      "observed": "Player received multiple consecutive obstacle hits (8 damage each) from repeated walk commands before successfully executing a jump.",
+      "id": "20260918T072121Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Obstacle Input Buffering & Command Feedback",
+      "category": "ux",
+      "player_value": "Prevents accidental self-damage and makes movement feedback feel more responsive when hitting route obstacles.",
+      "rationale": "Edge-case telemetry shows players frequently spam movement commands when blocked by hazards, leading to frustrating unintended damage states.",
+      "safe_content_only": false,
+      "desired_outcome": "Add client-side command validation and input buffering so blocked walk commands prompt an immediate warning state rather than multiple penalty ticks.",
+      "id": "20260918T072121Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clear telemetry event logging for obstacle collisions and route completions.",
+    "Responsive state transition tracking between walking, jumping, and combat encounters."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}
