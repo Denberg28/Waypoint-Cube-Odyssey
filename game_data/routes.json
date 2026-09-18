@@ -82,5 +82,44 @@
     "hazards": [
       "ensnaring briars"
     ]
+  },
+  "sunken_grotto": {
+    "name": "Sunken Grotto",
+    "difficulty": 2,
+    "theme": "subterranean crystal pools",
+    "collectibles": [
+      "Prismatic Pearl",
+      "Grotto Gem",
+      "Cave Fish"
+    ],
+    "hazards": [
+      "slick algae slopes"
+    ]
+  },
+  "cinder_caldera": {
+    "name": "Cinder Caldera",
+    "difficulty": 4,
+    "theme": "volcanic rift and magma flows",
+    "collectibles": [
+      "Magma Ember Shard",
+      "Caldera Gem",
+      "Ember Salvage"
+    ],
+    "hazards": [
+      "magma vents"
+    ]
+  },
+  "galecrest_spire": {
+    "name": "Galecrest Spire",
+    "difficulty": 4,
+    "theme": "alpine winds and ancient ruins",
+    "collectibles": [
+      "Skyfeather Relic",
+      "Summit Gem",
+      "Relic Charge"
+    ],
+    "hazards": [
+      "gale-force wind gusts"
+    ]
   }
 }
