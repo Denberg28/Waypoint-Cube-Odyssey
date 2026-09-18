@@ -149,10 +149,11 @@ def test_star_rank_header_is_layout_stable_and_cached():
 
     assert "var cached_rank_text: String = \"\"" in main
     assert "header.offset_bottom = 90" in main
-    assert "brand.custom_minimum_size.x = 520.0" in main
-    assert "rank_label.custom_minimum_size.x = 185.0" in main
-    assert "health_box.custom_minimum_size.x = 138.0" in main
-    assert "economy.custom_minimum_size.x = 214.0" in main
+    assert "brand.custom_minimum_size.x = 560.0" in main
+    assert "rank_label.custom_minimum_size = Vector2(168.0, 20.0)" in main
+    assert "health_box.custom_minimum_size.x = 154.0" in main
+    assert "economy.custom_minimum_size.x = 228.0" in main
+    assert "rank_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL" in main
     assert 'gear_button = button("Gear"' in main
     assert "if next_rank_text != cached_rank_text:" in main
     assert "rank_label.text = cached_rank_text" in main
@@ -166,14 +167,15 @@ def test_gameplay_hud_uses_compact_focus_layout():
     assert "header.offset_bottom = 90" in main
     assert 'header.add_theme_stylebox_override("panel", compact_style' in main
     assert "info.position = Vector2(24, 104)" in main
-    assert "footer.offset_right = 276" in main
-    assert "footer.offset_top = -58" in main
+    assert "footer.offset_right = 288" in main
+    assert "footer.offset_top = -64" in main
+    assert "footer.offset_bottom = -16" in main
     assert 'compact_details = button("Details"' in main
     assert 'compact_best = button("Best"' in main
     assert 'compact_heal = button("Heal"' in main
     assert 'compact_mana = button("Mana"' in main
-    assert "side_panel.offset_top = -78" in main
-    assert "side_panel.offset_bottom = -12" in main
+    assert "side_panel.offset_top = -84" in main
+    assert "side_panel.offset_bottom = -16" in main
     assert "side_header.hide()" in main
     assert 'settings.get_value("ui", "status_minimized", true)' in main
 
@@ -190,7 +192,7 @@ def test_web_export_uses_commit_hashed_assets():
     assert 'Cache-Control' in workflow
 
 
-def test_header_places_rank_autosave_and_blue_xp_meter():
+def test_header_places_rank_autosave_and_light_yellow_xp_meter():
     from pathlib import Path
 
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
@@ -200,8 +202,8 @@ def test_header_places_rank_autosave_and_blue_xp_meter():
     assert 'save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)' in main
     assert "brand.add_child(save_label)" in main
     assert 'bottom.add_child(save_label)' not in main
-    assert "xp_bar.custom_minimum_size = Vector2(138.0, 6.0)" in main
-    assert 'xp_fill.bg_color = Color("3f86ff")' in main
+    assert "xp_bar.custom_minimum_size = Vector2(154.0, 5.0)" in main
+    assert 'xp_fill.bg_color = Color("ead77a")' in main
     assert "xp_bar.value = 100.0" in main
     assert "game.xp_to_next()" in main
     assert 'save_label.text = "AUTOSAVE  /  OFFLINE"' in main

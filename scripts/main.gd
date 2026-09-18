@@ -324,18 +324,23 @@ func build_ui() -> void:
 	var brand = VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	brand.custom_minimum_size.x = 520.0
+	brand.custom_minimum_size.x = 560.0
 	brand.add_theme_constant_override("separation", 1)
 	row.add_child(brand)
 
 	var brand_top = HBoxContainer.new()
+	brand_top.alignment = BoxContainer.ALIGNMENT_CENTER
 	brand_top.add_theme_constant_override("separation", 8)
 	brand.add_child(brand_top)
+
 	var waypoint_label := label("W A Y P O I N T", 20, GOLD)
 	waypoint_label.custom_minimum_size.x = 190.0
+	waypoint_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	brand_top.add_child(waypoint_label)
+
 	var brightness_box = HBoxContainer.new()
 	brightness_box.add_theme_constant_override("separation", 3)
+	brightness_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	brand_top.add_child(brightness_box)
 	brightness_buttons = []
 	for entry in [["DAY", 0, "Day brightness"], ["DUSK", 1, "Dusk brightness"], ["NIGHT", 2, "Night brightness"]]:
@@ -346,52 +351,63 @@ func build_ui() -> void:
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
 
-	# Rank sits on the same visual row as DAY / DUSK / NIGHT.
+	# Flexible spacer keeps rank visually separated from DAY/DUSK/NIGHT.
+	var rank_spacer = Control.new()
+	rank_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_top.add_child(rank_spacer)
+
 	cached_rank_text = game.star_rank_text()
 	rank_label = label(cached_rank_text, 9, GOLD)
-	rank_label.custom_minimum_size.x = 185.0
-	rank_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rank_label.custom_minimum_size = Vector2(168.0, 20.0)
+	rank_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	rank_label.clip_text = true
 	brand_top.add_child(rank_label)
 
 	brand_subtitle_label = label("CUBE ODYSSEY  /  FREE ADVENTURE", 8, MUTED)
+	brand_subtitle_label.custom_minimum_size = Vector2(220.0, 12.0)
 	brand_subtitle_label.clip_text = true
 	brand.add_child(brand_subtitle_label)
 
 	# Autosave state belongs with identity/status, not in the movement controls.
 	save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)
+	save_label.custom_minimum_size = Vector2(220.0, 11.0)
 	save_label.clip_text = true
 	brand.add_child(save_label)
 
 	# Health gets its own RPG-style XP meter directly underneath.
 	var health_box = VBoxContainer.new()
-	health_box.custom_minimum_size.x = 138.0
+	health_box.custom_minimum_size.x = 154.0
 	health_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	health_box.add_theme_constant_override("separation", 3)
+	health_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	health_box.add_theme_constant_override("separation", 2)
 	row.add_child(health_box)
+
 	health = label("", 16, MINT)
+	health.custom_minimum_size.y = 18.0
 	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	health_box.add_child(health)
+
 	xp_bar = ProgressBar.new()
-	xp_bar.custom_minimum_size = Vector2(138.0, 6.0)
+	xp_bar.custom_minimum_size = Vector2(154.0, 5.0)
 	xp_bar.min_value = 0.0
 	xp_bar.max_value = 100.0
 	xp_bar.value = 0.0
 	xp_bar.show_percentage = false
 	xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var xp_bg = StyleBoxFlat.new()
-	xp_bg.bg_color = Color("142a38")
+	xp_bg.bg_color = Color("4c5541")
 	xp_bg.set_corner_radius_all(3)
 	var xp_fill = StyleBoxFlat.new()
-	xp_fill.bg_color = Color("3f86ff")
+	xp_fill.bg_color = Color("ead77a")
 	xp_fill.set_corner_radius_all(3)
 	xp_bar.add_theme_stylebox_override("background", xp_bg)
 	xp_bar.add_theme_stylebox_override("fill", xp_fill)
 	health_box.add_child(xp_bar)
 	economy = label("", 13, GOLD)
-	economy.custom_minimum_size.x = 214.0
+	economy.custom_minimum_size.x = 228.0
 	economy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	economy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	economy.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -435,10 +451,10 @@ func build_ui() -> void:
 	# Compact left-hand movement dock keeps the central road unobstructed.
 	var footer = PanelContainer.new()
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
-	footer.offset_left = 14
-	footer.offset_right = 276
-	footer.offset_top = -58
-	footer.offset_bottom = -12
+	footer.offset_left = 16
+	footer.offset_right = 288
+	footer.offset_top = -64
+	footer.offset_bottom = -16
 	footer.add_theme_stylebox_override("panel", compact_style(Color("183b3c"), 12, Color("39605a")))
 	ui.add_child(footer)
 	var bottom = VBoxContainer.new()
@@ -839,10 +855,10 @@ func apply_side_panel_mode() -> void:
 	if side_panel_minimized:
 		# RPG-style focus mode: a low-profile quick strip hugs the lower-right edge.
 		side_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		side_panel.offset_left = -330
-		side_panel.offset_right = -12
-		side_panel.offset_top = -78
-		side_panel.offset_bottom = -12
+		side_panel.offset_left = -336
+		side_panel.offset_right = -16
+		side_panel.offset_top = -84
+		side_panel.offset_bottom = -16
 		side_full_body.hide()
 		side_compact_body.show()
 		if is_instance_valid(side_header):
@@ -851,10 +867,10 @@ func apply_side_panel_mode() -> void:
 			compact_message.text = str(game.data.last).replace("\n", " ")
 	else:
 		side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
-		side_panel.offset_left = -360
-		side_panel.offset_right = -12
-		side_panel.offset_top = 88
-		side_panel.offset_bottom = -12
+		side_panel.offset_left = -364
+		side_panel.offset_right = -16
+		side_panel.offset_top = 92
+		side_panel.offset_bottom = -16
 		side_full_body.show()
 		side_compact_body.hide()
 		if is_instance_valid(side_header):
