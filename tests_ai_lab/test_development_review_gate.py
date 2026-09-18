@@ -100,7 +100,7 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert 'award_xp(20)' in state
     assert 'award_xp(60)' in state
 
-    assert 'rank_label.text = game.star_rank_text()' in main
+    assert 'rank_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE   •   " + game.star_rank_text()' in main
     assert 'func play_rpg_sfx' in main
     assert 'func build_environment_ambience' in main
     assert '"road_danger"' in main
@@ -123,3 +123,18 @@ def test_monitoring_close_uses_fresh_status_and_session_handoff():
     assert '"runtime/development_status.json"' in app
     assert "fresh=True" in app
     assert "Refresh monitoring status" in app
+
+
+def test_star_rank_conventional_mapping_contract():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+
+    assert "func star_quarter_count() -> int:" in state
+    assert "if level_value <= 1:" in state
+    assert "return 0" in state
+    assert "if level_value == 2:" in state
+    assert "return 1" in state
+    assert "if level_value == 3:" in state
+    assert "return 2" in state
+    assert "return level_value" in state
