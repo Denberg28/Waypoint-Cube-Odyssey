@@ -4,6 +4,8 @@ const STAGE_STEPS: int = 18
 const GENERATED_ROWS: int = STAGE_STEPS - 1
 const CELL_COUNT: int = GENERATED_ROWS * 3
 const LEVEL_CAP: int = 20
+const START_LEVEL: int = 1
+const START_XP: int = 0
 const SAVE_PATH = "user://waypoint_save_v1.json"
 var save_path: String = SAVE_PATH
 var data: Dictionary
@@ -40,8 +42,8 @@ func reset() -> void:
 		"cosmetics_equipped":{"skin":"", "head":"", "back":"", "face":""},
 		"camp_level":0,
 		"kills":0,
-		"level":1,
-		"xp":0,
+		"level":START_LEVEL,
+		"xp":START_XP,
 		"turn":0,
 		"boss_hp":12,
 		"danger":0,
@@ -56,6 +58,12 @@ func reset() -> void:
 		"fish_caught":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
+
+func initialize_new_account_progression() -> void:
+	# A brand-new save always begins unranked: zero filled stars and zero XP.
+	# Level 1 is the baseline display level; star_quarter_count() returns 0 here.
+	data.level = START_LEVEL
+	data.xp = START_XP
 
 func xp_to_next(level_value: int = -1) -> int:
 	var current: int = int(data.level) if level_value < 0 else level_value

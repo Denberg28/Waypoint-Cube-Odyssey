@@ -284,3 +284,40 @@ def test_character_has_state_aware_idle_animation():
     assert "right_foot.rotation.x" in world
     assert "elif not hopping:" in world
     assert "apply_idle_animation()" in world
+
+
+def test_new_save_starts_with_zero_stars_and_zero_xp():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "const START_LEVEL: int = 1" in state
+    assert "const START_XP: int = 0" in state
+    assert '"level":START_LEVEL' in state
+    assert '"xp":START_XP' in state
+    assert "func initialize_new_account_progression() -> void:" in state
+    assert "data.level = START_LEVEL" in state
+    assert "data.xp = START_XP" in state
+    assert "if level_value <= 1:" in state
+    assert "return 0" in state
+    assert "if not has_save:" in main
+    assert "game.initialize_new_account_progression()" in main
+    assert "NEW SAVE BASELINE  •  0 STARS  •  0 XP" in main
+
+
+def test_quit_paths_use_confirmation_window():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "func show_quit_confirmation(origin: String = \"menu\") -> void:" in main
+    assert "func perform_quit(save_first: bool, reason: String) -> void:" in main
+    assert 'modal("EXIT WAYPOINT", "Leave the game?"' in main
+    assert 'action("Save & Quit"' in main
+    assert 'action("Quit without another save"' in main
+    assert 'action("Cancel"' in main
+    assert 'action("Save and quit…", func(): show_quit_confirmation("pause_menu"))' in main
+    assert 'action("Quit…", func(): show_quit_confirmation("title_menu"))' in main
+    assert 'show_quit_confirmation("window_close")' in main
+    assert 'get_tree().quit()' in main

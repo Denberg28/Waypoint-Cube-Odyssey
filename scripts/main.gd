@@ -1360,8 +1360,36 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save starts at 0 stars and 0 XP (LV 1 baseline). Combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
+
+func return_from_quit_window() -> void:
+	if at_title:
+		show_title()
+	else:
+		show_pause()
+
+func perform_quit(save_first: bool, reason: String) -> void:
+	var saved_ok: bool = true
+	if save_first:
+		saved_ok = game.save_game()
+		has_save = saved_ok or has_save
+	ai_telemetry.record("session_end", game, {"reason":reason, "saved":save_first, "save_ok":saved_ok})
+	get_tree().quit()
+
+func show_quit_confirmation(origin: String = "menu") -> void:
+	var detail: String = "Your current journey is already protected by autosave, but you can write one final save before leaving."
+	if int(game.data.bag) > 0:
+		detail += "\n\nUnbanked expedition coins: %d. They remain part of the saved expedition state." % int(game.data.bag)
+	if has_save:
+		modal("EXIT WAYPOINT", "Leave the game?", detail)
+		action("Save & Quit", func(): perform_quit(true, origin + "_save"), true)
+		action("Quit without another save", func(): perform_quit(false, origin + "_nosave"))
+		action("Cancel", func(): return_from_quit_window())
+	else:
+		modal("EXIT WAYPOINT", "Leave the game?", "No journey has been created yet.")
+		action("Quit game", func(): perform_quit(false, origin + "_nosave"), true)
+		action("Cancel", func(): return_from_quit_window())
 
 func show_pause() -> void:
 	if at_title:
@@ -1381,7 +1409,7 @@ func show_pause() -> void:
 			action("Abandon and return to camp", func(): game.data.bag = 0; game.return_camp(); commit())
 		)
 	action("Save & return to title", func(): game.save_game(); show_title())
-	action("Save and quit", func(): game.save_game(); get_tree().quit())
+	action("Save and quit…", func(): show_quit_confirmation("pause_menu"))
 
 func do_move(direction: int, jump_move: bool = false) -> void:
 	if at_title or busy or game.data.mode not in ["travel", "boss"]:
@@ -1868,10 +1896,10 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		ai_telemetry.record("session_end", game, {"reason":"window_close"})
-		if has_save:
-			game.save_game()
-		get_tree().quit()
+		if is_instance_valid(ui) and is_instance_valid(overlay):
+			show_quit_confirmation("window_close")
+		else:
+			perform_quit(has_save, "window_close_fallback")
 	elif what == NOTIFICATION_APPLICATION_PAUSED and has_save:
 		ai_telemetry.record("session_pause", game, {})
 		game.save_game()
@@ -1901,7 +1929,7 @@ func show_title() -> void:
 		modal("CREDITS", "A small adventure, made with Godot.", "Waypoint: Cube Odyssey\nOriginal procedural art, synthesized effects, and procedural bard-style music.\nGodot Engine — MIT license.\nProject source — MIT license (included in the download).")
 		action("Back", func(): show_title(), true)
 	)
-	action("Quit", func(): get_tree().quit())
+	action("Quit…", func(): show_quit_confirmation("title_menu"))
 
 func continue_game() -> void:
 	if not has_save:
@@ -1936,7 +1964,10 @@ func request_play() -> void:
 		show_selector()
 
 func show_selector() -> void:
-	modal("CHARACTER SELECT", "Choose your wanderer.", "Roll one of four trades, then confirm. Each trade has an equal chance.")
+	var selector_body: String = "Roll one of four trades, then confirm. Each trade has an equal chance."
+	if not has_save:
+		selector_body += "\n\nNEW SAVE BASELINE  •  0 STARS  •  0 XP"
+	modal("CHARACTER SELECT", "Choose your wanderer.", selector_body)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
 	stack.add_child(row)
@@ -2010,6 +2041,8 @@ func confirm_character() -> void:
 	if spinning:
 		return
 	game.data.skin = selected_skin
+	if not has_save:
+		game.initialize_new_account_progression()
 	game.begin(selected_class)
 	enter_game()
 	commit()
