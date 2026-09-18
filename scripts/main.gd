@@ -326,8 +326,9 @@ func build_ui() -> void:
 		brightness_button.add_theme_font_size_override("font_size", 10)
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
-	brand.add_child(label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED))
-	rank_label = label("", 12, GOLD)
+	# Keep the rank on the always-visible subtitle row so narrow Web layouts
+	# cannot clip it below the header.
+	rank_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED)
 	brand.add_child(rank_label)
 	health = label("", 20, MINT)
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -945,7 +946,8 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
 	if is_instance_valid(rank_label):
-		rank_label.text = game.star_rank_text() + "   •   " + game.level_progress_text()
+		rank_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE   •   " + game.star_rank_text() + "   •   " + game.level_progress_text()
+		rank_label.add_theme_color_override("font_color", GOLD)
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
 	if game.data.mode in ["travel", "campfire", "fishing"]:
@@ -1261,7 +1263,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Levels 1–20 fill five stars in quarter-star steps: ¼★, ½★, ¾★, then ★. Level 20 is the five-star cap.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
