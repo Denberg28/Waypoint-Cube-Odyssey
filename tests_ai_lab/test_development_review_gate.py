@@ -108,3 +108,18 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert 'fight_status.text = "CLASH!"' in main
     assert '"HARD-WON VICTORY"' in main
     assert '"RUNE STRIKE"' in main
+
+
+def test_monitoring_close_uses_fresh_status_and_session_handoff():
+    from pathlib import Path
+
+    gate = Path("streamlit_lab/review_gate.py").read_text(encoding="utf-8")
+    app = Path("streamlit_app.py").read_text(encoding="utf-8")
+
+    assert "fresh: bool = False" in gate
+    assert "time.time_ns()" in gate
+    assert '"Cache-Control": "no-cache" if fresh' in gate
+    assert "st.session_state.development_status_book = saved_status" in app
+    assert '"runtime/development_status.json"' in app
+    assert "fresh=True" in app
+    assert "Refresh monitoring status" in app

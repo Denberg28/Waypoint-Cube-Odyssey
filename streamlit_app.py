@@ -206,9 +206,18 @@ with beta:
 with review_tab:
     st.subheader("Development Review")
     st.caption("AI beta-tester recommendations only. Use the status control to monitor each item as OPEN, PENDING, or CLOSE. Nothing here triggers automatic implementation.")
+    if st.session_state.get("development_status_notice"):
+        st.success(str(st.session_state.pop("development_status_notice")))
 
     review = fetch_remote_json("runtime/development_review.json", {})
-    status_book = fetch_remote_json("runtime/development_status.json", {"schema": 1, "entries": []})
+    status_book = st.session_state.get("development_status_book")
+    if not isinstance(status_book, dict):
+        status_book = fetch_remote_json(
+            "runtime/development_status.json",
+            {"schema": 1, "entries": []},
+            fresh=True,
+        )
+        st.session_state.development_status_book = status_book
     recommendation_tally = fetch_remote_json("runtime/recommendation_tally.json", {"schema": 1, "families": []})
 
     try:
@@ -332,7 +341,7 @@ with review_tab:
                     st.error("Owner passphrase is incorrect.")
                 else:
                     try:
-                        persist_monitoring_status(
+                        saved_status = persist_monitoring_status(
                             token=github_token,
                             review=review,
                             updates=changed_statuses,
@@ -340,7 +349,12 @@ with review_tab:
                     except ReviewGateError as exc:
                         st.error(str(exc))
                     else:
-                        st.success("Monitoring status updated. Closed recommendations moved to Updates.")
+                        # Use the exact object GitHub accepted rather than waiting for
+                        # raw.githubusercontent.com cache propagation.
+                        st.session_state.development_status_book = saved_status
+                        st.session_state.development_status_notice = (
+                            "Monitoring status updated. Closed recommendations moved to Updates."
+                        )
                         st.rerun()
 
 
@@ -348,12 +362,29 @@ with updates_tab:
     st.subheader("Updates")
     st.caption("Closed Development Review recommendations are archived here for manual change tracking. This page is descriptive only; it does not implement or modify the game.")
 
-    status_book = fetch_remote_json("runtime/development_status.json", {"schema": 1, "entries": []})
+    status_book = st.session_state.get("development_status_book")
+    if not isinstance(status_book, dict):
+        status_book = fetch_remote_json(
+            "runtime/development_status.json",
+            {"schema": 1, "entries": []},
+            fresh=True,
+        )
+        st.session_state.development_status_book = status_book
     closed_entries = [
         item for item in status_book.get("entries", [])
         if isinstance(item, dict) and str(item.get("status", "")).lower() == "close"
     ]
     closed_entries.sort(key=lambda item: str(item.get("closed_utc", "")), reverse=True)
+
+    refresh_col, _ = st.columns([1, 3])
+    with refresh_col:
+        if st.button("Refresh monitoring status", use_container_width=True):
+            st.session_state.development_status_book = fetch_remote_json(
+                "runtime/development_status.json",
+                {"schema": 1, "entries": []},
+                fresh=True,
+            )
+            st.rerun()
 
     if not closed_entries:
         st.info("No recommendations have been closed yet.")

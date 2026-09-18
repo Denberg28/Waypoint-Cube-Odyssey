@@ -5,6 +5,7 @@ import hmac
 import json
 import urllib.error
 import urllib.request
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -22,10 +23,22 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def fetch_remote_json(path: str, default: Any = None) -> Any:
+def fetch_remote_json(path: str, default: Any = None, *, fresh: bool = False) -> Any:
     url = f"https://raw.githubusercontent.com/{REPOSITORY}/{BRANCH}/{path}"
+    if fresh:
+        # Monitoring writes land on ai-development immediately, but the raw-file
+        # CDN can briefly serve the previous branch revision. A unique query plus
+        # no-cache headers forces the dashboard to observe the just-written state.
+        url += f"?monitor={time.time_ns()}"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Waypoint-Review-Monitor/1.0"})
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": "Waypoint-Review-Monitor/1.0",
+                "Cache-Control": "no-cache" if fresh else "max-age=30",
+                "Pragma": "no-cache" if fresh else "",
+            },
+        )
         with urllib.request.urlopen(req, timeout=8) as response:
             return json.loads(response.read().decode("utf-8"))
     except Exception:
