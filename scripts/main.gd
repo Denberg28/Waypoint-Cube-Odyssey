@@ -939,15 +939,7 @@ func cancel_fishing() -> void:
 	commit(false)
 
 func route_options_for_stage() -> Array:
-	var sets: Array = [
-		["moss", "forge", "fen"],
-		["treasure", "shrine", "frost"],
-		["moss", "frost", "fen"],
-		["forge", "treasure", "frost"],
-		["shrine", "fen", "forge"],
-		["frost", "fen", "treasure"]
-	]
-	return sets[int(game.data.stage) % sets.size()]
+	return State.route_options_for_stage_index(int(game.data.stage))
 
 func route_difficulty_text(route: Dictionary) -> String:
 	var level: int = int(route.get("difficulty", 0))
@@ -1081,7 +1073,7 @@ func update_hud() -> void:
 		side_equipment.text = "\n".join(eq) + "\nOwned gear: %d / %d" % [game.data.inventory.size(), Catalog.GEAR.size()]
 		side_potions.text = "Healing ×%d    Mana ×%d" % [int(game.data.potions.heal), int(game.data.potions.mana)]
 		var relic_text: String = "READY — NEXT GEAR RARE+" if int(game.data.relic_charge) >= 100 else "%d%%" % int(game.data.relic_charge)
-		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%   •   FISH %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_caught)]
+		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%   •   FISH %d   •   CAPS %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_caught), int(game.data.gloomcaps)]
 		if is_instance_valid(compact_message):
 			compact_message.text = str(game.data.last).replace("\n", " ")
 
@@ -1361,7 +1353,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over.\n\nGLOOMWOOD HOLLOW: a twilight route around the Whispering Hollow Root. Jump over Ensnaring Briars and detour for Gloomcaps. Every Gloomcap adds Resolve; every third Gloomcap also grants 1 gem. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func return_from_quit_window() -> void:
