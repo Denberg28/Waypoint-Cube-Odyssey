@@ -474,6 +474,57 @@ func tree(pos: Vector3, factor: float) -> void:
 	if env_id == "winter":
 		cone(scenery, pos + Vector3(0, 3.28, 0) * factor, 0.36 * factor, 0.65 * factor, Color("cbd7d9"))
 
+func build_cat_companion() -> void:
+	if not bool(state.data.get("cat_owned", false)):
+		return
+	var design: Dictionary = state.data.get("cat_design", {})
+	if design.is_empty():
+		return
+	var root := Node3D.new()
+	root.position = Vector3(-1.95, 0.22, -4.15)
+	root.rotation.y = 0.35
+	scenery.add_child(root)
+	var body_color := Color(str(design.get("body", "c99068")))
+	var accent_color := Color(str(design.get("accent", "f0e1c0")))
+	var eye_color := Color(str(design.get("eyes", "e7c96f")))
+	var pattern: String = str(design.get("pattern", "solid"))
+
+	# Compact voxel-cat silhouette: body, head, four paws, ears and tail.
+	box(root, Vector3(0, 0.36, 0), Vector3(0.72, 0.52, 0.58), body_color)
+	box(root, Vector3(0, 0.76, 0.15), Vector3(0.58, 0.56, 0.54), body_color)
+	for x in [-0.19, 0.19]:
+		cone(root, Vector3(x, 1.08, 0.14), 0.14, 0.28, body_color, 0.01)
+		box(root, Vector3(x, 0.79, 0.43), Vector3(0.07, 0.10, 0.03), eye_color, true)
+	box(root, Vector3(0, 0.68, 0.44), Vector3(0.08, 0.06, 0.03), Color("5a3c3c"))
+	for x in [-0.24, 0.24]:
+		box(root, Vector3(x, 0.06, 0.18), Vector3(0.18, 0.16, 0.26), body_color.darkened(0.08))
+		box(root, Vector3(x, 0.06, -0.18), Vector3(0.18, 0.16, 0.26), body_color.darkened(0.08))
+	# Tail uses three short segments so it reads clearly from the camp camera.
+	box(root, Vector3(0.44, 0.42, -0.18), Vector3(0.18, 0.18, 0.52), body_color)
+	box(root, Vector3(0.50, 0.62, -0.42), Vector3(0.16, 0.42, 0.16), body_color)
+	box(root, Vector3(0.43, 0.86, -0.42), Vector3(0.16, 0.28, 0.16), body_color)
+
+	match pattern:
+		"tuxedo":
+			box(root, Vector3(0, 0.78, 0.43), Vector3(0.30, 0.34, 0.035), accent_color)
+			box(root, Vector3(0, 0.33, 0.30), Vector3(0.34, 0.36, 0.035), accent_color)
+		"tabby":
+			for y in [0.60, 0.76, 0.92]:
+				box(root, Vector3(0, y, 0.435), Vector3(0.44, 0.045, 0.025), accent_color.darkened(0.12))
+		"calico":
+			box(root, Vector3(-0.17, 0.84, 0.43), Vector3(0.18, 0.20, 0.03), accent_color)
+			box(root, Vector3(0.20, 0.46, 0.30), Vector3(0.24, 0.20, 0.03), Color("b96f52"))
+		"point":
+			box(root, Vector3(0, 0.80, 0.43), Vector3(0.44, 0.30, 0.03), accent_color.darkened(0.25))
+			for x in [-0.24, 0.24]:
+				box(root, Vector3(x, 0.06, 0.18), Vector3(0.18, 0.16, 0.26), accent_color.darkened(0.20))
+		_:
+			pass
+
+	var mood: String = state.cat_mood()
+	var satiety: int = int(state.data.get("cat_satiety", 0))
+	floating_text(root, "%s  •  %s  •  %d%%" % [str(design.get("name", "CAT")), mood, satiety], Vector3(0, 1.45, 0), active_theme.text, 17)
+
 func camp() -> void:
 	var tent = PrismMesh.new()
 	tent.size = Vector3(2.8, 2.5, 3.0)
@@ -516,6 +567,7 @@ func camp() -> void:
 	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 20)
 	for i in range(int(state.data.camp_level)):
 		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
+	build_cat_companion()
 
 func pose_actor_at_camp() -> void:
 	actor.position = Vector3(-3.15, 0.52, -3.05)
