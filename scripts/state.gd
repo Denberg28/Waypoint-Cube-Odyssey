@@ -84,8 +84,20 @@ func award_xp(amount: int) -> String:
 			message += "  •  FIVE-STAR MAX"
 	return message
 
+func star_quarter_count() -> int:
+	var level_value: int = clampi(int(data.level), 1, LEVEL_CAP)
+	# Level 1 begins unranked. Level 4 is the first full star; after that,
+	# each level advances by one quarter-star until Level 20 reaches five stars.
+	if level_value <= 1:
+		return 0
+	if level_value == 2:
+		return 1
+	if level_value == 3:
+		return 2
+	return level_value
+
 func star_rank_text() -> String:
-	var quarters: int = clampi(int(data.level), 1, LEVEL_CAP)
+	var quarters: int = star_quarter_count()
 	var full_stars: int = quarters / 4
 	var remainder: int = quarters % 4
 	var stars: Array[String] = []
