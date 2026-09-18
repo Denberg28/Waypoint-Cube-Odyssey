@@ -821,9 +821,9 @@ func next_stage() -> void:
 		data.mode = "boss_intro"
 		return
 	if int(data.stage) == 3:
+		# Mid-expedition checkpoint banks loose coins only. Hearts and mana carry
+		# forward so attrition, healing gear, potions, and route choices matter.
 		bank()
-		data.hp = max_hp()
-		data.mana = max_mana()
 	# Every normal road ends at one simple marker that sends the player to camp.
 	data.mode = "road_end"
 
@@ -892,19 +892,23 @@ func return_camp() -> void:
 	var previous_mode: String = str(data.mode)
 	data.popup = {}
 	data.mode = "camp"
-	data.hp = max_hp()
-	data.mana = max_mana()
+	# Camp is a navigation/supply hub, not a free full-heal trigger. Current
+	# hearts and mana persist. Explicit healing comes from trail-heal perks,
+	# potions, and other authored recovery sources. A brand-new expedition
+	# still starts at full resources in begin().
+	data.hp = clampi(int(data.hp), 0, max_hp())
+	data.mana = clampi(int(data.mana), 0, max_mana())
 	data.blessing = 0
 	data.streak = 0
 	data.row = 0
 	data.lane = 0
-	# Returning from the road-end waypoint is a between-roads rest, so preserve
-	# expedition stage. Other home returns end the expedition and start fresh.
+	# Returning from the road-end waypoint preserves expedition stage. Other
+	# home returns end the expedition and clear loose expedition state.
 	if previous_mode != "road_end":
 		data.stage = 0
 		data.cells = []
 		data.bag = 0
-	data.last = "Rest a while. Crossroads waits beyond the camp."
+	data.last = "Lantern Camp is safe, but hearts do not refill automatically. Use supplies if needed."
 
 func leave_camp_for_crossroads() -> void:
 	if data.mode != "camp":

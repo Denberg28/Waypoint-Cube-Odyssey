@@ -205,3 +205,30 @@ def test_header_places_rank_autosave_and_blue_xp_meter():
     assert "xp_bar.value = 100.0" in main
     assert "game.xp_to_next()" in main
     assert 'save_label.text = "AUTOSAVE  /  OFFLINE"' in main
+
+
+def test_hearts_persist_between_trails_and_camp_visits():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    next_stage = state.split("func next_stage() -> void:", 1)[1].split("func bank() -> void:", 1)[0]
+    return_camp = state.split("func return_camp() -> void:", 1)[1].split("func leave_camp_for_crossroads() -> void:", 1)[0]
+    finish_room = state.split("func finish_room() -> void:", 1)[1].split("func after_reward() -> void:", 1)[0]
+    begin = state.split("func begin(class_id: String = \"\") -> void:", 1)[1].split("func make_room(route: String) -> void:", 1)[0]
+
+    # No hidden full refill at route checkpoint or Lantern Camp.
+    assert "data.hp = max_hp()" not in next_stage
+    assert "data.mana = max_mana()" not in next_stage
+    assert "data.hp = max_hp()" not in return_camp
+    assert "data.mana = max_mana()" not in return_camp
+
+    # Authored recovery remains intentional: trail-heal perks still work.
+    assert 'data.hp = mini(max_hp(), int(data.hp) + stat("heal"))' in finish_room
+
+    # A genuinely new expedition still starts with full resources.
+    assert "data.hp = max_hp()" in begin
+    assert "data.mana = max_mana()" in begin
+
+    assert "Hearts carry over" in main

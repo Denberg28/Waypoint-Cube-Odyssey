@@ -125,7 +125,7 @@ func _ready() -> void:
 	world.camp_clicked.connect(func():
 		if not at_title and not busy and game.data.mode == "road_end":
 			game.return_camp()
-			push_chat("Road complete. Returned to Lantern Camp.")
+			push_chat("Road complete. Returned to Lantern Camp. Hearts carry over.")
 			commit()
 	)
 	world.continue_clicked.connect(func():
@@ -1114,7 +1114,7 @@ func show_mode() -> void:
 		"road_end":
 			overlay.hide()
 			route_panel.hide()
-			push_chat("Road complete. Choose the next adventure from the signpost, or select LANTERN CAMP to rest.")
+			push_chat("Road complete. Choose the next adventure, or visit LANTERN CAMP for supplies. Hearts carry over.")
 		"camp":
 			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
 			# so the side bench, seated character, and bonfire are visible immediately.
@@ -1165,7 +1165,7 @@ func show_mode() -> void:
 			action("Return to Lantern Camp   →", func(): game.return_camp(); commit(), true)
 		"defeat":
 			modal("THE LANTERN GUIDES YOU HOME", "Every journey teaches.", str(game.data.last))
-			action("Rest at camp   →", func(): game.return_camp(); commit(), true)
+			action("Return to Lantern Camp   →", func(): game.return_camp(); commit(), true)
 
 func gear_score(gear: Dictionary) -> int:
 	var score: int = int(gear.get("attack", 0)) * 5 + int(gear.get("health", 0)) * 4 + int(gear.get("coins", 0)) * 2 + int(gear.get("heal", 0)) * 3
@@ -1337,7 +1337,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail, and a brand-new expedition starts full. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
