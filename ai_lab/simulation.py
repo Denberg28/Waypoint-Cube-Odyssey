@@ -4,11 +4,11 @@ from streamlit_lab.core import ROUTES, COSMETICS, new_state, choose_route, move,
 
 PERSONA_ROUTES = {
     "first_time_player": "moss",
-    "explorer_collector": "gloomwood",
-    "combat_challenger": "frost",
+    "explorer_collector": "sunken_grotto",
+    "combat_challenger": "cinder_caldera",
     "economy_optimizer": "treasure",
     "accessibility_ux": "shrine",
-    "qa_edge_cases": "forge",
+    "qa_edge_cases": "galecrest_spire",
 }
 
 
