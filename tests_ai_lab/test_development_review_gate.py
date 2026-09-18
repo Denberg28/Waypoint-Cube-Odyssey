@@ -542,3 +542,24 @@ def test_v13_save_migrates_cat_companion_fields_to_v14():
     assert 'migrated.cat_offer = random_cat_design()' in state
     assert 'migrated.cat_satiety = 0' in state
     assert "migrated.version = 14" in state
+
+
+def test_waypoint_posts_are_standardized_and_location_specific():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "const WAYPOINT_STYLES" in catalog
+    for route_id in ["moss", "forge", "shrine", "treasure", "frost", "fen", "gloomwood"]:
+        assert f'"{route_id}":{{' in catalog
+    assert "static func waypoint_style(route_id: String) -> Dictionary:" in catalog
+
+    assert "func waypoint_style_for(route_id: String) -> Dictionary:" in world
+    assert "func add_waypoint_motif(" in world
+    assert "func waypoint_destination_board(" in world
+    assert "Twin-post gateway" in world
+    assert "ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD" in world
+    assert "REST / SUPPLIES" in world
+    assert '"difficulty_label"' in world
+    assert "Crossroads reuses the destination-board grammar" in world
