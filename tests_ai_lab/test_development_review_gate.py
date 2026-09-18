@@ -100,7 +100,9 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert 'award_xp(20)' in state
     assert 'award_xp(60)' in state
 
-    assert 'rank_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE   •   " + game.star_rank_text()' in main
+    assert "rank_label.text" in main
+    assert "game.star_rank_text()" in main
+    assert "game.level_progress_text()" in main
     assert 'func play_rpg_sfx' in main
     assert 'func build_environment_ambience' in main
     assert '"road_danger"' in main
