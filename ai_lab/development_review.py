@@ -141,11 +141,11 @@ def main() -> None:
         "rollback_flagged_feature_ids": sorted(flagged),
         "features": features[:20],
         "policy": {
-            "owner_decision_required": True,
-            "decisions": ["accept", "hold"],
-            "accept_scope": "selected_features_only",
-            "auto_merge": False,
-            "accept_means": "authorize staged implementation/validation; it does not authorize automatic merge or bypass tests",
+            "mode": "advisory_monitoring_only",
+            "owner_tracking_enabled": True,
+            "statuses": ["open", "pending", "close"],
+            "auto_implementation": False,
+            "note": "AI beta-test recommendations are advisory. The owner manually implements changes with ChatGPT and uses Development Review only to monitor status.",
         },
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

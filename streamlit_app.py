@@ -6,7 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_lab.core import new_state, ROUTES, COSMETICS, buy_cosmetic, cosmetic_price
 from streamlit_lab.world_state import load_world_state, load_beta_council
-from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_decision, pin_matches, request_implementation, request_rollback
+from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persist_monitoring_status, pin_matches
 
 ROOT = Path(__file__).resolve().parent
 GODOT_WEB_URL = "https://denberg28.github.io/Waypoint-Cube-Odyssey/"
@@ -96,13 +96,13 @@ with st.sidebar:
     st.divider()
     st.caption("Anonymous gameplay sharing is ON by default for the embedded tester. You can switch it off before or during play. Your Godot save stays inside your browser.")
 
-play, map_tab, gm, beta, review_tab, accepted_tab, music, market, lab = st.tabs([
+play, map_tab, gm, beta, review_tab, updates_tab, music, market, lab = st.tabs([
     "🎮 Play Godot",
     "🗺️ World Map",
     "🌙 AI Game Master",
     "🤖 Beta Testers",
     "✅ Development Review",
-    "📦 Accepted Updates",
+    "📦 Updates",
     "🎵 Music Director",
     "🛍️ Lab Market",
     "🧪 Dev Lab",
@@ -204,113 +204,11 @@ with beta:
         st.caption("Synthetic testers are advisory agents. Real player telemetry is treated as evidence, not as instructions.")
 
 with review_tab:
-    st.subheader("Prepared Development Update")
-    st.caption("Only pending features stay here. Accepted features move to Accepted Updates. Rolled-back features return here for a fresh decision.")
+    st.subheader("Development Review")
+    st.caption("AI beta-tester recommendations only. Use the status control to monitor each item as OPEN, PENDING, or CLOSE. Nothing here triggers automatic implementation.")
 
     review = fetch_remote_json("runtime/development_review.json", {})
-    gate = fetch_remote_json("runtime/development_gate.json", {})
-    flagged = fetch_remote_json("runtime/flagged_features.json", {"features": []})
-
-    if not review:
-        st.info("No prepared development bundle is available yet.")
-    else:
-        bundle_id = str(review.get("bundle_id", ""))
-        same_gate = isinstance(gate, dict) and str(gate.get("bundle_id", "")) == bundle_id
-        accepted_ids = set(gate.get("selected_feature_ids", [])) if same_gate and str(gate.get("decision", "")) == "accepted" else set()
-        flagged_ids = {
-            str(item.get("id", ""))
-            for item in flagged.get("features", [])
-            if isinstance(item, dict) and bool(item.get("manual_clear_required", False))
-        }
-
-        all_features = [x for x in review.get("features", []) if isinstance(x, dict)]
-        pending = [x for x in all_features if str(x.get("id", "")) not in accepted_ids]
-
-        if not pending:
-            st.success("All features in this prepared bundle are already accepted. Manage them in Accepted Updates.")
-        else:
-            selected_ids = []
-            for item in pending:
-                fid = str(item.get("id", ""))
-                rolled_back = fid in flagged_ids or bool(item.get("rollback_flagged", False))
-                locked = bool(item.get("locked", False)) and not rolled_back
-                impl = str(item.get("implementation_class", "review_required")).replace("_", " ").title()
-                prefix = "ROLLED BACK · " if rolled_back else ""
-                checked = st.checkbox(
-                    f"{prefix}{item.get('priority','P3')} · {item.get('title','Untitled')} · {impl}",
-                    value=False,
-                    disabled=locked,
-                    key=f"pending-{bundle_id}-{fid}",
-                )
-                if checked and not locked:
-                    selected_ids.append(fid)
-                with st.expander(f"Details — {item.get('title','Untitled')}"):
-                    st.write("**Beta tester:**", item.get("tester") or "Development analysis")
-                    st.write("**Category:**", item.get("category", "—"))
-                    st.write("**Desired outcome:**", item.get("desired_outcome") or "—")
-                    st.write("**Reason:**", item.get("reason") or "—")
-                    if rolled_back:
-                        st.warning("This feature was rolled back. Selecting and accepting it again is an explicit owner decision to reconsider it.")
-                    elif locked:
-                        st.warning("This category is milestone-locked and cannot be accepted for ordinary optimization.")
-
-            st.divider()
-            st.caption(f"Pending: {len(pending)} · Selected: {len(selected_ids)}")
-            review_pin = st.text_input("Owner approval passphrase", type="password", key=f"review-pin-{bundle_id}")
-            try:
-                expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
-                github_token = str(st.secrets.get("WAYPOINT_REVIEW_GITHUB_TOKEN", ""))
-            except Exception:
-                expected_pin = ""
-                github_token = ""
-            controls_ready = bool(expected_pin and github_token)
-            if not controls_ready:
-                st.warning("Review controls are read-only until the Streamlit review secrets are configured.")
-
-            a, b = st.columns(2)
-            if a.button(
-                "ACCEPT selected",
-                type="primary",
-                use_container_width=True,
-                disabled=(not controls_ready or not selected_ids),
-                key=f"accept-pending-{bundle_id}",
-            ):
-                if not pin_matches(review_pin, expected_pin):
-                    st.error("Owner passphrase is incorrect.")
-                else:
-                    try:
-                        persist_decision(token=github_token, review=review, decision="accepted", selected_ids=selected_ids)
-                    except ReviewGateError as exc:
-                        st.error(str(exc))
-                    else:
-                        st.success("Accepted features moved to Accepted Updates.")
-                        st.rerun()
-
-            if b.button(
-                "HOLD pending",
-                use_container_width=True,
-                disabled=not controls_ready,
-                key=f"hold-pending-{bundle_id}",
-            ):
-                if not pin_matches(review_pin, expected_pin):
-                    st.error("Owner passphrase is incorrect.")
-                else:
-                    try:
-                        persist_decision(token=github_token, review=review, decision="hold", selected_ids=[])
-                    except ReviewGateError as exc:
-                        st.error(str(exc))
-                    else:
-                        st.info("Pending features remain in Development Review.")
-                        st.rerun()
-
-
-with accepted_tab:
-    st.subheader("Accepted Development Updates")
-    st.caption("Select accepted features, then IMPLEMENT. Implemented features stay green. The latest implemented batch can be rolled back as one safe unit.")
-
-    gate = fetch_remote_json("runtime/development_gate.json", {})
-    implementation_request = fetch_remote_json("runtime/implementation_request.json", {})
-    rollback_request = fetch_remote_json("runtime/rollback_request.json", {})
+    status_book = fetch_remote_json("runtime/development_status.json", {"schema": 1, "entries": []})
 
     try:
         expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
@@ -320,114 +218,135 @@ with accepted_tab:
         github_token = ""
     controls_ready = bool(expected_pin and github_token)
 
-    accepted_features = [
-        x for x in gate.get("selected_features", [])
-        if isinstance(x, dict)
-    ] if isinstance(gate, dict) and str(gate.get("decision", "")) == "accepted" else []
-    implemented_ids = set(str(x) for x in gate.get("implemented_feature_ids", [])) if isinstance(gate, dict) else set()
-
-    if not accepted_features:
-        st.info("No accepted development features are waiting here.")
+    if not review:
+        st.info("No prepared AI recommendation bundle is available yet.")
     else:
-        bundle_id = str(gate.get("bundle_id", ""))
-        impl_matches = isinstance(implementation_request, dict) and str(implementation_request.get("bundle_id", "")) == bundle_id
-        impl_status = str(implementation_request.get("status", "")) if impl_matches else ""
-        active_batch_ids = set(str(x) for x in implementation_request.get("selected_feature_ids", [])) if impl_matches else set()
-        rollback_matches = isinstance(rollback_request, dict) and str(rollback_request.get("bundle_id", "")) == bundle_id
-        rollback_status = str(rollback_request.get("status", "")) if rollback_matches else ""
+        bundle_id = str(review.get("bundle_id", ""))
+        council_id = str(review.get("council_id", ""))
+        existing = {
+            str(item.get("id", "")): item
+            for item in status_book.get("entries", [])
+            if isinstance(item, dict) and str(item.get("id", ""))
+        }
 
-        implementation_active = impl_status in {"requested", "in_progress"}
-        latest_batch_implemented = impl_status == "completed" and bool(active_batch_ids)
-        rollback_active = rollback_status == "requested"
-
-        selected_for_implement = []
-        selected_for_rollback = []
-        for item in accepted_features:
+        all_features = [x for x in review.get("features", []) if isinstance(x, dict)]
+        visible_features = []
+        closed_count = 0
+        pending_count = 0
+        open_count = 0
+        for item in all_features:
             fid = str(item.get("id", ""))
-            is_implemented = fid in implemented_ids
-            in_latest_batch = fid in active_batch_ids and latest_batch_implemented
-
-            if is_implemented:
-                checked = st.checkbox(
-                    f"🟢 IMPLEMENTED · {item.get('title','Untitled')}",
-                    value=in_latest_batch,
-                    disabled=not in_latest_batch or rollback_active,
-                    key=f"implemented-{bundle_id}-{fid}",
-                )
-                if checked and in_latest_batch:
-                    selected_for_rollback.append(fid)
-                st.success(f"✓ {item.get('title','Untitled')} — implemented")
+            status = str(existing.get(fid, {}).get("status", "open")).lower()
+            if status == "close":
+                closed_count += 1
+                continue
+            if status == "pending":
+                pending_count += 1
             else:
-                checked = st.checkbox(
-                    f"🟢 ACCEPTED · {item.get('title','Untitled')}",
-                    value=False,
-                    disabled=implementation_active or latest_batch_implemented or rollback_active,
-                    key=f"accepted-{bundle_id}-{fid}",
-                )
-                if checked:
-                    selected_for_implement.append(fid)
+                open_count += 1
+            visible_features.append(item)
 
-        st.divider()
-        owner_pin = st.text_input("Owner approval passphrase", type="password", key=f"accepted-pin-{bundle_id}")
-        if not controls_ready:
-            st.warning("Actions are read-only until the Streamlit review secrets are configured.")
+        a, b, c = st.columns(3)
+        a.metric("Open", open_count)
+        b.metric("Pending", pending_count)
+        c.metric("Closed", closed_count)
 
-        if latest_batch_implemented:
-            st.caption("Rollback applies to the latest implemented batch as one unit. Keep all its checked boxes selected to roll it back safely.")
-            rollback_reason = st.text_input(
-                "Rollback reason",
-                placeholder="Example: update breaks route loading",
-                key=f"rollback-reason-{bundle_id}",
-            )
-            if st.button(
-                "ROLL BACK selected implemented batch",
-                use_container_width=True,
-                disabled=(
-                    not controls_ready
-                    or rollback_active
-                    or set(selected_for_rollback) != active_batch_ids
-                ),
-                key=f"rollback-batch-{bundle_id}",
-            ):
-                if not pin_matches(owner_pin, expected_pin):
-                    st.error("Owner passphrase is incorrect.")
-                else:
-                    try:
-                        request_rollback(
-                            token=github_token,
-                            gate=gate,
-                            selected_ids=selected_for_rollback,
-                            reason=rollback_reason,
-                        )
-                    except ReviewGateError as exc:
-                        st.error(str(exc))
-                    else:
-                        st.warning("Rollback requested. Rolled-back features will return to Development Review.")
-                        st.rerun()
-        elif implementation_active:
-            st.info("Implementation requested for the checked batch. Wait for the implementation worker to finish before starting another batch.")
+        if not visible_features:
+            st.success("All recommendations in the current bundle are closed. See the Updates tab for the completed record.")
         else:
+            changed_statuses = {}
+            for item in visible_features:
+                fid = str(item.get("id", ""))
+                current_status = str(existing.get(fid, {}).get("status", "open")).lower()
+                if current_status not in {"open", "pending", "close"}:
+                    current_status = "open"
+
+                col_a, col_b = st.columns([4, 1.25])
+                with col_a:
+                    st.markdown(f"**{item.get('priority','P3')} · {item.get('title','Untitled')}**")
+                    st.caption(
+                        f"{item.get('category','—')} · "
+                        f"{item.get('tester') or 'AI development analysis'}"
+                    )
+                with col_b:
+                    chosen = st.selectbox(
+                        "Status",
+                        ["open", "pending", "close"],
+                        index=["open", "pending", "close"].index(current_status),
+                        key=f"monitor-status-{bundle_id}-{fid}",
+                        label_visibility="collapsed",
+                    )
+                if chosen != current_status:
+                    changed_statuses[fid] = chosen
+
+                with st.expander(f"Description — {item.get('title','Untitled')}"):
+                    st.write("**Desired outcome:**", item.get("desired_outcome") or "—")
+                    st.write("**Reason / evidence:**", item.get("reason") or "—")
+                    st.write("**Source:**", item.get("source", "—"))
+                    st.write("**Category:**", item.get("category", "—"))
+                    st.write("**Priority:**", item.get("priority", "—"))
+                    st.write("**AI tester:**", item.get("tester") or "Development analysis")
+                    st.caption(f"Recommendation ID: {fid}")
+
+            st.divider()
+            st.caption(f"Changes ready to save: {len(changed_statuses)}")
+            owner_pin = st.text_input("Owner monitoring passphrase", type="password", key=f"monitor-pin-{bundle_id}")
+            if not controls_ready:
+                st.warning("Status controls are read-only until the Streamlit review secrets are configured.")
+
             if st.button(
-                "IMPLEMENT selected accepted features",
+                "SAVE STATUS CHANGES",
                 type="primary",
                 use_container_width=True,
-                disabled=(not controls_ready or not selected_for_implement),
-                key=f"implement-selected-{bundle_id}",
+                disabled=(not controls_ready or not changed_statuses),
+                key=f"save-monitoring-{bundle_id}",
             ):
                 if not pin_matches(owner_pin, expected_pin):
                     st.error("Owner passphrase is incorrect.")
                 else:
                     try:
-                        request_implementation(
+                        persist_monitoring_status(
                             token=github_token,
-                            gate=gate,
-                            selected_ids=selected_for_implement,
+                            review=review,
+                            updates=changed_statuses,
                         )
                     except ReviewGateError as exc:
                         st.error(str(exc))
                     else:
-                        st.success("Selected accepted features queued for implementation.")
+                        st.success("Monitoring status updated. Closed recommendations moved to Updates.")
                         st.rerun()
+
+
+with updates_tab:
+    st.subheader("Updates")
+    st.caption("Closed Development Review recommendations are archived here for manual change tracking. This page is descriptive only; it does not implement or modify the game.")
+
+    status_book = fetch_remote_json("runtime/development_status.json", {"schema": 1, "entries": []})
+    closed_entries = [
+        item for item in status_book.get("entries", [])
+        if isinstance(item, dict) and str(item.get("status", "")).lower() == "close"
+    ]
+    closed_entries.sort(key=lambda item: str(item.get("closed_utc", "")), reverse=True)
+
+    if not closed_entries:
+        st.info("No recommendations have been closed yet.")
+    else:
+        st.metric("Closed updates", len(closed_entries))
+        for item in closed_entries:
+            closed_utc = str(item.get("closed_utc", "")) or "—"
+            with st.expander(f"✅ {item.get('title','Untitled')} · {item.get('priority','P3')}"):
+                st.write("**Status:** CLOSED")
+                st.write("**Description / desired outcome:**", item.get("desired_outcome") or "—")
+                st.write("**Reason / evidence:**", item.get("reason") or "—")
+                st.write("**Category:**", item.get("category", "—"))
+                st.write("**AI tester:**", item.get("tester") or "Development analysis")
+                st.write("**Source:**", item.get("source", "—"))
+                st.write("**Closed:**", closed_utc)
+                st.caption(
+                    f"Recommendation ID: {item.get('id','')} · "
+                    f"Council: {item.get('council_id','—')} · "
+                    f"Bundle: {item.get('bundle_id','—')}"
+                )
 
 with music:
     st.subheader("Gemini Flash-Lite Music Director")
@@ -476,7 +395,8 @@ with lab:
     st.write("**Gemini council:** 6 synthetic player-perspective agents + aggregate anonymous human telemetry")
     st.write("**World Architect:** bounded 7th specialist resolving council-backed map expansion and mini-map data")
     st.write("**Music Director:** bounded procedural-score parameter agent")
-    st.write("**Streamlit:** dashboard, browser host, telemetry preference surface, and automated world map page")
+    st.write("**Streamlit:** dashboard, browser host, telemetry preference surface, automated world map, and recommendation-status tracking")
+    st.write("**Implementation policy:** AI recommendations are advisory only; game changes are implemented manually with the owner in the development chat.")
     if telemetry_snapshot:
         st.write("### Latest shared telemetry snapshot")
         st.json(telemetry_snapshot[:10] if isinstance(telemetry_snapshot, list) else telemetry_snapshot)
