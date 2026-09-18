@@ -218,6 +218,9 @@ func roll_environment(route: String) -> String:
 func enemy_profile(kind: String) -> Dictionary:
 	return Catalog.ENEMIES.get(kind, Catalog.ENEMIES.get("slime", {}))
 
+func elite_behavior(kind: String) -> Dictionary:
+	return Catalog.ELITE_BEHAVIORS.get(kind, Catalog.ELITE_BEHAVIORS.get("slime", {}))
+
 func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> String:
 	var stage_bonus: float = min(0.12, float(int(data.stage)) * 0.02)
 	var roll: float = local_rng.randf()
@@ -309,7 +312,7 @@ func make_room(route: String) -> void:
 					kind = "gem"
 				elif roll < 0.82 and route == "moss":
 					kind = "heal"
-			data.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
+			data.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false, "elite":false})
 	# Repair a guaranteed hazard-free corridor. Special encounters are placed away from it.
 	var corridor_lanes: Dictionary = {}
 	var corridor: int = 0
@@ -326,7 +329,28 @@ func make_room(route: String) -> void:
 		place_special_cell(15, int(corridor_lanes[15]), "gear_cache", local_rng)
 	if route == "fen":
 		place_special_cell(9, int(corridor_lanes[9]), "fishing", local_rng)
-	data.last = "The road reveals only a few steps ahead. Optional fires, fishing pools, and caches reward exploration."
+	# Effective danger begins at 1 + route difficulty. Danger 3+ roads get one
+	# guaranteed elite profile encounter off the safe corridor; later elites
+	# still use the deterministic chance system.
+	if 1 + route_difficulty >= 3:
+		place_elite_encounter(route, corridor_lanes, local_rng)
+	data.last = "The road reveals only a few steps ahead. Optional fires, fishing pools, caches, and elite threats reward exploration."
+
+func place_elite_encounter(route: String, corridor_lanes: Dictionary, local_rng: RandomNumberGenerator) -> void:
+	var elite_row: int = 10
+	var safe_lane: int = int(corridor_lanes.get(elite_row, 0))
+	var candidates: Array[int] = []
+	for lane in range(-1, 2):
+		if lane != safe_lane:
+			candidates.append(lane)
+	if candidates.is_empty():
+		return
+	var elite_lane: int = candidates[local_rng.randi_range(0, candidates.size() - 1)]
+	var cell: Dictionary = cell_at(elite_row, elite_lane)
+	if cell.is_empty():
+		return
+	cell.kind = enemy_kind_for_route(route, local_rng)
+	cell.elite = true
 
 func place_special_cell(row: int, safe_lane: int, kind: String, local_rng: RandomNumberGenerator) -> void:
 	var candidates: Array[int] = []
@@ -347,7 +371,18 @@ func cell_at(row: int, lane: int) -> Dictionary:
 	return {}
 
 func enemy_active(cell: Dictionary) -> bool:
-	return (int(data.turn) + int(cell.row) + int(cell.lane) + 3) % 2 == 0
+	var base_active: bool = (int(data.turn) + int(cell.row) + int(cell.lane) + 3) % 2 == 0
+	if not enemy_elite(cell):
+		return base_active
+	var behavior: Dictionary = elite_behavior(str(cell.get("kind", "slime")))
+	match str(behavior.get("initiative", "normal")):
+		"ambush":
+			return true
+		"aggressive":
+			var signature: int = absi(int(data.seed) + int(cell.row) * 17 + int(cell.lane) * 31 + int(data.turn) * 7) % 3
+			return signature < 2
+		_:
+			return base_active
 
 func danger_level() -> int:
 	if str(data.mode) == "boss":
@@ -366,14 +401,16 @@ func danger_level() -> int:
 func enemy_elite(cell: Dictionary) -> bool:
 	if cell.is_empty() or str(cell.get("kind", "")) not in ["slime", "goblin", "kobold", "ogre"]:
 		return false
-	if int(cell.row) < 5:
+	if danger_level() < 3 or int(cell.row) < 5:
 		return false
-	var chance: int = 8 + int(data.stage) * 2 + danger_level() * 3
+	if bool(cell.get("elite", false)):
+		return true
+	var chance: int = 12 + int(data.stage) * 2 + (danger_level() - 3) * 6
 	if str(data.route) == "forge":
-		chance += 7
+		chance += 5
 	elif str(data.route) in ["frost", "fen"]:
-		chance += 11
-	chance = mini(chance, 38)
+		chance += 9
+	chance = mini(chance, 42)
 	var signature: int = absi(int(data.seed) + int(cell.row) * 37 + int(cell.lane) * 101 + int(data.stage) * 19) % 100
 	return signature < chance
 
@@ -382,11 +419,14 @@ func add_relic_charge(amount: int) -> void:
 
 func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 	var profile: Dictionary = enemy_profile(kind)
-	var toughness: int = int(profile.toughness) + (1 if elite else 0)
-	var damage_value: int = int(profile.damage) + (1 if elite else 0)
-	var reward: int = int(profile.reward) + (2 if elite else 0)
-	var consolation: int = int(profile.consolation) + (1 if elite else 0)
-	var enemy_name: String = ("Elite " if elite else "") + str(profile.name)
+	var behavior: Dictionary = elite_behavior(kind) if elite else {}
+	var toughness: int = int(profile.toughness) + int(behavior.get("toughness_bonus", 0))
+	var damage_value: int = int(profile.damage) + int(behavior.get("damage_bonus", 0))
+	var reward: int = int(profile.reward) + int(behavior.get("reward_bonus", 0))
+	var consolation: int = int(profile.consolation) + int(behavior.get("consolation_bonus", 0))
+	var enemy_name: String = str(profile.name)
+	if elite:
+		enemy_name = "Elite %s %s" % [str(behavior.get("name", "")), str(profile.name)]
 	var result: String = ""
 	if active:
 		var damage: int = enemy_damage(damage_value)
@@ -406,9 +446,10 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		data.streak += 1
 		var streak_bonus: int = 2 if int(data.streak) > 0 and int(data.streak) % 3 == 0 else 0
 		data.bag += reward + streak_bonus
-		add_relic_charge((18 if elite else 9) + mini(int(data.streak), 5))
+		var elite_relic_bonus: int = int(behavior.get("relic_bonus", 0)) if elite else 0
+		add_relic_charge((18 if elite else 9) + elite_relic_bonus + mini(int(data.streak), 5))
 		result = "%s defeated! +%d coins." % [enemy_name, reward + streak_bonus]
-		if elite and rng.randf() < 0.22:
+		if elite and rng.randf() < float(behavior.get("gem_chance", 0.22)):
 			data.gems += 1
 			result += " Found 1 gem!"
 		if streak_bonus > 0:
@@ -898,6 +939,8 @@ func valid_save(value: Variant) -> bool:
 			if not cell.has(key):
 				return false
 		if not (cell.row is float or cell.row is int) or not (cell.lane is float or cell.lane is int) or not cell.cleared is bool:
+			return false
+		if cell.has("elite") and not cell.elite is bool:
 			return false
 		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "slime", "goblin", "kobold", "ogre"]:
 			return false

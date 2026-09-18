@@ -1328,7 +1328,8 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 		ai_gm_bridge.progress_challenge(game, "obstacle_jump", {"route":str(game.data.route)})
 	if enemy_kind != "":
 		var defeated: bool = "defeated" in str(game.data.last).to_lower()
-		ai_telemetry.record("enemy_encounter", game, {"enemy":enemy_kind, "elite":enemy_was_elite, "active":enemy_was_active, "defeated":defeated, "hp_delta":int(game.data.hp)-old_hp})
+		var elite_behavior_id: String = str(game.elite_behavior(enemy_kind).get("id", "")) if enemy_was_elite else ""
+		ai_telemetry.record("enemy_encounter", game, {"enemy":enemy_kind, "elite":enemy_was_elite, "elite_behavior":elite_behavior_id, "active":enemy_was_active, "defeated":defeated, "hp_delta":int(game.data.hp)-old_hp})
 		if defeated and enemy_was_elite:
 			ai_gm_bridge.progress_challenge(game, "elite_defeat", {"route":str(game.data.route), "enemy":enemy_kind})
 	if enemy_kind != "":
@@ -1817,11 +1818,15 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	if not is_instance_valid(fight_layer):
 		return
 	var action_word: String = "ELITE FIGHT" if elite else "FIGHT"
+	var elite_profile: Dictionary = game.elite_behavior(kind) if elite else {}
 	if kind == "guardian":
 		action_word = "BOSS FIGHT"
-	fight_title.text = action_word + "  /  " + enemy_display_name(kind)
+	if elite:
+		fight_title.text = action_word + "  /  " + str(elite_profile.get("name", "Elite")).to_upper() + " " + enemy_display_name(kind)
+	else:
+		fight_title.text = action_word + "  /  " + enemy_display_name(kind)
 	fight_title.add_theme_color_override("font_color", GOLD if elite else (Color("ef9974") if enemy_was_active else MINT))
-	fight_status.text = "ELITE FIGHT" if elite else "FIGHT"
+	fight_status.text = str(elite_profile.get("telegraph", "ELITE")) if elite else "FIGHT"
 	fight_player.color = current_character_color()
 	match kind:
 		"goblin":

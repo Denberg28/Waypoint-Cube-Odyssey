@@ -87,6 +87,31 @@ const ENEMIES = {
 	"ogre":{"name":"Waystone Ogre", "toughness":3, "damage":3, "reward":5, "consolation":3}
 }
 
+# Elite profiles activate only when effective danger is 3+. Each enemy keeps a
+# distinct combat identity rather than receiving the same generic stat bump.
+const ELITE_BEHAVIORS = {
+	"slime":{
+		"id":"ambusher", "name":"Ambusher", "telegraph":"AMBUSH",
+		"initiative":"ambush", "toughness_bonus":0, "damage_bonus":0,
+		"reward_bonus":2, "consolation_bonus":1, "relic_bonus":2, "gem_chance":0.18
+	},
+	"goblin":{
+		"id":"skirmisher", "name":"Skirmisher", "telegraph":"SKIRMISH",
+		"initiative":"aggressive", "toughness_bonus":1, "damage_bonus":0,
+		"reward_bonus":2, "consolation_bonus":1, "relic_bonus":3, "gem_chance":0.20
+	},
+	"kobold":{
+		"id":"bulwark", "name":"Bulwark", "telegraph":"GUARD",
+		"initiative":"normal", "toughness_bonus":2, "damage_bonus":0,
+		"reward_bonus":3, "consolation_bonus":1, "relic_bonus":4, "gem_chance":0.24
+	},
+	"ogre":{
+		"id":"crusher", "name":"Crusher", "telegraph":"HEAVY",
+		"initiative":"normal", "toughness_bonus":1, "damage_bonus":2,
+		"reward_bonus":4, "consolation_bonus":2, "relic_bonus":5, "gem_chance":0.28
+	}
+}
+
 static func item(id: String) -> Dictionary:
 	for gear in GEAR:
 		if gear.id == id:

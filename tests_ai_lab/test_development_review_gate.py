@@ -66,3 +66,20 @@ def test_tally_counts_distinct_councils_only():
     assert rerun[0]["repeat_count"] == 1
     assert second[0]["repeat_count"] == 2
     assert tally["families"][0]["count"] == 2
+
+
+def test_elite_behavior_profiles_are_danger_gated_and_distinct():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "const ELITE_BEHAVIORS" in catalog
+    for profile in ["ambusher", "skirmisher", "bulwark", "crusher"]:
+        assert f'"id":"{profile}"' in catalog
+    assert "if danger_level() < 3" in state
+    assert "func elite_behavior" in state
+    assert "place_elite_encounter" in state
+    assert '"elite_behavior":elite_behavior_id' in Path("scripts/main.gd").read_text(encoding="utf-8")
+    assert 'telegraph = "%s  •  ELITE"' in world

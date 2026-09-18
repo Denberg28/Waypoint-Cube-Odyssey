@@ -701,7 +701,10 @@ func refresh_props() -> void:
 					box(props, pos + Vector3(0, size.y + 0.28, 0), Vector3(0.62, 0.12, 0.52), Color("d8b85f"), true)
 					for crown_x in [-0.22, 0.0, 0.22]:
 						cone(props, pos + Vector3(crown_x, size.y + 0.46, 0), 0.08, 0.24, Color("efd887"), 0.01)
-				var telegraph: String = ("ELITE !" if active else "ELITE STOMP") if elite else ("!" if active else "STOMP")
+				var telegraph: String = "!" if active else "STOMP"
+				if elite:
+					var behavior: Dictionary = state.elite_behavior(str(cell.kind))
+					telegraph = "%s  •  ELITE" % str(behavior.get("telegraph", "ELITE"))
 				floating_text(props, telegraph, pos + Vector3(0, size.y + (0.88 if elite else 0.6), 0), Color("efd887") if elite else color, 30)
 	if current_row < State.STAGE_STEPS:
 		for lane in range(-1, 2):
