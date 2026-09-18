@@ -140,3 +140,17 @@ def test_star_rank_conventional_mapping_contract():
     assert "if level_value == 3:" in state
     assert "return 2" in state
     assert "return level_value" in state
+
+
+def test_star_rank_header_is_layout_stable_and_cached():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "var cached_rank_text: String = \"\"" in main
+    assert "brand.custom_minimum_size.x = 430.0" in main
+    assert "rank_label.custom_minimum_size.x = 410.0" in main
+    assert "health.custom_minimum_size.x = 132.0" in main
+    assert "economy.custom_minimum_size.x = 275.0" in main
+    assert "if next_rank_text != cached_rank_text:" in main
+    assert "rank_label.text = cached_rank_text" in main

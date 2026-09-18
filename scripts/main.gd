@@ -58,6 +58,7 @@ var current_music_variant: int = -1
 var current_ambient_key: String = ""
 var brand_subtitle_label: Label
 var rank_label: Label
+var cached_rank_text: String = ""
 var swipe_start = Vector2.ZERO
 var swipe_tracking: bool = false
 var at_title: bool = true
@@ -311,6 +312,7 @@ func build_ui() -> void:
 	header.add_child(row)
 	var brand = VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand.custom_minimum_size.x = 430.0
 	row.add_child(brand)
 	var brand_top = HBoxContainer.new()
 	brand_top.add_theme_constant_override("separation", 7)
@@ -330,13 +332,19 @@ func build_ui() -> void:
 	brand_subtitle_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED)
 	brand_subtitle_label.clip_text = true
 	brand.add_child(brand_subtitle_label)
-	rank_label = label("", 11, GOLD)
+	cached_rank_text = game.star_rank_text() + "   •   " + game.level_progress_text()
+	rank_label = label(cached_rank_text, 11, GOLD)
 	rank_label.clip_text = true
+	rank_label.custom_minimum_size.x = 410.0
 	brand.add_child(rank_label)
 	health = label("", 20, MINT)
+	health.custom_minimum_size.x = 132.0
+	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(health)
 	economy = label("", 17, GOLD)
+	economy.custom_minimum_size.x = 275.0
+	economy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	economy.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(economy)
 	gear_button = button("Equipment", func(): show_inventory())
@@ -948,12 +956,11 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
-	if is_instance_valid(brand_subtitle_label):
-		brand_subtitle_label.text = "CUBE ODYSSEY   /   THE FREE ADVENTURE"
-		brand_subtitle_label.add_theme_color_override("font_color", MUTED)
 	if is_instance_valid(rank_label):
-		rank_label.text = game.star_rank_text() + "   •   " + game.level_progress_text()
-		rank_label.add_theme_color_override("font_color", GOLD)
+		var next_rank_text: String = game.star_rank_text() + "   •   " + game.level_progress_text()
+		if next_rank_text != cached_rank_text:
+			cached_rank_text = next_rank_text
+			rank_label.text = cached_rank_text
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
 	if game.data.mode in ["travel", "campfire", "fishing"]:
