@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "revision": 2,
-  "updated_utc": "2026-09-18T01:06:36Z",
-  "summary": "Waypoint regional map. Active routes are playable; planned regions are bounded World Architect proposals.",
+  "revision": 3,
+  "updated_utc": "2026-09-18T04:00:00Z",
+  "summary": "Waypoint regional map. Gloomwood Hollow is now part of the playable route set.",
   "nodes": [
     {
       "id": "camp",
@@ -84,9 +84,9 @@
     {
       "id": "gloomwood",
       "name": "Gloomwood Hollow",
-      "kind": "region",
-      "status": "planned",
-      "playable": false,
+      "kind": "route",
+      "status": "active",
+      "playable": true,
       "difficulty": 2,
       "theme": "twilight forest and ancient roots",
       "x": 0.12,
@@ -98,7 +98,9 @@
       "connect_to": [
         "moss",
         "treasure"
-      ]
+      ],
+      "implementation": "procedural_route_v1",
+      "promoted_from_plan": true
     }
   ],
   "edges": [
