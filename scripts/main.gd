@@ -303,21 +303,25 @@ func build_ui() -> void:
 	header.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	header.offset_left = 24
 	header.offset_right = -24
-	header.offset_top = 20
-	header.offset_bottom = 134
+	header.offset_top = 12
+	header.offset_bottom = 104
 	header.add_theme_stylebox_override("panel", style(Color("183b3c"), 14, Color("39605a")))
 	ui.add_child(header)
 	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 28)
+	row.add_theme_constant_override("separation", 16)
 	header.add_child(row)
 	var brand = VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	brand.custom_minimum_size.x = 430.0
+	brand.custom_minimum_size.x = 500.0
+	brand.add_theme_constant_override("separation", 2)
 	row.add_child(brand)
+
 	var brand_top = HBoxContainer.new()
-	brand_top.add_theme_constant_override("separation", 7)
+	brand_top.add_theme_constant_override("separation", 8)
 	brand.add_child(brand_top)
-	brand_top.add_child(label("W A Y P O I N T", 24, GOLD))
+	var waypoint_label := label("W A Y P O I N T", 22, GOLD)
+	waypoint_label.custom_minimum_size.x = 205.0
+	brand_top.add_child(waypoint_label)
 	var brightness_box = HBoxContainer.new()
 	brightness_box.add_theme_constant_override("separation", 3)
 	brand_top.add_child(brightness_box)
@@ -325,33 +329,42 @@ func build_ui() -> void:
 	for entry in [["DAY", 0, "Day brightness"], ["DUSK", 1, "Dusk brightness"], ["NIGHT", 2, "Night brightness"]]:
 		var brightness_index: int = int(entry[1])
 		var brightness_button = small_icon_button(str(entry[0]), func(): set_brightness_mode(brightness_index), str(entry[2]))
-		brightness_button.custom_minimum_size.x = 58.0
-		brightness_button.add_theme_font_size_override("font_size", 10)
+		brightness_button.custom_minimum_size = Vector2(50.0, 28.0)
+		brightness_button.add_theme_font_size_override("font_size", 9)
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
-	brand_subtitle_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED)
+
+	var brand_meta = HBoxContainer.new()
+	brand_meta.add_theme_constant_override("separation", 12)
+	brand.add_child(brand_meta)
+	brand_subtitle_label = label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 9, MUTED)
+	brand_subtitle_label.custom_minimum_size.x = 230.0
 	brand_subtitle_label.clip_text = true
-	brand.add_child(brand_subtitle_label)
-	cached_rank_text = game.star_rank_text() + "   •   " + game.level_progress_text()
-	rank_label = label(cached_rank_text, 11, GOLD)
+	brand_meta.add_child(brand_subtitle_label)
+	cached_rank_text = game.star_rank_text() + "  •  " + game.level_progress_text()
+	rank_label = label(cached_rank_text, 10, GOLD)
+	rank_label.custom_minimum_size.x = 245.0
 	rank_label.clip_text = true
-	rank_label.custom_minimum_size.x = 410.0
-	brand.add_child(rank_label)
-	health = label("", 20, MINT)
-	health.custom_minimum_size.x = 132.0
+	brand_meta.add_child(rank_label)
+
+	health = label("", 18, MINT)
+	health.custom_minimum_size.x = 126.0
 	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(health)
-	economy = label("", 17, GOLD)
-	economy.custom_minimum_size.x = 275.0
+	economy = label("", 15, GOLD)
+	economy.custom_minimum_size.x = 238.0
 	economy.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	economy.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(economy)
-	gear_button = button("Equipment", func(): show_inventory())
+	gear_button = button("Gear", func(): show_inventory())
+	gear_button.custom_minimum_size = Vector2(66, 40)
 	row.add_child(gear_button)
-	row.add_child(button("Menu", func(): show_pause()))
+	var menu_button = button("Menu", func(): show_pause())
+	menu_button.custom_minimum_size = Vector2(68, 40)
+	row.add_child(menu_button)
 	var info = VBoxContainer.new()
-	info.position = Vector2(36, 158)
+	info.position = Vector2(36, 122)
 	info.add_theme_constant_override("separation", 7)
 	ui.add_child(info)
 	title = label("", 30)
@@ -441,7 +454,7 @@ func build_ui() -> void:
 	side_panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	side_panel.offset_left = -390
 	side_panel.offset_right = -20
-	side_panel.offset_top = 144
+	side_panel.offset_top = 110
 	side_panel.offset_bottom = -20
 	side_panel.add_theme_stylebox_override("panel", style(Color("153334"), 14, Color("41645b")))
 	ui.add_child(side_panel)
@@ -796,7 +809,7 @@ func apply_side_panel_mode() -> void:
 		side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 		side_panel.offset_left = -390
 		side_panel.offset_right = -20
-		side_panel.offset_top = 144
+		side_panel.offset_top = 110
 		side_panel.offset_bottom = -20
 		side_full_body.show()
 		side_compact_body.hide()
@@ -957,7 +970,7 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
 	if is_instance_valid(rank_label):
-		var next_rank_text: String = game.star_rank_text() + "   •   " + game.level_progress_text()
+		var next_rank_text: String = game.star_rank_text() + "  •  " + game.level_progress_text()
 		if next_rank_text != cached_rank_text:
 			cached_rank_text = next_rank_text
 			rank_label.text = cached_rank_text
