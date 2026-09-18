@@ -1175,7 +1175,7 @@ func show_mode() -> void:
 			modal("04 / HALFWAY WAYPOINT", "Take a breath.", "All expedition coins are banked. Hearts and mana carry forward; use supplies if needed. Equip your new finds before the next three trails.")
 			action("Equipment", func(): show_inventory(), true)
 			action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
-	action("Cat Companion", func(): show_cat_companion())
+			action("Cat Companion", func(): show_cat_companion())
 			action("Continue the expedition   →", func(): game.data.mode = "choice"; commit())
 			action("Return home with your banked rewards", func(): game.return_camp(); commit())
 		"boss_intro":
