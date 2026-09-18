@@ -537,12 +537,5 @@
       "tester_name": "QA Edge-Case Tester",
       "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
     }
-  ],
-  "world_architect": {
-    "decision": "hold",
-    "summary": "Adding Sunken Grotto as a planned subterranean water-cave region connecting Gloomwood Hollow and Lantern Crossing, fulfilling explorer retention and route variety demand while respecting map bounds.",
-    "map_node_added": null,
-    "map_revision": 4,
-    "specialist": "World Architect & Cartographer"
-  }
+  ]
 }

@@ -1,0 +1,47 @@
+{
+  "session_summary": "Completed Ember Forge route (difficulty 2) while experiencing duplicate obstacle collision telemetry due to redundant walk inputs against barriers. HP decreased by 16 due to two unbuffered obstacle hits before successfully transitioning via Jump commands.",
+  "fun_score": 3,
+  "clarity_score": 3,
+  "friction_score": 4,
+  "observations": [
+    {
+      "category": "stability",
+      "severity": "medium",
+      "evidence": "Telemetry shows two consecutive 'obstacle_hit' events at step 2 because walk inputs were accepted against a known active hazard without automatic input buffering or state prevention.",
+      "recommendation": "Implement movement command validation and obstacle input buffering to prevent redundant walk commands when blocked by hazards.",
+      "id": "20260918T125621Z-qa_edge_cases-obs-1"
+    }
+  ],
+  "bugs": [
+    {
+      "title": "Redundant Walk Command Hazard Collision",
+      "severity": "medium",
+      "repro_steps": [
+        "Start route on Ember Forge",
+        "Walk forward until reaching an obstacle at step 2",
+        "Press walk command consecutively while blocked"
+      ],
+      "expected": "The system should ignore walk commands or automatically prompt/buffer jump inputs when an immediate obstacle blocks forward movement.",
+      "observed": "Multiple walk commands result in multiple duplicate obstacle hits and cumulative HP damage before the player manually inputs a jump.",
+      "id": "20260918T125621Z-qa_edge_cases-bug-1"
+    }
+  ],
+  "feature_requests": [
+    {
+      "title": "Input Buffering and Movement State Validation",
+      "category": "stability",
+      "player_value": "Prevents accidental damage and repetitive frustrating inputs when players encounter navigation blocks.",
+      "rationale": "Edge-case analysis confirms that players can spam walk commands into static barriers, taking multiple ticks of avoidable damage.",
+      "safe_content_only": false,
+      "desired_outcome": "Engine-level input validation that suppresses invalid walk actions against active hazards or buffers jump transitions.",
+      "id": "20260918T125621Z-qa_edge_cases-feature-1"
+    }
+  ],
+  "keep": [
+    "Clean telemetry event logging for obstacle hits and route completion rewards.",
+    "Responsive state transitions once the correct jump command is provided."
+  ],
+  "tester_id": "qa_edge_cases",
+  "tester_name": "QA Edge-Case Tester",
+  "focus": "state transitions, repeatability, blocking states, exploit risks and regressions"
+}
