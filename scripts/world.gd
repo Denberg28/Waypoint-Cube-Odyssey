@@ -486,10 +486,10 @@ func camp() -> void:
 
 func pose_actor_at_camp() -> void:
 	actor.position = Vector3(-3.15, 0.52, -3.06)
-	var fire_position := Vector3(0.0, 0.58, -5.15)
-	var to_fire: Vector3 = fire_position - actor.position
-	# The character face is built on local +Z, so point +Z directly at the bonfire.
-	actor.rotation = Vector3(0, atan2(to_fire.x, to_fire.z), 0)
+	# The cube face is modeled on local +Z. Godot's model-front look_at keeps the
+	# seated body upright while aiming that face directly at the bonfire.
+	var fire_look_target := Vector3(0.0, actor.position.y, -5.15)
+	actor.look_at(fire_look_target, Vector3.UP, true)
 	if is_instance_valid(left_foot):
 		left_foot.position = Vector3(-0.24, -0.22, 0.34)
 		left_foot.rotation.x = -0.48
@@ -504,12 +504,26 @@ func pose_actor_at_camp() -> void:
 		right_arm.rotation.x = -0.22
 
 func road_end_waypoint(finish_z: float) -> void:
-	# The end of every normal road has one obvious destination: Lantern Camp.
-	box(scenery, Vector3(0, 1.55, finish_z), Vector3(0.30, 3.4, 0.30), Color("8f6848"))
-	var camp_pos := Vector3(0, 1.42, finish_z + 0.12)
-	clickable_board(scenery, camp_pos, Vector3(3.35, 0.68, 0.26), Color("6b806b"), "", false, true)
-	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.04, 0.17), Color("fff0bd"), 24)
-	floating_text(scenery, "ROAD COMPLETE  •  RETURN TO CAMP", Vector3(0, 3.25, finish_z + 0.1), active_theme.text, 20)
+	# Road-end signpost: the player can immediately choose the next road or go home.
+	box(scenery, Vector3(0, 1.62, finish_z), Vector3(0.30, 3.7, 0.30), Color("8f6848"))
+	var options: Array = route_options_for_stage()
+	var board_layout: Array = [
+		{"pos":Vector3(-1.05, 2.55, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
+		{"pos":Vector3(1.05, 1.92, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
+		{"pos":Vector3(-0.90, 1.29, finish_z), "size":Vector3(2.40, 0.52, 0.24)}
+	]
+	for i in range(options.size()):
+		var route_id: String = str(options[i])
+		var route: Dictionary = Catalog.ROUTES[route_id]
+		var board: Dictionary = board_layout[i]
+		var board_color: Color = Color(str(route.get("color", "c59b61"))).darkened(0.12)
+		clickable_board(scenery, board.pos, board.size, board_color, route_id)
+		floating_text(scenery, str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
+
+	var camp_pos := Vector3(1.05, 0.66, finish_z + 0.10)
+	clickable_board(scenery, camp_pos, Vector3(2.60, 0.52, 0.24), Color("6b806b"), "", false, true)
+	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
+	floating_text(scenery, "ROAD COMPLETE  •  NEXT ROAD OR CAMP", Vector3(0, 3.55, finish_z + 0.1), active_theme.text, 20)
 	for x in [-2.2, 0.0, 2.2]:
 		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 

@@ -869,7 +869,7 @@ func route_difficulty_text(route: Dictionary) -> String:
 	return "%s  •  %d / 3" % [label_text, clampi(level + 1, 1, 3)]
 
 func preview_route(route_key: String) -> void:
-	if at_title or busy or game.data.mode != "choice" or route_key not in Catalog.ROUTES:
+	if at_title or busy or game.data.mode not in ["choice", "road_end"] or route_key not in Catalog.ROUTES:
 		return
 	if route_key not in route_options_for_stage():
 		return
@@ -891,7 +891,7 @@ func preview_route(route_key: String) -> void:
 	action("Back to Crossroads", func(): show_mode())
 
 func choose_route(route_key: String) -> void:
-	if at_title or busy or game.data.mode != "choice" or route_key not in Catalog.ROUTES:
+	if at_title or busy or game.data.mode not in ["choice", "road_end"] or route_key not in Catalog.ROUTES:
 		return
 	if route_key not in route_options_for_stage():
 		return
@@ -1031,7 +1031,7 @@ func show_mode() -> void:
 		"road_end":
 			overlay.hide()
 			route_panel.hide()
-			push_chat("Road complete. Follow the LANTERN CAMP marker to rest.")
+			push_chat("Road complete. Choose the next adventure from the signpost, or select LANTERN CAMP to rest.")
 		"camp":
 			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
 			# so the side bench, seated character, and bonfire are visible immediately.
@@ -1254,7 +1254,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt the end of a road, follow the LANTERN CAMP marker home. Your cube sits on the side bench facing the bonfire. Select CONTINUE ADVENTURE at camp to return to the crossroads and choose the next route. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
