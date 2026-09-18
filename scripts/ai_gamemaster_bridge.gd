@@ -5,7 +5,7 @@ extends RefCounted
 const INBOX_PATH: String = "user://waypoint_ai_gm_inbox.json"
 const APPLIED_PATH: String = "user://waypoint_ai_gm_applied.json"
 const WORLD_STATE_PATH: String = "user://waypoint_ai_gm_world_state.json"
-const ROUTES: Array[String] = ["moss", "forge", "shrine", "treasure", "frost", "fen"]
+const ROUTES: Array[String] = ["moss", "forge", "shrine", "treasure", "frost", "fen", "gloomwood"]
 const CHALLENGE_TYPES: Array[String] = ["route_complete", "featured_route_complete", "fishing_catch", "elite_defeat", "obstacle_jump"]
 
 func clamp_int(value: Variant, low: int, high: int) -> int:
