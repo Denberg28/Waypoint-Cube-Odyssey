@@ -83,3 +83,28 @@ def test_elite_behavior_profiles_are_danger_gated_and_distinct():
     assert "place_elite_encounter" in state
     assert '"elite_behavior":elite_behavior_id' in Path("scripts/main.gd").read_text(encoding="utf-8")
     assert 'telegraph = "%s  •  ELITE"' in world
+
+
+def test_level_star_progression_and_rpg_encounter_sequence_present():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "const LEVEL_CAP: int = 20" in state
+    assert '"level":1' in state
+    assert '"xp":0' in state
+    assert '["", "¼★", "½★", "¾★"]' in state
+    assert '"★"' in state and '"☆"' in state
+    assert 'award_xp(14 if elite else 7)' in state
+    assert 'award_xp(20)' in state
+    assert 'award_xp(60)' in state
+
+    assert 'rank_label.text = game.star_rank_text()' in main
+    assert 'func play_rpg_sfx' in main
+    assert 'func build_environment_ambience' in main
+    assert '"road_danger"' in main
+    assert 'fight_status.text = "ENCOUNTER!"' in main
+    assert 'fight_status.text = "CLASH!"' in main
+    assert '"HARD-WON VICTORY"' in main
+    assert '"RUNE STRIKE"' in main

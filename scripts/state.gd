@@ -3,6 +3,7 @@ const Catalog = preload("res://scripts/catalog.gd")
 const STAGE_STEPS: int = 18
 const GENERATED_ROWS: int = STAGE_STEPS - 1
 const CELL_COUNT: int = GENERATED_ROWS * 3
+const LEVEL_CAP: int = 20
 const SAVE_PATH = "user://waypoint_save_v1.json"
 var save_path: String = SAVE_PATH
 var data: Dictionary
@@ -17,7 +18,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":9,
+		"version":10,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -39,6 +40,8 @@ func reset() -> void:
 		"cosmetics_equipped":{"skin":"", "head":"", "back":"", "face":""},
 		"camp_level":0,
 		"kills":0,
+		"level":1,
+		"xp":0,
 		"turn":0,
 		"boss_hp":12,
 		"danger":0,
@@ -53,6 +56,52 @@ func reset() -> void:
 		"fish_caught":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
+
+func xp_to_next(level_value: int = -1) -> int:
+	var current: int = int(data.level) if level_value < 0 else level_value
+	if current >= LEVEL_CAP:
+		return 0
+	return 30 + (current - 1) * 8
+
+func award_xp(amount: int) -> String:
+	if amount <= 0 or int(data.level) >= LEVEL_CAP:
+		return ""
+	var old_level: int = int(data.level)
+	data.xp += amount
+	while int(data.level) < LEVEL_CAP:
+		var needed: int = xp_to_next()
+		if needed <= 0 or int(data.xp) < needed:
+			break
+		data.xp -= needed
+		data.level += 1
+	if int(data.level) >= LEVEL_CAP:
+		data.level = LEVEL_CAP
+		data.xp = 0
+	var message: String = "+%d XP" % amount
+	if int(data.level) > old_level:
+		message += "  •  LEVEL UP! %d" % int(data.level)
+		if int(data.level) == LEVEL_CAP:
+			message += "  •  FIVE-STAR MAX"
+	return message
+
+func star_rank_text() -> String:
+	var quarters: int = clampi(int(data.level), 1, LEVEL_CAP)
+	var full_stars: int = quarters / 4
+	var remainder: int = quarters % 4
+	var stars: Array[String] = []
+	for i in range(5):
+		if i < full_stars:
+			stars.append("★")
+		elif i == full_stars and remainder > 0:
+			stars.append(["", "¼★", "½★", "¾★"][remainder])
+		else:
+			stars.append("☆")
+	return "LV %02d  •  %s" % [int(data.level), " ".join(stars)]
+
+func level_progress_text() -> String:
+	if int(data.level) >= LEVEL_CAP:
+		return "MAX LEVEL"
+	return "XP %d / %d" % [int(data.xp), xp_to_next()]
 
 func stat(key: String) -> int:
 	var value: int = int(class_info().get(key, 0))
@@ -440,7 +489,10 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		data.kills += 1
 		data.streak = 0
 		add_relic_charge(8 if elite else 4)
+		var hard_xp: String = award_xp(14 if elite else 7)
 		result = "Hard fight. %s defeated! +%d coins, but lost 1 heart." % [enemy_name, consolation]
+		if hard_xp != "":
+			result += "  " + hard_xp
 	else:
 		data.kills += 1
 		data.streak += 1
@@ -448,7 +500,10 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		data.bag += reward + streak_bonus
 		var elite_relic_bonus: int = int(behavior.get("relic_bonus", 0)) if elite else 0
 		add_relic_charge((18 if elite else 9) + elite_relic_bonus + mini(int(data.streak), 5))
+		var clean_xp: String = award_xp(14 if elite else 7)
 		result = "%s defeated! +%d coins." % [enemy_name, reward + streak_bonus]
+		if clean_xp != "":
+			result += "  " + clean_xp
 		if elite and rng.randf() < float(behavior.get("gem_chance", 0.22)):
 			data.gems += 1
 			result += " Found 1 gem!"
@@ -723,6 +778,7 @@ func forge_with_gems() -> String:
 func finish_room() -> void:
 	data.stage += 1
 	data.hp = mini(max_hp(), int(data.hp) + stat("heal"))
+	var route_xp: String = award_xp(20)
 	var loot: String = award_gear()
 	if data.route == "forge":
 		loot += "\n" + award_gear()
@@ -734,7 +790,10 @@ func finish_room() -> void:
 	elif data.route == "fen":
 		add_relic_charge(18)
 		loot += "\n+18 relic charge"
-	data.last = "Found: " + loot + "\nGear is permanent. Equip it at a rest area."
+	data.last = "Found: " + loot
+	if route_xp != "":
+		data.last += "\n" + route_xp
+	data.last += "\nGear is permanent. Equip it at a rest area."
 	data.mode = "reward"
 
 func after_reward() -> void:
@@ -793,9 +852,13 @@ func boss_hop(direction: int) -> String:
 		data.wins += 1
 		add_relic_charge(35)
 		data.bag += 30
+		var boss_xp: String = award_xp(60)
 		bank()
 		data.mode = "victory"
-		data.last = "The forest wakes. +30 coins, all expedition coins banked.\nFound: " + award_gear()
+		data.last = "The forest wakes. +30 coins, all expedition coins banked."
+		if boss_xp != "":
+			data.last += "\n" + boss_xp
+		data.last += "\nFound: " + award_gear()
 	else:
 		# Always leave at least one reachable safe landing.
 		data.danger = (int(data.turn) % 3) - 1
@@ -873,7 +936,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [9, 9.0]:
+	if value.get("version") not in [10, 10.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -886,10 +949,16 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
 		if not (value[key] is int or value[key] is float):
 			return false
 	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0:
+		return false
+	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
+		return false
+	if int(value.level) < LEVEL_CAP and int(value.xp) >= xp_to_next(int(value.level)):
+		return false
+	if int(value.level) == LEVEL_CAP and int(value.xp) != 0:
 		return false
 	if not value.inventory is Array or not value.cells is Array or not value.equipped is Dictionary or not value.potions is Dictionary:
 		return false
@@ -973,6 +1042,14 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.gems = 0
 	if not migrated.has("fish_caught"):
 		migrated.fish_caught = 0
+	if not migrated.has("level"):
+		# Preserve veteran progress when migrating pre-level-system saves.
+		migrated.level = clampi(1 + int(migrated.get("wins", 0)) * 2 + floori(float(migrated.get("kills", 0)) / 10.0), 1, LEVEL_CAP)
+	if not migrated.has("xp"):
+		migrated.xp = 0
+	if int(migrated.level) >= LEVEL_CAP:
+		migrated.level = LEVEL_CAP
+		migrated.xp = 0
 	if not migrated.has("cosmetics_owned") or not migrated.cosmetics_owned is Array:
 		migrated.cosmetics_owned = []
 	if not migrated.has("cosmetics_equipped") or not migrated.cosmetics_equipped is Dictionary:
@@ -993,7 +1070,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 9
+	migrated.version = 10
 	return migrated
 
 func load_game() -> bool:
@@ -1004,7 +1081,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed

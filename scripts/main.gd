@@ -55,6 +55,8 @@ var ambient_player: AudioStreamPlayer
 var music_muted: bool = false
 var current_music_context: String = ""
 var current_music_variant: int = -1
+var current_ambient_key: String = ""
+var rank_label: Label
 var swipe_start = Vector2.ZERO
 var swipe_tracking: bool = false
 var at_title: bool = true
@@ -300,7 +302,7 @@ func build_ui() -> void:
 	header.offset_left = 24
 	header.offset_right = -24
 	header.offset_top = 20
-	header.offset_bottom = 96
+	header.offset_bottom = 118
 	header.add_theme_stylebox_override("panel", style(Color("183b3c"), 14, Color("39605a")))
 	ui.add_child(header)
 	var row = HBoxContainer.new()
@@ -325,6 +327,8 @@ func build_ui() -> void:
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
 	brand.add_child(label("CUBE ODYSSEY   /   THE FREE ADVENTURE", 11, MUTED))
+	rank_label = label("", 12, GOLD)
+	brand.add_child(rank_label)
 	health = label("", 20, MINT)
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(health)
@@ -335,7 +339,7 @@ func build_ui() -> void:
 	row.add_child(gear_button)
 	row.add_child(button("Menu", func(): show_pause()))
 	var info = VBoxContainer.new()
-	info.position = Vector2(36, 124)
+	info.position = Vector2(36, 144)
 	info.add_theme_constant_override("separation", 7)
 	ui.add_child(info)
 	title = label("", 30)
@@ -425,7 +429,7 @@ func build_ui() -> void:
 	side_panel.set_anchors_and_offsets_preset(Control.PRESET_RIGHT_WIDE)
 	side_panel.offset_left = -390
 	side_panel.offset_right = -20
-	side_panel.offset_top = 108
+	side_panel.offset_top = 130
 	side_panel.offset_bottom = -20
 	side_panel.add_theme_stylebox_override("panel", style(Color("153334"), 14, Color("41645b")))
 	ui.add_child(side_panel)
@@ -780,7 +784,7 @@ func apply_side_panel_mode() -> void:
 		side_panel.set_anchors_preset(Control.PRESET_RIGHT_WIDE)
 		side_panel.offset_left = -390
 		side_panel.offset_right = -20
-		side_panel.offset_top = 108
+		side_panel.offset_top = 130
 		side_panel.offset_bottom = -20
 		side_full_body.show()
 		side_compact_body.hide()
@@ -940,6 +944,8 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
+	if is_instance_valid(rank_label):
+		rank_label.text = game.star_rank_text() + "   •   " + game.level_progress_text()
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
 	if game.data.mode in ["travel", "campfire", "fishing"]:
@@ -972,7 +978,7 @@ func update_hud() -> void:
 		b.disabled = busy or game.data.mode not in ["travel", "boss"]
 	if is_instance_valid(side_panel):
 		side_panel.visible = not at_title
-		side_stats.text = "%s\nHP %d/%d   MP %d/%d\nAttack %d   Bank %d   Bag %d   Gems %d" % [game.class_info().name, maxi(0, int(game.data.hp)), game.max_hp(), int(game.data.mana), game.max_mana(), game.attack(), int(game.data.coins), int(game.data.bag), int(game.data.gems)]
+		side_stats.text = "%s  •  LEVEL %d\n%s\nHP %d/%d   MP %d/%d\nAttack %d   Bank %d   Bag %d   Gems %d" % [game.class_info().name, int(game.data.level), game.star_rank_text() + "  •  " + game.level_progress_text(), maxi(0, int(game.data.hp)), game.max_hp(), int(game.data.mana), game.max_mana(), game.attack(), int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 		var eq: Array[String] = []
 		for slot in ["core", "shell", "charm"]:
 			var item: Dictionary = Catalog.item(str(game.data.equipped[slot]))
@@ -1255,7 +1261,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: combat, completed roads, and guardian victories earn XP. Levels 1–20 fill five stars in quarter-star steps: ¼★, ½★, ¾★, then ★. Level 20 is the five-star cap.\n\nAt the end of a road, choose the next adventure directly from the signpost or select LANTERN CAMP to rest. At camp, your cube sits on the side bench facing the bonfire; select CONTINUE ADVENTURE to return to the crossroads. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func show_pause() -> void:
@@ -1288,6 +1294,7 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 	var old_hp: int = int(game.data.hp)
 	var old_bag: int = int(game.data.bag)
 	var old_gems: int = int(game.data.gems)
+	var old_level: int = int(game.data.level)
 	var landing_kind: String = ""
 	var lane: int = clampi(int(game.data.lane) + direction, -1, 1)
 	var move_rows: int = 1
@@ -1310,7 +1317,7 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 			enemy_was_active = game.enemy_active(landing)
 			enemy_was_elite = game.enemy_elite(landing)
 	update_hud()
-	play_tone(470 if move_rows == 2 else (420 if jump_move else 300), 0.06)
+	play_rpg_sfx("jump" if jump_move else "step")
 	var destination := Vector3(lane * World.LANE_SPACING, 0.16, -next_row * World.ROW_SPACING)
 	if jump_move:
 		await world.jump_to(destination)
@@ -1349,9 +1356,12 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 	elif int(game.data.hp) < old_hp:
 		play_chime([155.56, 116.54], 0.22, 0.02)
 	elif int(game.data.bag) > old_bag:
-		play_chime([659.25, 783.99, 987.77], 0.16, 0.04)
+		play_rpg_sfx("coin")
 	else:
-		play_tone(420, 0.06)
+		play_rpg_sfx("step")
+	if int(game.data.level) > old_level:
+		play_rpg_sfx("level_up")
+		push_chat("LEVEL UP! " + game.star_rank_text())
 	if old_mode == "travel" and str(game.data.mode) == "reward" and int(game.data.stage) > old_stage:
 		ai_telemetry.record("route_complete", game, {"route":str(game.data.route), "hp_remaining":int(game.data.hp), "bag":int(game.data.bag)})
 		ai_gm_bridge.progress_challenge(game, "route_complete", {"route":str(game.data.route)})
@@ -1362,6 +1372,74 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 		commit(false)
 	else:
 		commit()
+
+func play_rpg_sfx(kind: String, elite: bool = false) -> void:
+	if muted:
+		return
+	var rate: int = 22050
+	var duration: float = 0.14
+	match kind:
+		"encounter":
+			duration = 0.34
+		"attack", "impact", "hurt":
+			duration = 0.22
+		"victory":
+			duration = 0.42
+		"level_up":
+			duration = 0.58
+		"coin":
+			duration = 0.18
+		"jump":
+			duration = 0.16
+		_:
+			duration = 0.10
+	var samples: int = int(duration * rate)
+	var bytes = PackedByteArray()
+	bytes.resize(samples * 2)
+	var noise = RandomNumberGenerator.new()
+	noise.seed = 424242 + absi(kind.hash()) + (97 if elite else 0)
+	for i in range(samples):
+		var t: float = float(i) / float(rate)
+		var p: float = clampf(t / duration, 0.0, 1.0)
+		var env: float = pow(1.0 - p, 1.6)
+		var sample_value: float = 0.0
+		match kind:
+			"encounter":
+				var f: float = lerpf(150.0, 420.0 if elite else 330.0, p)
+				sample_value = sin(TAU * f * t) * env * 0.55
+				sample_value += sin(TAU * (f * 1.5) * t) * env * 0.20
+			"attack":
+				var sweep: float = lerpf(720.0, 130.0, p)
+				sample_value = sin(TAU * sweep * t) * env * 0.28 + noise.randf_range(-1.0, 1.0) * env * 0.32
+			"impact":
+				sample_value = sin(TAU * 74.0 * t) * env * 0.62 + noise.randf_range(-1.0, 1.0) * env * 0.25
+			"hurt":
+				var hurt_f: float = lerpf(240.0, 95.0, p)
+				sample_value = sin(TAU * hurt_f * t) * env * 0.55
+			"victory":
+				var notes: Array = [392.0, 523.25, 659.25, 783.99]
+				var note_index: int = mini(notes.size() - 1, int(p * float(notes.size())))
+				var local_t: float = fmod(t, duration / float(notes.size()))
+				sample_value = sin(TAU * float(notes[note_index]) * local_t) * exp(-5.0 * local_t / (duration / float(notes.size()))) * 0.50
+			"level_up":
+				var level_notes: Array = [523.25, 659.25, 783.99, 1046.50, 1318.51]
+				var level_index: int = mini(level_notes.size() - 1, int(p * float(level_notes.size())))
+				var level_t: float = fmod(t, duration / float(level_notes.size()))
+				sample_value = (sin(TAU * float(level_notes[level_index]) * level_t) + 0.25 * sin(TAU * float(level_notes[level_index]) * 2.0 * level_t)) * exp(-4.0 * level_t / (duration / float(level_notes.size()))) * 0.46
+			"coin":
+				sample_value = (sin(TAU * 988.0 * t) + 0.45 * sin(TAU * 1318.0 * t)) * env * 0.36
+			"jump":
+				sample_value = sin(TAU * lerpf(280.0, 610.0, p) * t) * env * 0.32
+			_:
+				sample_value = (sin(TAU * 150.0 * t) + noise.randf_range(-1.0, 1.0) * 0.08) * env * 0.22
+		var value: int = int(clampf(sample_value * 12000.0, -29000.0, 29000.0))
+		bytes.encode_s16(i * 2, value)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.data = bytes
+	audio.stream = stream
+	audio.play()
 
 func play_tone(frequency: float, duration: float) -> void:
 	if muted:
@@ -1442,6 +1520,8 @@ func music_context() -> String:
 		return "camp"
 	if game.data.mode in ["boss", "boss_intro"]:
 		return "boss"
+	if game.data.mode == "travel" and game.danger_level() >= 3:
+		return "road_danger"
 	return "road"
 
 func update_music(force: bool = false) -> void:
@@ -1463,15 +1543,39 @@ func update_music(force: bool = false) -> void:
 	music_player.stream = build_bard_track(context, next_variant)
 	music_player.play()
 
+func ambient_context() -> String:
+	if game.data.mode in ["camp", "campfire"]:
+		return "campfire"
+	if game.data.mode in ["boss", "boss_intro"]:
+		return "boss"
+	if game.data.mode in ["travel", "road_end", "choice", "fishing"]:
+		match str(game.data.get("environment", "sunny")):
+			"rainy":
+				return "rain"
+			"winter", "sand":
+				return "wind"
+			_:
+				return "forest"
+	return ""
+
 func update_ambient() -> void:
 	if not is_instance_valid(ambient_player):
 		return
-	if muted or at_title or game.data.mode != "campfire":
+	if muted or at_title:
 		ambient_player.stop()
+		current_ambient_key = ""
 		return
-	if ambient_player.playing:
+	var key: String = ambient_context()
+	if key == "":
+		ambient_player.stop()
+		current_ambient_key = ""
 		return
-	ambient_player.stream = build_campfire_ambience()
+	if ambient_player.playing and current_ambient_key == key:
+		return
+	current_ambient_key = key
+	ambient_player.stop()
+	ambient_player.volume_db = -30 if key != "boss" else -27
+	ambient_player.stream = build_environment_ambience(key)
 	ambient_player.play()
 
 func note_frequency(note: int) -> float:
@@ -1491,10 +1595,15 @@ func build_bard_track(context: String, variant: int) -> AudioStreamWAV:
 			patterns = [[0,3,5,7,5,3,2,3], [0,2,3,7,5,3,0,-2], [0,3,7,8,7,5,3,2], [0,5,3,7,8,7,3,2], [0,2,5,7,10,7,5,3]]
 			bass = [0,0,-2,-2,3,3,-2,-2]
 		"road":
-			bpm = 102.0
+			bpm = 98.0
 			root = 50
 			patterns = [[0,2,4,7,4,2,0,2], [0,4,5,7,9,7,5,4], [0,2,5,4,7,5,2,0], [0,4,7,5,9,7,4,2], [0,2,4,5,7,9,7,4]]
 			bass = [0,0,5,5,3,3,5,5]
+		"road_danger":
+			bpm = 112.0
+			root = 47
+			patterns = [[0,3,5,3,7,5,3,2], [0,2,3,5,8,5,3,2], [0,3,7,5,3,2,0,-2], [0,5,3,7,5,3,2,0], [0,2,5,3,7,8,5,3]]
+			bass = [0,0,-2,-2,3,3,0,-2]
 		"fishing":
 			bpm = 80.0
 			root = 52
@@ -1535,6 +1644,50 @@ func build_bard_track(context: String, variant: int) -> AudioStreamWAV:
 		var air: float = sin(TAU * note_frequency(air_note) * t) * 0.065 * (0.5 + 0.5 * sin(TAU * 0.10 * t))
 		var sample_value: float = lute * 0.60 + drone + air
 		var value: int = int(clampf(sample_value * 5000.0, -27000.0, 27000.0))
+		bytes.encode_s16(i * 2, value)
+	var stream = AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = rate
+	stream.data = bytes
+	stream.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	stream.loop_begin = 0
+	stream.loop_end = samples
+	return stream
+
+func build_environment_ambience(kind: String) -> AudioStreamWAV:
+	if kind == "campfire":
+		return build_campfire_ambience()
+	var rate: int = 22050
+	var duration: float = 8.0
+	var samples: int = int(duration * rate)
+	var bytes = PackedByteArray()
+	bytes.resize(samples * 2)
+	var noise = RandomNumberGenerator.new()
+	noise.seed = 731947 + absi(kind.hash())
+	var low: float = 0.0
+	var high: float = 0.0
+	for i in range(samples):
+		var t: float = float(i) / float(rate)
+		var raw: float = noise.randf_range(-1.0, 1.0)
+		low = low * 0.992 + raw * 0.008
+		high = high * 0.72 + raw * 0.28
+		var sample_value: float = 0.0
+		match kind:
+			"rain":
+				var drops: float = sin(TAU * 1750.0 * t) * 0.05 if noise.randf() < 0.004 else 0.0
+				sample_value = high * 0.38 + low * 0.18 + drops
+			"wind":
+				var gust: float = 0.55 + 0.45 * sin(TAU * 0.08 * t + sin(TAU * 0.021 * t))
+				sample_value = low * gust * 1.9 + sin(TAU * 92.0 * t) * 0.018
+			"boss":
+				var pulse: float = 0.5 + 0.5 * sin(TAU * 1.8 * t)
+				sample_value = sin(TAU * 48.0 * t) * 0.12 * pulse + low * 1.4
+			_:
+				var cricket_gate: float = 0.5 + 0.5 * sin(TAU * 0.38 * t)
+				var cricket: float = sin(TAU * 2850.0 * t + sin(TAU * 13.0 * t) * 0.35) * pow(cricket_gate, 8.0) * 0.045
+				var birds: float = sin(TAU * 1320.0 * t) * 0.025 if fmod(t, 5.3) < 0.10 else 0.0
+				sample_value = low * 0.95 + cricket + birds
+		var value: int = int(clampf(sample_value * 9000.0, -24000.0, 24000.0))
 		bytes.encode_s16(i * 2, value)
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
@@ -1764,7 +1917,7 @@ func confirm_character() -> void:
 
 func show_settings() -> void:
 	modal("SETTINGS", "Comfort & sound.", "No time limit. Brightness presets are beside WAYPOINT. Music, effects, and ambience are controlled separately below.")
-	action("Sound effects: " + ("OFF" if muted else "ON"), func():
+	action("Effects & ambience: " + ("OFF" if muted else "ON"), func():
 		muted = not muted
 		save_audio_settings()
 		update_ambient()
@@ -1817,16 +1970,17 @@ func show_loot_popup(info: Dictionary) -> void:
 func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool, result: String, elite: bool = false) -> void:
 	if not is_instance_valid(fight_layer):
 		return
-	var action_word: String = "ELITE FIGHT" if elite else "FIGHT"
+	var enemy_defeated: bool = "defeated" in result.to_lower() or (kind == "guardian" and str(game.data.mode) == "victory")
+	var action_word: String = "ELITE ENCOUNTER" if elite else "ENCOUNTER"
 	var elite_profile: Dictionary = game.elite_behavior(kind) if elite else {}
 	if kind == "guardian":
-		action_word = "BOSS FIGHT"
+		action_word = "BOSS ENCOUNTER"
 	if elite:
 		fight_title.text = action_word + "  /  " + str(elite_profile.get("name", "Elite")).to_upper() + " " + enemy_display_name(kind)
 	else:
 		fight_title.text = action_word + "  /  " + enemy_display_name(kind)
 	fight_title.add_theme_color_override("font_color", GOLD if elite else (Color("ef9974") if enemy_was_active else MINT))
-	fight_status.text = str(elite_profile.get("telegraph", "ELITE")) if elite else "FIGHT"
+	fight_status.text = "ENCOUNTER!"
 	fight_player.color = current_character_color()
 	match kind:
 		"goblin":
@@ -1845,41 +1999,79 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	fight_enemy.rotation = 0.0
 	fight_player.modulate = Color.WHITE
 	fight_enemy.modulate = Color.WHITE
-	fight_card.scale = Vector2(0.84, 0.84)
+	fight_card.scale = Vector2(0.80, 0.80)
 	fight_card.rotation = 0.0
 	fight_layer.modulate = Color(1, 1, 1, 0)
 	fight_layer.show()
-	play_chime([220.0, 293.66], 0.11, 0.02)
+	var old_music_db: float = music_player.volume_db if is_instance_valid(music_player) else -23.0
+	if is_instance_valid(music_player):
+		music_player.volume_db = old_music_db - 5.0
+	play_rpg_sfx("encounter", elite)
+
 	var enter = create_tween()
 	enter.set_parallel(true)
-	enter.tween_property(fight_layer, "modulate:a", 1.0, 0.10)
-	enter.tween_property(fight_card, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	enter.tween_property(fight_player, "scale", Vector2(1.12, 0.90), 0.14)
-	enter.tween_property(fight_enemy, "scale", Vector2(1.12, 0.90), 0.14)
+	enter.tween_property(fight_layer, "modulate:a", 1.0, 0.12)
+	enter.tween_property(fight_card, "scale", Vector2.ONE, 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	enter.tween_property(fight_enemy, "scale", Vector2(1.18, 0.88), 0.16)
 	await enter.finished
+	await get_tree().create_timer(0.12).timeout
+
+	if elite:
+		fight_status.text = str(elite_profile.get("telegraph", "ELITE")) + "  •  " + ("ENEMY INITIATIVE" if enemy_was_active else "YOUR OPENING")
+	else:
+		fight_status.text = "ENEMY INITIATIVE" if enemy_was_active else "YOUR OPENING"
+	var windup = create_tween()
+	windup.set_parallel(true)
+	if enemy_was_active:
+		windup.tween_property(fight_enemy, "scale", Vector2(1.28, 0.82), 0.15)
+		windup.tween_property(fight_enemy, "rotation", deg_to_rad(-4.0), 0.15)
+	else:
+		windup.tween_property(fight_player, "scale", Vector2(1.24, 0.84), 0.15)
+		windup.tween_property(fight_player, "rotation", deg_to_rad(4.0), 0.15)
+	play_rpg_sfx("attack", elite)
+	await windup.finished
+
+	fight_status.text = "CLASH!"
+	play_rpg_sfx("impact", elite)
 	var impact = create_tween()
 	impact.set_parallel(true)
+	impact.tween_property(fight_card, "rotation", deg_to_rad(-1.8 if player_hit else 1.8), 0.06)
 	if player_hit:
-		fight_status.text = "LOSS"
-		play_chime([196.0, 146.83, 110.0], 0.23, 0.025)
-		impact.tween_property(fight_player, "scale", Vector2(0.76, 1.18), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		impact.tween_property(fight_player, "scale", Vector2(0.74, 1.20), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		impact.tween_property(fight_player, "modulate", Color("ff9e86"), 0.10)
-		impact.tween_property(fight_card, "rotation", deg_to_rad(-1.2), 0.05)
 	else:
-		fight_status.text = "WIN"
-		play_chime([392.0, 523.25, 659.25], 0.19, 0.035)
-		impact.tween_property(fight_enemy, "scale", Vector2(0.28, 1.28), 0.13).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		impact.tween_property(fight_enemy, "scale", Vector2(0.72, 1.18), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		impact.tween_property(fight_enemy, "modulate", Color("fff0a8"), 0.10)
-		impact.tween_property(fight_card, "rotation", deg_to_rad(1.0), 0.05)
 	await impact.finished
 	fight_card.rotation = 0.0
-	await get_tree().create_timer(0.14).timeout
+	await get_tree().create_timer(0.10).timeout
+
+	if enemy_defeated:
+		fight_status.text = "HARD-WON VICTORY" if player_hit else "VICTORY"
+		play_rpg_sfx("victory", elite)
+		var finish = create_tween()
+		finish.set_parallel(true)
+		finish.tween_property(fight_enemy, "scale", Vector2(0.20, 1.20), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		finish.tween_property(fight_enemy, "modulate:a", 0.18, 0.16)
+		finish.tween_property(fight_player, "scale", Vector2(1.10, 1.10), 0.16)
+		await finish.finished
+	elif kind == "guardian" and "damage" in result.to_lower():
+		fight_status.text = "RUNE STRIKE"
+		play_rpg_sfx("victory")
+		await get_tree().create_timer(0.20).timeout
+	else:
+		fight_status.text = "ENEMY STRIKES"
+		play_rpg_sfx("hurt", elite)
+		await get_tree().create_timer(0.20).timeout
+
 	fight_status.text = result.replace("\n", "  ")
-	await get_tree().create_timer(0.46).timeout
+	await get_tree().create_timer(0.58).timeout
 	var leave = create_tween()
 	leave.set_parallel(true)
-	leave.tween_property(fight_layer, "modulate:a", 0.0, 0.16)
-	leave.tween_property(fight_card, "scale", Vector2(1.04, 1.04), 0.16)
+	leave.tween_property(fight_layer, "modulate:a", 0.0, 0.18)
+	leave.tween_property(fight_card, "scale", Vector2(1.04, 1.04), 0.18)
 	await leave.finished
 	fight_layer.hide()
 	fight_layer.modulate = Color.WHITE
+	if is_instance_valid(music_player):
+		music_player.volume_db = old_music_db
