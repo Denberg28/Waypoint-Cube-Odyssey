@@ -65,11 +65,51 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p build/web
-          godot --headless --verbose --path . --export-release "Web" build/web/index.html
-          test -f build/web/index.html
-          test -f build/web/index.wasm
-          test -f build/web/index.pck
+          SHORT_SHA="${GITHUB_SHA::12}"
+          BASENAME="waypoint-${SHORT_SHA}"
+          godot --headless --verbose --path . --export-release "Web" "build/web/${BASENAME}.html"
+
+          test -f "build/web/${BASENAME}.html"
+          test -f "build/web/${BASENAME}.wasm"
+          test -f "build/web/${BASENAME}.pck"
+
+          # Serve a stable index.html while retaining commit-hashed Godot assets.
+          # This prevents the browser from reusing an older .pck/.wasm bundle
+          # after a successful Pages deployment.
+          cp "build/web/${BASENAME}.html" build/web/index.html
+          rm "build/web/${BASENAME}.html"
+
+          python - <<'PY'
+          from pathlib import Path
+          import os, json, datetime
+
+          index = Path("build/web/index.html")
+          text = index.read_text(encoding="utf-8")
+          stamp = os.environ["GITHUB_SHA"][:12]
+          meta = (
+              '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">\n'
+              '<meta http-equiv="Pragma" content="no-cache">\n'
+              '<meta http-equiv="Expires" content="0">\n'
+              f'<!-- Waypoint build {stamp} -->\n'
+          )
+          if "<head>" in text:
+              text = text.replace("<head>", "<head>\n" + meta, 1)
+          else:
+              text = meta + text
+          index.write_text(text, encoding="utf-8")
+
+          Path("build/web/version.json").write_text(
+              json.dumps({
+                  "commit": os.environ["GITHUB_SHA"],
+                  "short_commit": stamp,
+                  "built_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              }, indent=2),
+              encoding="utf-8",
+          )
+          PY
+
           touch build/web/.nojekyll
+          echo "Published Godot build assets:"
           ls -lh build/web
 
       - name: Configure GitHub Pages

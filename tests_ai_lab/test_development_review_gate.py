@@ -148,11 +148,11 @@ def test_star_rank_header_is_layout_stable_and_cached():
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "var cached_rank_text: String = \"\"" in main
-    assert "header.offset_bottom = 104" in main
-    assert "brand.custom_minimum_size.x = 500.0" in main
-    assert "rank_label.custom_minimum_size.x = 245.0" in main
-    assert "health.custom_minimum_size.x = 126.0" in main
-    assert "economy.custom_minimum_size.x = 238.0" in main
+    assert "header.offset_bottom = 82" in main
+    assert "brand.custom_minimum_size.x = 455.0" in main
+    assert "rank_label.custom_minimum_size.x = 225.0" in main
+    assert "health.custom_minimum_size.x = 116.0" in main
+    assert "economy.custom_minimum_size.x = 214.0" in main
     assert 'gear_button = button("Gear"' in main
     assert "if next_rank_text != cached_rank_text:" in main
     assert "rank_label.text = cached_rank_text" in main
@@ -176,3 +176,15 @@ def test_gameplay_hud_uses_compact_focus_layout():
     assert "side_panel.offset_bottom = -12" in main
     assert "side_header.hide()" in main
     assert 'settings.get_value("ui", "status_minimized", true)' in main
+
+
+def test_web_export_uses_commit_hashed_assets():
+    from pathlib import Path
+
+    workflow = Path(".github/workflows/godot-web-pages.yml").read_text(encoding="utf-8")
+
+    assert 'BASENAME="waypoint-${SHORT_SHA}"' in workflow
+    assert '--export-release "Web" "build/web/${BASENAME}.html"' in workflow
+    assert 'cp "build/web/${BASENAME}.html" build/web/index.html' in workflow
+    assert 'build/web/version.json' in workflow
+    assert 'Cache-Control' in workflow
