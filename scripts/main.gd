@@ -67,6 +67,7 @@ var has_save: bool = false
 var spinning: bool = false
 var selected_class: String = "adventurer"
 var selected_skin: int = 0
+var fresh_character_mode: bool = false
 var selector_stats: Label
 var preview_world
 var selector_buttons: Array = []
@@ -1360,7 +1361,7 @@ func show_marketplace(slot: String = "skin") -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save starts at 0 stars and 0 XP (LV 1 baseline). Combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Combat, completed roads, and guardian victories earn XP. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func return_from_quit_window() -> void:
@@ -1956,17 +1957,23 @@ func enter_game() -> void:
 	update_ambient()
 
 func request_play() -> void:
-	if has_save and game.data.mode not in ["camp", "defeat", "victory"]:
-		modal("NEW EXPEDITION", "Start a new road?", "Confirming a new character will replace your current expedition and its %d unbanked coins. Your gear, camp upgrades, colors, and banked coins remain. You can cancel the selector without changing your save." % int(game.data.bag))
-		action("Choose a new character", func(): show_selector(), true)
-		action("Back", func(): show_title())
-	else:
-		show_selector()
-
-func show_selector() -> void:
-	var selector_body: String = "Roll one of four trades, then confirm. Each trade has an equal chance."
 	if not has_save:
-		selector_body += "\n\nNEW SAVE BASELINE  •  0 STARS  •  0 XP"
+		show_selector(true)
+		return
+	modal("NEW CHARACTER / EXPEDITION", "How do you want to continue?", "Keep Progression changes your character/class while retaining permanent progression. Fresh Character is a complete reset to the shipped baseline.")
+	action("New character  •  Keep progression", func(): show_selector(false), true)
+	action("Fresh character  •  Start from zero", func():
+		modal("FRESH CHARACTER", "Reset all character progression?", "This permanently resets level, XP, stars, banked coins, gems, gear, camp upgrades, wins, kills, cosmetics, potions, and expedition progress. Device settings such as audio and brightness are kept.")
+		action("Choose fresh character", func(): show_selector(true), true)
+		action("Cancel", func(): show_title())
+	)
+	action("Back", func(): show_title())
+
+func show_selector(fresh_start: bool = false) -> void:
+	fresh_character_mode = fresh_start
+	var selector_body: String = "Roll one of four trades, then confirm. Each trade has an equal chance."
+	if fresh_character_mode:
+		selector_body += "\n\nFRESH START  •  0 STARS  •  0 XP  •  NO PREVIOUS PROGRESSION"
 	modal("CHARACTER SELECT", "Choose your wanderer.", selector_body)
 	var row = HBoxContainer.new()
 	row.add_theme_constant_override("separation", 14)
@@ -2018,11 +2025,13 @@ func roll_character() -> void:
 	# Presentation cycles independently; final draw is uniform across four classes.
 	for i in range(12):
 		selected_class = str(Catalog.CLASS_IDS[i % 4])
-		selected_skin = game.rng.randi_range(0, mini(int(game.data.wins), Catalog.SKINS.size() - 1))
+		selected_skin = 0 if fresh_character_mode else game.rng.randi_range(0, mini(int(game.data.wins), Catalog.SKINS.size() - 1))
 		update_selector(true)
 		play_tone(260 + i * 24, 0.045)
 		await get_tree().create_timer(0.045 + i * 0.009).timeout
 	selected_class = str(Catalog.CLASS_IDS[game.rng.randi_range(0, 3)])
+	if fresh_character_mode:
+		selected_skin = 0
 	update_selector(false)
 	play_tone(700, 0.14)
 	spinning = false
@@ -2032,20 +2041,38 @@ func roll_character() -> void:
 func update_selector(rolling: bool) -> void:
 	var role: Dictionary = Catalog.CLASSES[selected_class]
 	preview_world.refresh_actor(selected_class, selected_skin)
-	var extra_hp: int = game.stat("health") + int(game.data.camp_level)
-	var extra_attack: int = game.stat("attack") - int(game.class_info().attack)
-	selector_stats.text = ("ROLLING…\n" if rolling else "READY\n") + str(role.name).to_upper() + "\n\nHP %d   •   ATK %d\nWith gear: HP %d   •   ATK %d\nCoins +%d\n\n%s" % [int(role.hp), int(role.attack), int(role.hp) + extra_hp, int(role.attack) + extra_attack, int(role.coins), str(role.perk)]
+	if fresh_character_mode:
+		selector_stats.text = ("ROLLING…\n" if rolling else "FRESH START READY\n") + str(role.name).to_upper() + "\n\nLV 1   •   0 STARS   •   0 XP\nHP %d   •   ATK %d\nGear: none   •   Bank: 0   •   Gems: 0\n\n%s" % [int(role.hp), int(role.attack), str(role.perk)]
+	else:
+		var extra_hp: int = game.stat("health") + int(game.data.camp_level)
+		var extra_attack: int = game.stat("attack") - int(game.class_info().attack)
+		selector_stats.text = ("ROLLING…\n" if rolling else "READY\n") + str(role.name).to_upper() + "\n\nHP %d   •   ATK %d\nWith gear: HP %d   •   ATK %d\nCoins +%d\n\n%s" % [int(role.hp), int(role.attack), int(role.hp) + extra_hp, int(role.attack) + extra_attack, int(role.coins), str(role.perk)]
 	selector_stats.add_theme_color_override("font_color", Color(role.color))
 
 func confirm_character() -> void:
 	if spinning:
 		return
-	game.data.skin = selected_skin
-	if not has_save:
-		game.initialize_new_account_progression()
-	game.begin(selected_class)
+	if fresh_character_mode and has_save:
+		modal("CONFIRM FRESH START", "Erase previous character progression?", "This cannot be undone from inside the game. The new character starts at LV 1, 0 stars, 0 XP, with no gear, coins, gems, upgrades, wins, or cosmetics.")
+		action("Erase & start fresh", func(): execute_character_start(true), true)
+		action("Back to selector", func(): show_selector(true))
+		return
+	execute_character_start(fresh_character_mode)
+
+func execute_character_start(fresh_start: bool) -> void:
+	if fresh_start:
+		game.start_fresh_character(selected_class, selected_skin)
+		ai_telemetry.record("fresh_character_start", game, {"class_id":selected_class})
+	else:
+		game.data.skin = selected_skin
+		game.begin(selected_class)
+	has_save = game.save_game() or has_save
+	fresh_character_mode = false
 	enter_game()
-	commit()
+	world.refresh_actor()
+	world.build()
+	update_hud()
+	show_mode()
 
 func show_settings() -> void:
 	modal("SETTINGS", "Comfort & sound.", "No time limit. Brightness presets are beside WAYPOINT. Music, effects, and ambience are controlled separately below.")

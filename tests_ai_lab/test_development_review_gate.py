@@ -301,8 +301,8 @@ def test_new_save_starts_with_zero_stars_and_zero_xp():
     assert "if level_value <= 1:" in state
     assert "return 0" in state
     assert "if not has_save:" in main
-    assert "game.initialize_new_account_progression()" in main
-    assert "NEW SAVE BASELINE  •  0 STARS  •  0 XP" in main
+    assert "show_selector(true)" in main
+    assert "FRESH START  •  0 STARS  •  0 XP" in main
 
 
 def test_quit_paths_use_confirmation_window():
@@ -320,3 +320,25 @@ def test_quit_paths_use_confirmation_window():
     assert 'action("Quit…", func(): show_quit_confirmation("title_menu"))' in main
     assert 'show_quit_confirmation("window_close")' in main
     assert 'get_tree().quit()' in main
+
+
+def test_fresh_character_resets_all_progression_and_requires_confirmation():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    fresh = state.split("func start_fresh_character(class_id: String, skin_index: int = 0) -> void:", 1)[1].split("func xp_to_next", 1)[0]
+    assert "reset()" in fresh
+    assert "initialize_new_account_progression()" in fresh
+    assert "begin(class_id)" in fresh
+
+    assert "var fresh_character_mode: bool = false" in main
+    assert 'Fresh character  •  Start from zero' in main
+    assert 'CONFIRM FRESH START' in main
+    assert 'Erase & start fresh' in main
+    assert "game.start_fresh_character(selected_class, selected_skin)" in main
+    assert "fresh_character_start" in main
+    assert "LV 1   •   0 STARS   •   0 XP" in main
+    assert "Gear: none   •   Bank: 0   •   Gems: 0" in main
+    assert "selected_skin = 0 if fresh_character_mode" in main

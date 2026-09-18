@@ -65,6 +65,16 @@ func initialize_new_account_progression() -> void:
 	data.level = START_LEVEL
 	data.xp = START_XP
 
+func start_fresh_character(class_id: String, skin_index: int = 0) -> void:
+	# Destructive fresh start: reset all character/account progression to the
+	# shipped baseline while leaving device settings untouched (settings live
+	# outside this save file). The selected class begins its first expedition.
+	reset()
+	initialize_new_account_progression()
+	data.skin = clampi(skin_index, 0, Catalog.SKINS.size() - 1)
+	begin(class_id)
+	data.last = "Fresh character created. 0 stars, 0 XP, no previous progression."
+
 func xp_to_next(level_value: int = -1) -> int:
 	var current: int = int(data.level) if level_value < 0 else level_value
 	if current >= LEVEL_CAP:
