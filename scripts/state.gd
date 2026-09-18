@@ -713,7 +713,9 @@ func next_stage() -> void:
 	elif int(data.stage) >= 6:
 		data.mode = "boss_intro"
 	else:
-		data.mode = "choice"
+		# Every completed road now ends at a road-end waypoint first. The player
+		# returns to Lantern Camp, then deliberately walks back out to Crossroads.
+		data.mode = "road_end"
 
 func bank() -> void:
 	data.coins += int(data.bag)
@@ -773,6 +775,7 @@ func defeat() -> void:
 	data.mode = "defeat"
 
 func return_camp() -> void:
+	var previous_mode: String = str(data.mode)
 	data.popup = {}
 	data.mode = "camp"
 	data.hp = max_hp()
@@ -781,7 +784,27 @@ func return_camp() -> void:
 	data.streak = 0
 	data.row = 0
 	data.lane = 0
-	data.last = "Rest a while. Another path is waiting."
+	# Returning from the road-end waypoint is a between-roads rest, so preserve
+	# expedition stage. Other home returns end the expedition and start fresh.
+	if previous_mode != "road_end":
+		data.stage = 0
+		data.cells = []
+		data.bag = 0
+	data.last = "Rest a while. Crossroads waits beyond the camp."
+
+func leave_camp_for_crossroads() -> void:
+	if data.mode != "camp":
+		return
+	# A stage-0 camp starts a new expedition; a later-stage camp resumes the
+	# existing expedition without resetting route progress.
+	if int(data.stage) == 0 and data.cells.is_empty():
+		begin(str(data.class_id))
+		return
+	data.popup = {}
+	data.mode = "choice"
+	data.row = 0
+	data.lane = 0
+	data.last = "Crossroads ahead. Choose the next road."
 
 func equip(id: String) -> void:
 	if data.mode not in ["camp", "rest", "choice"] or id not in data.inventory:
