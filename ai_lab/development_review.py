@@ -153,6 +153,118 @@ def update_recommendation_tally(
     }
 
 
+def normalize_council_utc(value: str, fallback: str = "") -> str:
+    raw = str(value or "").strip()
+    if re.fullmatch(r"\d{8}T\d{6}Z", raw):
+        try:
+            parsed = dt.datetime.strptime(raw, "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc)
+            return parsed.strftime("%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            pass
+    return raw or fallback
+
+
+def council_request_features(council: dict) -> list[dict]:
+    out: list[dict] = []
+    if not isinstance(council, dict):
+        return out
+    for item in council.get("all_feature_requests", []):
+        if not isinstance(item, dict):
+            continue
+        title = str(item.get("title", "")).strip()
+        if not title:
+            continue
+        out.append({
+            "id": feature_id(item, "beta"),
+            "title": title[:160],
+            "category": str(item.get("category", "feature")),
+            "source": "beta_council",
+            "tester": str(item.get("tester_name", "")),
+        })
+    return out
+
+
+def rebuild_recommendation_tally_from_history(
+    *,
+    root: Path,
+    current_council: dict,
+    generated_utc: str,
+) -> dict:
+    """Rebuild repeat counts from immutable beta-council evidence.
+
+    The tally is derived from council history on every review generation instead
+    of trusting the previous tally file. This makes a stale or partially
+    committed tally self-healing on the next successful council.
+    """
+    tally: dict = {"schema": 1, "updated_utc": generated_utc, "families": []}
+    seen_councils: set[str] = set()
+
+    for path in sorted((root / "beta_feedback").glob("*/council.json")):
+        historical = load_json(path, {})
+        if not isinstance(historical, dict):
+            continue
+        council_id = str(historical.get("council_id", "")).strip()
+        if not council_id or council_id in seen_councils:
+            continue
+        seen_councils.add(council_id)
+        seen_utc = normalize_council_utc(
+            str(historical.get("created_utc", "")),
+            fallback=generated_utc,
+        )
+        _, tally = update_recommendation_tally(
+            council_request_features(historical),
+            council_id=council_id,
+            created_utc=seen_utc,
+            tally=tally,
+        )
+
+    current_id = str(current_council.get("council_id", "")).strip() if isinstance(current_council, dict) else ""
+    if current_id and current_id not in seen_councils:
+        seen_utc = normalize_council_utc(
+            str(current_council.get("created_utc", "")),
+            fallback=generated_utc,
+        )
+        _, tally = update_recommendation_tally(
+            council_request_features(current_council),
+            council_id=current_id,
+            created_utc=seen_utc,
+            tally=tally,
+        )
+
+    # updated_utc describes when this full rebuild was produced, while each
+    # family's first/last seen fields describe the actual council chronology.
+    tally["updated_utc"] = generated_utc
+    return tally
+
+
+def annotate_features_from_tally(
+    features: list[dict],
+    *,
+    tally: dict,
+    generated_utc: str,
+) -> list[dict]:
+    families = [
+        item for item in tally.get("families", [])
+        if isinstance(item, dict) and str(item.get("key", "")).strip()
+    ]
+    annotated: list[dict] = []
+    for raw in features:
+        item = dict(raw)
+        family = find_family(item, families)
+        if family:
+            item["recommendation_key"] = str(family.get("key", ""))
+            item["repeat_count"] = max(1, int(family.get("count", 1)))
+            item["first_seen_utc"] = str(family.get("first_seen_utc", generated_utc))
+            item["last_seen_utc"] = str(family.get("last_seen_utc", generated_utc))
+        else:
+            item["recommendation_key"] = family_key(str(item.get("title", "")))
+            item["repeat_count"] = 1
+            item["first_seen_utc"] = generated_utc
+            item["last_seen_utc"] = generated_utc
+        annotated.append(item)
+    return annotated
+
+
 def bundle_id(council_id: str, features: list[dict]) -> str:
     raw = council_id + "\n" + "\n".join(sorted(norm(x.get("title", "")) for x in features))
     return "review-" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:12]
@@ -261,15 +373,24 @@ def main() -> None:
 
     created = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     council_id = str(council.get("council_id", ""))
-    features, tally = update_recommendation_tally(
-        features,
-        council_id=council_id,
-        created_utc=created,
-        tally=load_json(TALLY, {"schema": 1, "families": []}),
+    tally = rebuild_recommendation_tally_from_history(
+        root=ROOT,
+        current_council=council,
+        generated_utc=created,
     )
+    features = annotate_features_from_tally(
+        features,
+        tally=tally,
+        generated_utc=created,
+    )
+    sync_id = "sync-" + hashlib.sha256(
+        f"{council_id}\n{created}".encode("utf-8")
+    ).hexdigest()[:12]
+    tally["sync_id"] = sync_id
 
     review = {
         "schema": 2,
+        "sync_id": sync_id,
         "bundle_id": bundle_id(council_id, features),
         "created_utc": created,
         "council_id": council_id,
