@@ -209,7 +209,19 @@ with review_tab:
     if st.session_state.get("development_status_notice"):
         st.success(str(st.session_state.pop("development_status_notice")))
 
-    review = fetch_remote_json("runtime/development_review.json", {})
+    refresh_col, refresh_info_col = st.columns([1, 3])
+    with refresh_col:
+        if st.button("Refresh AI review", use_container_width=True, key="refresh-development-review"):
+            st.session_state.development_status_book = fetch_remote_json(
+                "runtime/development_status.json",
+                {"schema": 1, "entries": []},
+                fresh=True,
+            )
+            st.session_state.development_review_refresh_nonce = str(__import__("time").time_ns())
+            st.rerun()
+
+    fresh_review = bool(st.session_state.get("development_review_refresh_nonce"))
+    review = fetch_remote_json("runtime/development_review.json", {}, fresh=fresh_review)
     status_book = st.session_state.get("development_status_book")
     if not isinstance(status_book, dict):
         status_book = fetch_remote_json(
@@ -218,7 +230,11 @@ with review_tab:
             fresh=True,
         )
         st.session_state.development_status_book = status_book
-    recommendation_tally = fetch_remote_json("runtime/recommendation_tally.json", {"schema": 1, "families": []})
+    recommendation_tally = fetch_remote_json(
+        "runtime/recommendation_tally.json",
+        {"schema": 1, "families": []},
+        fresh=fresh_review,
+    )
 
     try:
         expected_pin = str(st.secrets.get("WAYPOINT_REVIEW_PIN", ""))
@@ -241,6 +257,26 @@ with review_tab:
 
         all_features = [x for x in review.get("features", []) if isinstance(x, dict)]
         all_features.sort(key=lambda item: (-int(item.get("repeat_count", 1)), str(item.get("priority", "P9")), str(item.get("title", ""))))
+
+        review_created = str(review.get("created_utc", ""))
+        review_council = str(review.get("council_id", ""))
+        review_sync = str(review.get("sync_id", ""))
+        tally_updated = str(recommendation_tally.get("updated_utc", ""))
+        tally_sync = str(recommendation_tally.get("sync_id", ""))
+
+        freshness_cols = st.columns(3)
+        freshness_cols[0].metric("Latest council", review_council or "—")
+        freshness_cols[1].metric("Review generated", review_created.replace("T", " ")[:19] or "—")
+        freshness_cols[2].metric("Tally updated", tally_updated.replace("T", " ")[:19] or "—")
+
+        tally_in_sync = bool(review_sync and tally_sync and review_sync == tally_sync)
+        if review_sync and tally_sync and not tally_in_sync:
+            st.warning(
+                "Recommendation summary is stale relative to the latest Development Review. "
+                "The individual recommendations below are newer; use Refresh AI review after the next successful council sync."
+            )
+        elif tally_in_sync:
+            st.caption("AI recommendation summary and Development Review are synchronized.")
 
         repeated_families = [
             x for x in recommendation_tally.get("families", [])
