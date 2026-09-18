@@ -86,6 +86,40 @@ const ROUTES = {
 	"fen":{"name":"Whispering Fen", "tag":"HARD / FISHING / RELICS", "text":"Wet paths, fishing pools, gear caches, and aggressive monsters.", "color":"86ad9c", "difficulty":2, "difficulty_label":"HARD", "encounters":"Goblins • ogres • high elite chance • stronger thorns", "collectibles":"Extra fishing pool • gem tiles • +18 finish relic charge • frequent gear cache"},
 	"gloomwood":{"name":"Gloomwood Hollow", "tag":"TWILIGHT / ROOTS / GLOOMCAPS", "text":"A twilight forest woven around the Whispering Hollow Root.", "color":"8f86b8", "difficulty":1, "difficulty_label":"MODERATE", "encounters":"Slimes • goblins • kobolds • ensnaring briars • Elite ambushes", "collectibles":"Gloomcaps • every 3rd Gloomcap grants 1 gem • gear cache • Resolve"}
 }
+# Road-end waypoints share one navigation grammar but inherit a visual
+# identity from the location just completed. This keeps every junction readable
+# while making each biome feel authored rather than copy-pasted.
+const WAYPOINT_STYLES = {
+	"moss":{
+		"label":"MOSSWOOD", "post":"765f49", "trim":"8eb77f", "accent":"d6e5a5", "motif":"leaf"
+	},
+	"forge":{
+		"label":"BRAMBLE FORGE", "post":"6f5143", "trim":"c87957", "accent":"f2b36f", "motif":"ember"
+	},
+	"shrine":{
+		"label":"MOONLIT STEPS", "post":"625a70", "trim":"9b89ba", "accent":"dfd1f0", "motif":"moon"
+	},
+	"treasure":{
+		"label":"LANTERN CROSSING", "post":"7b6242", "trim":"c59a58", "accent":"f0d787", "motif":"lantern"
+	},
+	"frost":{
+		"label":"FROSTFANG PASS", "post":"665f5c", "trim":"8eabb8", "accent":"dbe9ef", "motif":"frost"
+	},
+	"fen":{
+		"label":"WHISPERING FEN", "post":"53675f", "trim":"719987", "accent":"c5ded2", "motif":"reed"
+	},
+	"gloomwood":{
+		"label":"GLOOMWOOD HOLLOW", "post":"5c4d52", "trim":"75678e", "accent":"d4c1e8", "motif":"root"
+	}
+}
+
+static func waypoint_style(route_id: String) -> Dictionary:
+	if WAYPOINT_STYLES.has(route_id):
+		return WAYPOINT_STYLES[route_id]
+	return {
+		"label":"WAYPOINT", "post":"765f49", "trim":"879574", "accent":"eee1b8", "motif":"leaf"
+	}
+
 const ENVIRONMENTS = {
 	"sunny":{"name":"Sunny", "tag":"CLEAR SKIES"},
 	"cloudy":{"name":"Cloudy", "tag":"SOFT LIGHT"},
