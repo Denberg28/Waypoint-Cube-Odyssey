@@ -148,10 +148,10 @@ def test_star_rank_header_is_layout_stable_and_cached():
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "var cached_rank_text: String = \"\"" in main
-    assert "header.offset_bottom = 82" in main
-    assert "brand.custom_minimum_size.x = 455.0" in main
-    assert "rank_label.custom_minimum_size.x = 225.0" in main
-    assert "health.custom_minimum_size.x = 116.0" in main
+    assert "header.offset_bottom = 90" in main
+    assert "brand.custom_minimum_size.x = 520.0" in main
+    assert "rank_label.custom_minimum_size.x = 185.0" in main
+    assert "health_box.custom_minimum_size.x = 138.0" in main
     assert "economy.custom_minimum_size.x = 214.0" in main
     assert 'gear_button = button("Gear"' in main
     assert "if next_rank_text != cached_rank_text:" in main
@@ -163,11 +163,11 @@ def test_gameplay_hud_uses_compact_focus_layout():
 
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
-    assert "header.offset_bottom = 82" in main
+    assert "header.offset_bottom = 90" in main
     assert 'header.add_theme_stylebox_override("panel", compact_style' in main
-    assert "info.position = Vector2(24, 96)" in main
+    assert "info.position = Vector2(24, 104)" in main
     assert "footer.offset_right = 276" in main
-    assert "footer.offset_top = -74" in main
+    assert "footer.offset_top = -58" in main
     assert 'compact_details = button("Details"' in main
     assert 'compact_best = button("Best"' in main
     assert 'compact_heal = button("Heal"' in main
@@ -188,3 +188,20 @@ def test_web_export_uses_commit_hashed_assets():
     assert 'cp "build/web/${BASENAME}.html" build/web/index.html' in workflow
     assert 'build/web/version.json' in workflow
     assert 'Cache-Control' in workflow
+
+
+def test_header_places_rank_autosave_and_blue_xp_meter():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "var xp_bar: ProgressBar" in main
+    assert "brand_top.add_child(rank_label)" in main
+    assert 'save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)' in main
+    assert "brand.add_child(save_label)" in main
+    assert 'bottom.add_child(save_label)' not in main
+    assert "xp_bar.custom_minimum_size = Vector2(138.0, 6.0)" in main
+    assert 'xp_fill.bg_color = Color("3f86ff")' in main
+    assert "xp_bar.value = 100.0" in main
+    assert "game.xp_to_next()" in main
+    assert 'save_label.text = "AUTOSAVE  /  OFFLINE"' in main

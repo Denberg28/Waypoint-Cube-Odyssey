@@ -37,6 +37,7 @@ var overlay: ColorRect
 var panel: PanelContainer
 var stack: VBoxContainer
 var health: Label
+var xp_bar: ProgressBar
 var economy: Label
 var title: Label
 var subtitle: Label
@@ -305,7 +306,7 @@ func build_ui() -> void:
 	header.offset_left = 14
 	header.offset_right = -14
 	header.offset_top = 8
-	header.offset_bottom = 82
+	header.offset_bottom = 90
 	header.add_theme_stylebox_override("panel", compact_style(Color("183b3c"), 10, Color("39605a")))
 	ui.add_child(header)
 	var row = HBoxContainer.new()
@@ -314,7 +315,7 @@ func build_ui() -> void:
 	var brand = VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	brand.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	brand.custom_minimum_size.x = 455.0
+	brand.custom_minimum_size.x = 520.0
 	brand.add_theme_constant_override("separation", 1)
 	row.add_child(brand)
 
@@ -336,25 +337,50 @@ func build_ui() -> void:
 		brightness_box.add_child(brightness_button)
 		brightness_buttons.append(brightness_button)
 
-	var brand_meta = HBoxContainer.new()
-	brand_meta.add_theme_constant_override("separation", 12)
-	brand.add_child(brand_meta)
-	brand_subtitle_label = label("CUBE ODYSSEY  /  FREE ADVENTURE", 8, MUTED)
-	brand_subtitle_label.custom_minimum_size.x = 205.0
-	brand_subtitle_label.clip_text = true
-	brand_meta.add_child(brand_subtitle_label)
-	cached_rank_text = game.star_rank_text() + "  •  " + game.level_progress_text()
+	# Rank sits on the same visual row as DAY / DUSK / NIGHT.
+	cached_rank_text = game.star_rank_text()
 	rank_label = label(cached_rank_text, 9, GOLD)
-	rank_label.custom_minimum_size.x = 225.0
+	rank_label.custom_minimum_size.x = 185.0
+	rank_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	rank_label.clip_text = true
-	brand_meta.add_child(rank_label)
+	brand_top.add_child(rank_label)
 
+	brand_subtitle_label = label("CUBE ODYSSEY  /  FREE ADVENTURE", 8, MUTED)
+	brand_subtitle_label.clip_text = true
+	brand.add_child(brand_subtitle_label)
+
+	# Autosave state belongs with identity/status, not in the movement controls.
+	save_label = label("AUTOSAVE  /  OFFLINE", 7, MUTED)
+	save_label.clip_text = true
+	brand.add_child(save_label)
+
+	# Health gets its own RPG-style XP meter directly underneath.
+	var health_box = VBoxContainer.new()
+	health_box.custom_minimum_size.x = 138.0
+	health_box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	health_box.add_theme_constant_override("separation", 3)
+	row.add_child(health_box)
 	health = label("", 16, MINT)
-	health.custom_minimum_size.x = 116.0
-	health.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	health.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	health.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(health)
+	health_box.add_child(health)
+	xp_bar = ProgressBar.new()
+	xp_bar.custom_minimum_size = Vector2(138.0, 6.0)
+	xp_bar.min_value = 0.0
+	xp_bar.max_value = 100.0
+	xp_bar.value = 0.0
+	xp_bar.show_percentage = false
+	xp_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var xp_bg = StyleBoxFlat.new()
+	xp_bg.bg_color = Color("142a38")
+	xp_bg.set_corner_radius_all(3)
+	var xp_fill = StyleBoxFlat.new()
+	xp_fill.bg_color = Color("3f86ff")
+	xp_fill.set_corner_radius_all(3)
+	xp_bar.add_theme_stylebox_override("background", xp_bg)
+	xp_bar.add_theme_stylebox_override("fill", xp_fill)
+	health_box.add_child(xp_bar)
 	economy = label("", 13, GOLD)
 	economy.custom_minimum_size.x = 214.0
 	economy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -372,7 +398,7 @@ func build_ui() -> void:
 	menu_button.add_theme_font_size_override("font_size", 11)
 	row.add_child(menu_button)
 	var info = VBoxContainer.new()
-	info.position = Vector2(24, 96)
+	info.position = Vector2(24, 104)
 	info.add_theme_constant_override("separation", 4)
 	ui.add_child(info)
 	title = label("", 26)
@@ -402,7 +428,7 @@ func build_ui() -> void:
 	footer.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
 	footer.offset_left = 14
 	footer.offset_right = 276
-	footer.offset_top = -74
+	footer.offset_top = -58
 	footer.offset_bottom = -12
 	footer.add_theme_stylebox_override("panel", compact_style(Color("183b3c"), 12, Color("39605a")))
 	ui.add_child(footer)
@@ -436,8 +462,6 @@ func build_ui() -> void:
 	help_button.add_theme_stylebox_override("hover", compact_style(Color("385f56"), 9, MINT))
 	help_button.add_theme_stylebox_override("pressed", compact_style(Color("1c3b38"), 9, GOLD))
 	controls.add_child(help_button)
-	save_label = label("AUTOSAVE  /  OFFLINE", 8, MUTED)
-	bottom.add_child(save_label)
 	overlay = ColorRect.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.color = Color(0.025, 0.07, 0.075, 0.72)
@@ -983,10 +1007,20 @@ func action(text: String, callback: Callable, primary: bool = false) -> void:
 func update_hud() -> void:
 	health.text = "HEARTS  %d / %d" % [maxi(0, int(game.data.hp)), game.max_hp()]
 	if is_instance_valid(rank_label):
-		var next_rank_text: String = game.star_rank_text() + "  •  " + game.level_progress_text()
+		var next_rank_text: String = game.star_rank_text()
 		if next_rank_text != cached_rank_text:
 			cached_rank_text = next_rank_text
 			rank_label.text = cached_rank_text
+	if is_instance_valid(xp_bar):
+		if int(game.data.level) >= State.LEVEL_CAP:
+			xp_bar.value = 100.0
+			xp_bar.tooltip_text = "MAX LEVEL"
+		else:
+			var xp_needed: int = game.xp_to_next()
+			var current_xp: int = int(game.data.xp)
+			var xp_percent: float = 0.0 if xp_needed <= 0 else (float(current_xp) / float(xp_needed)) * 100.0
+			xp_bar.value = clampf(xp_percent, 0.0, 100.0)
+			xp_bar.tooltip_text = "XP %d / %d" % [current_xp, xp_needed]
 	economy.text = "BANK %d  •  BAG %d  •  GEMS %d" % [int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 	var route: Dictionary = Catalog.ROUTES[str(game.data.route)]
 	if game.data.mode in ["travel", "campfire", "fishing"]:
@@ -1037,7 +1071,8 @@ func commit(rebuild: bool = true) -> void:
 		world.refresh_actor()
 		world.build()
 	update_hud()
-	save_label.text = game.notice + "  /  OFFLINE"
+	save_label.text = "AUTOSAVE  /  OFFLINE"
+	save_label.tooltip_text = game.notice
 	show_mode()
 
 func start_adventure() -> void:
