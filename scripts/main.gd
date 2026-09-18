@@ -888,7 +888,8 @@ func preview_route(route_key: String) -> void:
 	ai_telemetry.record("route_preview", game, {"route":route_key, "featured":str(ai_world_state.get("featured_route", "")) == route_key})
 	modal("ROUTE PREVIEW  /  %s" % str(route.get("tag", "TRAIL")), str(route.get("name", "Unknown Road")), body)
 	action("Start Adventure   →", func(): choose_route(route_key), true)
-	action("Back to Crossroads", func(): show_mode())
+	var back_label: String = "Back to Road End" if game.data.mode == "road_end" else "Back to Crossroads"
+	action(back_label, func(): show_mode())
 
 func choose_route(route_key: String) -> void:
 	if at_title or busy or game.data.mode not in ["choice", "road_end"] or route_key not in Catalog.ROUTES:

@@ -465,13 +465,17 @@ func camp() -> void:
 	cone(scenery, Vector3(0, 0.58, fire_z), 0.46, 1.28, Color("ffb65c"), 0.06)
 	cone(scenery, Vector3(0, 0.82, fire_z), 0.26, 0.72, Color("ffe08a"), 0.03)
 
-	# Side bench: the cube rests off the centerline and looks diagonally into the fire.
-	var bench_x: float = -3.15
-	var bench_z: float = -3.05
-	box(scenery, Vector3(bench_x, 0.36, bench_z), Vector3(2.35, 0.22, 0.76), active_theme.post)
-	box(scenery, Vector3(bench_x, 0.86, bench_z + 0.34), Vector3(2.35, 0.82, 0.18), active_theme.post)
+	# Side bench and seated cube share one facing direction toward the bonfire.
+	var bench_root := Node3D.new()
+	bench_root.position = Vector3(-3.15, 0.0, -3.05)
+	scenery.add_child(bench_root)
+	var bench_fire_target := Vector3(0.0, bench_root.global_position.y, fire_z)
+	bench_root.look_at(bench_fire_target, Vector3.UP, true)
+	box(bench_root, Vector3(0, 0.36, 0), Vector3(2.35, 0.22, 0.76), active_theme.post)
+	# Local -Z is behind the seated character when local +Z faces the fire.
+	box(bench_root, Vector3(0, 0.86, -0.34), Vector3(2.35, 0.82, 0.18), active_theme.post)
 	for offset_x in [-0.85, 0.85]:
-		box(scenery, Vector3(bench_x + offset_x, 0.16, bench_z), Vector3(0.18, 0.55, 0.18), active_theme.post)
+		box(bench_root, Vector3(offset_x, 0.16, 0), Vector3(0.18, 0.55, 0.18), active_theme.post)
 
 	box(scenery, Vector3(3.8, 1.3, -7), Vector3(0.2, 2.8, 0.2), active_theme.post)
 	box(scenery, Vector3(3.8, 2.7, -7), Vector3(0.7, 0.8, 0.7), active_theme.text, true)
@@ -485,9 +489,8 @@ func camp() -> void:
 		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
 
 func pose_actor_at_camp() -> void:
-	actor.position = Vector3(-3.15, 0.52, -3.06)
-	# The cube face is modeled on local +Z. Godot's model-front look_at keeps the
-	# seated body upright while aiming that face directly at the bonfire.
+	actor.position = Vector3(-3.15, 0.52, -3.05)
+	# The bench and cube both use local +Z as the direction toward the fire.
 	var fire_look_target := Vector3(0.0, actor.position.y, -5.15)
 	actor.look_at(fire_look_target, Vector3.UP, true)
 	if is_instance_valid(left_foot):
@@ -504,26 +507,27 @@ func pose_actor_at_camp() -> void:
 		right_arm.rotation.x = -0.22
 
 func road_end_waypoint(finish_z: float) -> void:
-	# Road-end signpost: the player can immediately choose the next road or go home.
-	box(scenery, Vector3(0, 1.62, finish_z), Vector3(0.30, 3.7, 0.30), Color("8f6848"))
+	# One signpost presents every decision after a completed road: three next roads
+	# plus Lantern Camp. Route boards are clickable and open the normal preview.
+	box(scenery, Vector3(0, 1.85, finish_z), Vector3(0.32, 4.25, 0.32), Color("8f6848"))
 	var options: Array = route_options_for_stage()
 	var board_layout: Array = [
-		{"pos":Vector3(-1.05, 2.55, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
-		{"pos":Vector3(1.05, 1.92, finish_z), "size":Vector3(2.55, 0.52, 0.24)},
-		{"pos":Vector3(-0.90, 1.29, finish_z), "size":Vector3(2.40, 0.52, 0.24)}
+		{"pos":Vector3(-1.25, 2.85, finish_z), "size":Vector3(3.05, 0.58, 0.26)},
+		{"pos":Vector3(1.25, 2.12, finish_z), "size":Vector3(3.05, 0.58, 0.26)},
+		{"pos":Vector3(-1.15, 1.39, finish_z), "size":Vector3(2.95, 0.58, 0.26)}
 	]
 	for i in range(options.size()):
 		var route_id: String = str(options[i])
 		var route: Dictionary = Catalog.ROUTES[route_id]
 		var board: Dictionary = board_layout[i]
-		var board_color: Color = Color(str(route.get("color", "c59b61"))).darkened(0.12)
+		var board_color: Color = Color(str(route.get("color", "c59b61"))).darkened(0.08)
 		clickable_board(scenery, board.pos, board.size, board_color, route_id)
-		floating_text(scenery, str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
+		floating_text(scenery, "NEXT  •  " + str(route.name).to_upper(), board.pos + Vector3(0, 0.03, 0.17), Color("fff0bd"), 21)
 
-	var camp_pos := Vector3(1.05, 0.66, finish_z + 0.10)
-	clickable_board(scenery, camp_pos, Vector3(2.60, 0.52, 0.24), Color("6b806b"), "", false, true)
-	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 21)
-	floating_text(scenery, "ROAD COMPLETE  •  NEXT ROAD OR CAMP", Vector3(0, 3.55, finish_z + 0.1), active_theme.text, 20)
+	var camp_pos := Vector3(1.20, 0.66, finish_z + 0.10)
+	clickable_board(scenery, camp_pos, Vector3(2.85, 0.58, 0.26), Color("6b806b"), "", false, true)
+	floating_text(scenery, "LANTERN CAMP", camp_pos + Vector3(0, 0.03, 0.17), Color("fff0bd"), 22)
+	floating_text(scenery, "ROAD COMPLETE  •  CHOOSE NEXT ROAD OR CAMP", Vector3(0, 3.90, finish_z + 0.1), active_theme.text, 20)
 	for x in [-2.2, 0.0, 2.2]:
 		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 
