@@ -262,3 +262,25 @@ def test_next_expedition_preserves_resources_and_defeat_revive_is_explicit():
     assert "LANTERN RECOVERY" in main
     assert "Revive at lantern  •  1 heart" in main
     assert "Hearts and mana carry into the next expedition." in main
+
+
+def test_character_has_state_aware_idle_animation():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "var idle_anchor_position: Vector3 = Vector3.ZERO" in world
+    assert "var idle_base_yaw: float = PI" in world
+    assert "func apply_adventure_idle() -> void:" in world
+    assert "func apply_camp_idle() -> void:" in world
+    assert "func apply_idle_animation() -> void:" in world
+    assert 'if str(state.data.mode) == "camp":' in world
+    assert "apply_camp_idle()" in world
+    assert "apply_adventure_idle()" in world
+    assert "actor.position = idle_anchor_position" in world
+    assert "left_arm.rotation.x" in world
+    assert "right_arm.rotation.x" in world
+    assert "left_foot.rotation.x" in world
+    assert "right_foot.rotation.x" in world
+    assert "elif not hopping:" in world
+    assert "apply_idle_animation()" in world

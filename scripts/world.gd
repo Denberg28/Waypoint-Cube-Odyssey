@@ -31,6 +31,8 @@ var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
 var active_theme: Dictionary = {}
 var brightness_scale: float = 1.0
+var idle_anchor_position: Vector3 = Vector3.ZERO
+var idle_base_yaw: float = PI
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	var key: String = color.to_html() + str(glow)
@@ -398,6 +400,8 @@ func build() -> void:
 		actor.position = Vector3(0, 0.16, -float(count - 1) * ROW_SPACING + ROW_SPACING * 1.35)
 	elif not entrance and state.data.mode == "camp":
 		pose_actor_at_camp()
+	idle_anchor_position = actor.position
+	idle_base_yaw = actor.rotation.y
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	if not entrance and state.data.mode == "camp":
 		# Frame the side bench, seated character, and bonfire together.
@@ -712,17 +716,27 @@ func refresh_props() -> void:
 				box(props, Vector3(lane * LANE_SPACING, 0.15, -(current_row + 1) * ROW_SPACING + 1.12), Vector3(2.45, 0.04, 0.07), Color("ecdfb7"), true)
 
 func reset_walk_pose() -> void:
+	actor.scale = Vector3.ONE
+	actor.rotation.x = 0.0
+	actor.rotation.z = 0.0
 	if is_instance_valid(left_foot):
+		left_foot.position = Vector3(-0.24, -0.13, 0.08)
 		left_foot.rotation = Vector3.ZERO
 	if is_instance_valid(right_foot):
+		right_foot.position = Vector3(0.24, -0.13, 0.08)
 		right_foot.rotation = Vector3.ZERO
 	if is_instance_valid(left_arm):
+		left_arm.position = Vector3(-0.55, 0.20, 0)
 		left_arm.rotation = Vector3.ZERO
 	if is_instance_valid(right_arm):
+		right_arm.position = Vector3(0.55, 0.20, 0)
 		right_arm.rotation = Vector3.ZERO
 
 func walk_to(pos: Vector3) -> void:
 	hopping = true
+	actor.position = idle_anchor_position
+	reset_walk_pose()
+	actor.rotation.y = PI
 	var start: Vector3 = actor.position
 	var travel: Vector3 = pos - start
 	var duration: float = 0.44
@@ -746,10 +760,15 @@ func walk_to(pos: Vector3) -> void:
 	actor.rotation = Vector3(0, PI, 0)
 	actor.scale = Vector3.ONE
 	reset_walk_pose()
+	idle_anchor_position = pos
+	idle_base_yaw = PI
 	hopping = false
 
 func jump_to(pos: Vector3) -> void:
 	hopping = true
+	actor.position = idle_anchor_position
+	reset_walk_pose()
+	actor.rotation.y = PI
 	var start: Vector3 = actor.position
 	var row_distance: float = maxf(1.0, absf(pos.z - start.z) / ROW_SPACING)
 	var arc_height: float = 1.35 + maxf(0.0, row_distance - 1.0) * 0.65
@@ -770,11 +789,74 @@ func jump_to(pos: Vector3) -> void:
 	actor.rotation = Vector3(0, PI, 0)
 	actor.scale = Vector3.ONE
 	reset_walk_pose()
+	idle_anchor_position = pos
+	idle_base_yaw = PI
 	hopping = false
 
 func hop_to(pos: Vector3) -> void:
 	# Backward-compatible alias for older tests and callers.
 	await jump_to(pos)
+
+func apply_adventure_idle() -> void:
+	# MMO-style idle: subtle breathing, weight shift, arm counter-swing, and
+	# occasional body look-around. This changes presentation only, never gameplay position.
+	var breath: float = sin(elapsed * 2.2)
+	var weight: float = sin(elapsed * 1.15)
+	var step_sway: float = sin(elapsed * 1.55)
+	var glance: float = sin(elapsed * 0.48)
+	actor.position = idle_anchor_position + Vector3(0, 0.018 + breath * 0.018, 0)
+	actor.scale = Vector3(1.0 - breath * 0.004, 1.0 + breath * 0.018, 1.0 - breath * 0.004)
+	actor.rotation.x = 0.0
+	actor.rotation.y = idle_base_yaw + glance * 0.035
+	actor.rotation.z = weight * 0.018
+	if is_instance_valid(left_foot):
+		left_foot.position = Vector3(-0.24, -0.13 + maxf(0.0, step_sway) * 0.018, 0.08)
+		left_foot.rotation.x = step_sway * 0.10
+	if is_instance_valid(right_foot):
+		right_foot.position = Vector3(0.24, -0.13 + maxf(0.0, -step_sway) * 0.018, 0.08)
+		right_foot.rotation.x = -step_sway * 0.10
+	if is_instance_valid(left_arm):
+		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.010, 0)
+		left_arm.rotation.x = -step_sway * 0.11
+		left_arm.rotation.z = weight * 0.025
+	if is_instance_valid(right_arm):
+		right_arm.position = Vector3(0.55, 0.20 + breath * 0.010, 0)
+		right_arm.rotation.x = step_sway * 0.11
+		right_arm.rotation.z = weight * 0.025
+
+func apply_camp_idle() -> void:
+	# Seated idle keeps the cube on the bench while adding breathing and small
+	# hand/foot movements so camp scenes feel alive without breaking the pose.
+	var breath: float = sin(elapsed * 1.8)
+	var sway: float = sin(elapsed * 0.9)
+	var foot_swing: float = sin(elapsed * 1.25)
+	actor.position = idle_anchor_position + Vector3(0, breath * 0.010, 0)
+	actor.scale = Vector3(1.0 - breath * 0.003, 1.0 + breath * 0.012, 1.0 - breath * 0.003)
+	actor.rotation.x = 0.0
+	actor.rotation.y = idle_base_yaw + sway * 0.018
+	actor.rotation.z = sway * 0.010
+	if is_instance_valid(left_foot):
+		left_foot.position = Vector3(-0.24, -0.22, 0.34)
+		left_foot.rotation.x = -0.48 + foot_swing * 0.055
+	if is_instance_valid(right_foot):
+		right_foot.position = Vector3(0.24, -0.22, 0.34)
+		right_foot.rotation.x = -0.48 - foot_swing * 0.055
+	if is_instance_valid(left_arm):
+		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.008, 0)
+		left_arm.rotation.x = -0.22 - sway * 0.035
+		left_arm.rotation.z = sway * 0.018
+	if is_instance_valid(right_arm):
+		right_arm.position = Vector3(0.55, 0.20 + breath * 0.008, 0)
+		right_arm.rotation.x = -0.22 + sway * 0.035
+		right_arm.rotation.z = sway * 0.018
+
+func apply_idle_animation() -> void:
+	if entrance or showcase:
+		return
+	if str(state.data.mode) == "camp":
+		apply_camp_idle()
+	else:
+		apply_adventure_idle()
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(actor) or not is_instance_valid(camera):
@@ -785,5 +867,5 @@ func _process(delta: float) -> void:
 	update_camera()
 	if showcase:
 		actor.rotation.y = sin(elapsed * 0.8) * 0.4
-	if not hopping:
-		actor.scale.y = 1.0 + sin(elapsed * 2.5) * 0.025
+	elif not hopping:
+		apply_idle_animation()
