@@ -256,7 +256,7 @@ def test_next_expedition_preserves_resources_and_defeat_revive_is_explicit():
     assert "data.mana" not in prepare
     assert "prepare_new_expedition()" in leave
     # Match executable calls only; comments may legitimately mention begin().
-    assert re.search(r"^\\s*begin\\(", leave, re.MULTILINE) is None
+    assert re.search(r"^\s*begin\(", leave, re.MULTILINE) is None
 
     # Zero-heart characters cannot depart until an explicit one-heart revival.
     assert "if int(data.hp) <= 0:" in leave
