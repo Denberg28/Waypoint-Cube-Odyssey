@@ -20,7 +20,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":11,
+		"version":12,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -44,7 +44,7 @@ func reset() -> void:
 		"kills":0,
 		"level":START_LEVEL,
 		"xp":START_XP,
-		"pending_xp":0,
+		"resolve":0,
 		"turn":0,
 		"boss_hp":12,
 		"danger":0,
@@ -110,23 +110,22 @@ func enemy_xp_value(kind: String, elite: bool = false) -> int:
 		value += int(elite_behavior(kind).get("xp_bonus", 0))
 	return maxi(0, value)
 
-func queue_trail_xp(amount: int) -> String:
-	if amount <= 0 or int(data.level) >= LEVEL_CAP:
+func add_resolve(amount: int) -> String:
+	# Positive-only motivation meter. Resolve never decreases on defeat.
+	# At 100%, useful supplies are granted and overflow carries forward.
+	if amount <= 0:
 		return ""
-	data.pending_xp = maxi(0, int(data.pending_xp) + amount)
-	return "+%d trail XP (pending)" % amount
-
-func commit_trail_xp(clear_bonus: int = 20) -> String:
-	var total: int = maxi(0, int(data.pending_xp)) + maxi(0, clear_bonus)
-	data.pending_xp = 0
-	if total <= 0:
-		return ""
-	return award_xp(total)
-
-func discard_trail_xp() -> int:
-	var lost: int = maxi(0, int(data.pending_xp))
-	data.pending_xp = 0
-	return lost
+	var total: int = maxi(0, int(data.resolve)) + amount
+	var rewards: int = 0
+	while total >= 100:
+		total -= 100
+		rewards += 1
+	data.resolve = total
+	if rewards > 0:
+		data.potions.heal += rewards
+		data.potions.mana += rewards
+		return "+%d Resolve  •  RESOLVE SUPPLY! +%d healing +%d mana potion%s" % [amount, rewards, rewards, "" if rewards == 1 else "s"]
+	return "+%d Resolve  •  %d%% toward Resolve Supply" % [amount, int(data.resolve)]
 
 func star_quarter_count() -> int:
 	var level_value: int = clampi(int(data.level), 1, LEVEL_CAP)
@@ -375,7 +374,6 @@ func prepare_new_expedition() -> void:
 	data.bag = 0
 	data.blessing = 0
 	data.streak = 0
-	data.pending_xp = 0
 	data.mode = "choice"
 	data.last = "Choose a route. Every road has something to offer."
 
@@ -392,7 +390,6 @@ func begin(class_id: String = "") -> void:
 func make_room(route: String) -> void:
 	data.route = route
 	data.environment = roll_environment(route)
-	data.pending_xp = 0
 	data.mode = "travel"
 	data.row = 0
 	data.lane = 0
@@ -553,10 +550,13 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		data.kills += 1
 		data.streak = 0
 		add_relic_charge(8 if elite else 4)
-		var hard_xp: String = queue_trail_xp(enemy_xp_value(kind, elite))
+		var hard_xp: String = award_xp(enemy_xp_value(kind, elite))
+		var hard_resolve: String = add_resolve(4) if elite else ""
 		result = "Hard fight. %s defeated! +%d coins, but lost 1 heart." % [enemy_name, consolation]
 		if hard_xp != "":
 			result += "  " + hard_xp
+		if hard_resolve != "":
+			result += "  " + hard_resolve
 	else:
 		data.kills += 1
 		data.streak += 1
@@ -564,10 +564,13 @@ func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 		data.bag += reward + streak_bonus
 		var elite_relic_bonus: int = int(behavior.get("relic_bonus", 0)) if elite else 0
 		add_relic_charge((18 if elite else 9) + elite_relic_bonus + mini(int(data.streak), 5))
-		var clean_xp: String = queue_trail_xp(enemy_xp_value(kind, elite))
+		var clean_xp: String = award_xp(enemy_xp_value(kind, elite))
+		var clean_resolve: String = add_resolve(4) if elite else ""
 		result = "%s defeated! +%d coins." % [enemy_name, reward + streak_bonus]
 		if clean_xp != "":
 			result += "  " + clean_xp
+		if clean_resolve != "":
+			result += "  " + clean_resolve
 		if elite and rng.randf() < float(behavior.get("gem_chance", 0.22)):
 			data.gems += 1
 			result += " Found 1 gem!"
@@ -842,7 +845,8 @@ func forge_with_gems() -> String:
 func finish_room() -> void:
 	data.stage += 1
 	data.hp = mini(max_hp(), int(data.hp) + stat("heal"))
-	var route_xp: String = commit_trail_xp(20)
+	var route_xp: String = award_xp(20)
+	var route_resolve: String = add_resolve(12)
 	var loot: String = award_gear()
 	if data.route == "forge":
 		loot += "\n" + award_gear()
@@ -857,6 +861,8 @@ func finish_room() -> void:
 	data.last = "Found: " + loot
 	if route_xp != "":
 		data.last += "\n" + route_xp
+	if route_resolve != "":
+		data.last += "\n" + route_resolve
 	data.last += "\nGear is permanent. Equip it at a rest area."
 	data.mode = "reward"
 
@@ -917,11 +923,14 @@ func boss_hop(direction: int) -> String:
 		add_relic_charge(35)
 		data.bag += 30
 		var boss_xp: String = award_xp(60)
+		var boss_resolve: String = add_resolve(28)
 		bank()
 		data.mode = "victory"
 		data.last = "The forest wakes. +30 coins, all expedition coins banked."
 		if boss_xp != "":
 			data.last += "\n" + boss_xp
+		if boss_resolve != "":
+			data.last += "\n" + boss_resolve
 		data.last += "\nFound: " + award_gear()
 	else:
 		# Always leave at least one reachable safe landing.
@@ -936,11 +945,7 @@ func boss_hop(direction: int) -> String:
 func defeat() -> void:
 	data.popup = {}
 	data.hp = 0
-	var lost_xp: int = discard_trail_xp()
-	data.last = "The lantern brought you home. Lost %d unbanked coins." % int(data.bag)
-	if lost_xp > 0:
-		data.last += "\nLost %d uncredited trail XP." % lost_xp
-	data.last += "\nYour level, credited XP, equipment, cosmetics, and banked coins are safe."
+	data.last = "The lantern brought you home. Lost %d unbanked coins.\nYour XP, Resolve, equipment, cosmetics, and banked coins are safe." % int(data.bag)
 	data.bag = 0
 	data.mode = "defeat"
 
@@ -961,7 +966,6 @@ func return_camp() -> void:
 	# Returning from the road-end waypoint preserves expedition stage. Other
 	# home returns end the expedition and clear loose expedition state.
 	if previous_mode != "road_end":
-		discard_trail_xp()
 		data.stage = 0
 		data.cells = []
 		data.bag = 0
@@ -1021,7 +1025,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [11, 11.0]:
+	if value.get("version") not in [12, 12.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1034,12 +1038,14 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "pending_xp", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
 		if not (value[key] is int or value[key] is float):
 			return false
 	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0:
 		return false
-	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0 or int(value.pending_xp) < 0:
+	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
+		return false
+	if int(value.resolve) < 0 or int(value.resolve) >= 100:
 		return false
 	if int(value.level) < LEVEL_CAP and int(value.xp) >= xp_to_next(int(value.level)):
 		return false
@@ -1132,8 +1138,23 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.level = clampi(1 + int(migrated.get("wins", 0)) * 2 + floori(float(migrated.get("kills", 0)) / 10.0), 1, LEVEL_CAP)
 	if not migrated.has("xp"):
 		migrated.xp = 0
-	if not migrated.has("pending_xp"):
-		migrated.pending_xp = 0
+	if migrated.has("pending_xp"):
+		# Rollback migration: immediately credit XP earned under the temporary
+		# pending-XP rule so no player loses progress in this update.
+		var carry_xp: int = maxi(0, int(migrated.get("pending_xp", 0)))
+		migrated.erase("pending_xp")
+		while carry_xp > 0 and int(migrated.level) < LEVEL_CAP:
+			var needed_xp: int = 30 + (int(migrated.level) - 1) * 8
+			var room_xp: int = maxi(0, needed_xp - int(migrated.xp))
+			if carry_xp < room_xp:
+				migrated.xp = int(migrated.xp) + carry_xp
+				carry_xp = 0
+			else:
+				carry_xp -= room_xp
+				migrated.level = int(migrated.level) + 1
+				migrated.xp = 0
+	if not migrated.has("resolve"):
+		migrated.resolve = 0
 	if int(migrated.level) >= LEVEL_CAP:
 		migrated.level = LEVEL_CAP
 		migrated.xp = 0
@@ -1157,7 +1178,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 11
+	migrated.version = 12
 	return migrated
 
 func load_game() -> bool:
@@ -1168,7 +1189,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed

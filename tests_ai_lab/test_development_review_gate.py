@@ -94,11 +94,11 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert "const LEVEL_CAP: int = 20" in state
     assert '"level":START_LEVEL' in state
     assert '"xp":START_XP' in state
-    assert '"pending_xp":0' in state
+    assert '"resolve":0' in state
     assert '["", "¼★", "½★", "¾★"]' in state
     assert '"★"' in state and '"☆"' in state
-    assert 'queue_trail_xp(enemy_xp_value(kind, elite))' in state
-    assert 'commit_trail_xp(20)' in state
+    assert 'award_xp(enemy_xp_value(kind, elite))' in state
+    assert 'award_xp(20)' in state
     assert 'award_xp(60)' in state
 
     assert "rank_label.text" in main
@@ -345,7 +345,7 @@ def test_fresh_character_resets_all_progression_and_requires_confirmation():
     assert "selected_skin = 0 if fresh_character_mode" in main
 
 
-def test_enemy_xp_is_balanced_and_only_credited_on_successful_road():
+def test_enemy_xp_is_balanced_and_credited_immediately():
     from pathlib import Path
 
     catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
@@ -360,20 +360,44 @@ def test_enemy_xp_is_balanced_and_only_credited_on_successful_road():
     assert '"xp_bonus":4' in catalog
 
     assert "func enemy_xp_value(kind: String, elite: bool = false) -> int:" in state
-    assert "func queue_trail_xp(amount: int) -> String:" in state
-    assert "func commit_trail_xp(clear_bonus: int = 20) -> String:" in state
-    assert "queue_trail_xp(enemy_xp_value(kind, elite))" in state
-    assert "commit_trail_xp(20)" in state
+    assert "award_xp(enemy_xp_value(kind, elite))" in state
+    assert "queue_trail_xp" not in state
+    assert "commit_trail_xp" not in state
+    assert "discard_trail_xp" not in state
 
 
-def test_death_discards_uncredited_trail_xp():
+def test_resolve_motivation_meter_is_positive_and_defeat_safe():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    defeat = state.split("func defeat() -> void:", 1)[1].split("func return_camp() -> void:", 1)[0]
+    resolve_fn = state.split("func add_resolve(amount: int) -> String:", 1)[1].split("func star_quarter_count", 1)[0]
+
+    assert '"resolve":0' in state
+    assert "func add_resolve(amount: int) -> String:" in state
+    assert "while total >= 100:" in resolve_fn
+    assert "data.potions.heal += rewards" in resolve_fn
+    assert "data.potions.mana += rewards" in resolve_fn
+    assert "add_resolve(12)" in state
+    assert "add_resolve(4) if elite else" in state
+    assert "add_resolve(28)" in state
+    assert "data.resolve =" not in defeat
+    assert "Your XP, Resolve" in defeat
+    assert "RESOLVE %d%%" in main
+    assert "positive motivation meter never decreases on defeat" in main
+    assert '"version":12' in state
+
+
+def test_v11_pending_xp_is_migrated_into_credited_xp():
     from pathlib import Path
 
     state = Path("scripts/state.gd").read_text(encoding="utf-8")
 
-    defeat = state.split("func defeat() -> void:", 1)[1].split("func return_camp() -> void:", 1)[0]
-    assert "var lost_xp: int = discard_trail_xp()" in defeat
-    assert "Lost %d uncredited trail XP." in defeat
-    assert "data.pending_xp = 0" in state
-    assert '"version":11' in state
-    assert 'parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0]' in state
+    assert 'migrated.has("pending_xp")' in state
+    assert 'migrated.erase("pending_xp")' in state
+    assert "carry_xp" in state
+    assert "migrated.resolve = 0" in state
+    assert "migrated.version = 12" in state
+    assert "11, 11.0" in state
