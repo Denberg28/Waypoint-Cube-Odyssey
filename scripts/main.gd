@@ -980,6 +980,7 @@ func preview_route(route_key: String) -> void:
 		return
 	if route_key not in route_options_for_stage():
 		return
+	route_panel.hide()
 	var route: Dictionary = Catalog.ROUTES[route_key]
 	var body: String = "%s\n\nDIFFICULTY  •  %s\nENCOUNTERS  •  %s\nCOLLECTIBLES  •  %s" % [
 		str(route.get("text", "")),
@@ -1027,6 +1028,7 @@ func show_routes() -> void:
 	route_panel.show()
 
 func modal(kicker: String, heading: String, body: String) -> void:
+	route_panel.hide()
 	place_modal()
 	for child in stack.get_children():
 		stack.remove_child(child)
@@ -1171,12 +1173,11 @@ func show_mode() -> void:
 			if is_instance_valid(fishing_layer):
 				fishing_layer.hide()
 		"choice":
+			# Crossroads is now fully represented by the clickable 3D signposts.
+			# Keep the scene clean and do not duplicate route choices in UI.
 			overlay.hide()
-			# 3D route signs remain the primary selector. Keep the compact route
-			# panel visible as an accessibility/runtime fallback so a rendering
-			# fault can never strand the player on an empty Crossroads screen.
-			show_routes()
-			push_chat("Crossroads ahead. Choose a route sign or use the route panel.")
+			route_panel.hide()
+			push_chat("Crossroads ahead. Choose one of the route signs.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
