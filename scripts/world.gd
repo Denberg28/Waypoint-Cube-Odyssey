@@ -80,6 +80,8 @@ var camp_cat_fire_rest_points: Array[Vector3] = [
 	Vector3(1.18, 0.16, -5.15),
 	Vector3(-1.18, 0.16, -5.15)
 ]
+var adventure_idle_objects: Array[Dictionary] = []
+var adventure_idle_enemies: Array[Dictionary] = []
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	return visuals.material(color, glow)
@@ -1251,6 +1253,8 @@ func update_camera() -> void:
 	camera.look_at(camera_target + look_offset)
 
 func refresh_props() -> void:
+	adventure_idle_objects.clear()
+	adventure_idle_enemies.clear()
 	for child in props.get_children():
 		props.remove_child(child)
 		child.queue_free()
@@ -1282,8 +1286,10 @@ func refresh_props() -> void:
 			"coin":
 				var coin = box(props, pos + Vector3(0, 0.5, 0), Vector3(0.32, 0.5, 0.16), Color("d8bb69"), true)
 				coin.rotation_degrees.y = 25
+				register_adventure_idle_object(coin, "coin", float(cell_row) * 0.43 + float(cell.lane))
 			"gem":
-				cone(props, pos + Vector3(0, 0.48, 0), 0.24, 0.72, Color("78b7b2"), 0.04)
+				var gem_idle = cone(props, pos + Vector3(0, 0.48, 0), 0.24, 0.72, Color("78b7b2"), 0.04)
+				register_adventure_idle_object(gem_idle, "gem", float(cell_row) * 0.37)
 				cone(props, pos + Vector3(0, 0.88, 0), 0.15, 0.38, Color("a3d2ca"), 0.0)
 				floating_text(props, "GEM", pos + Vector3(0, 1.35, 0), Color("a8d9ce"), 24)
 			"campfire":
@@ -1294,34 +1300,42 @@ func refresh_props() -> void:
 				log_a.rotation_degrees.y = 28
 				var log_b = box(props, pos + Vector3(0, 0.20, 0), Vector3(1.00, 0.16, 0.20), Color("684f40"))
 				log_b.rotation_degrees.y = -28
-				cone(props, pos + Vector3(0, 0.54, 0), 0.30, 0.78, Color("d98d52"), 0.06)
-				cone(props, pos + Vector3(0, 0.66, 0), 0.18, 0.54, Color("e8b567"), 0.02)
+				var fire_outer = cone(props, pos + Vector3(0, 0.54, 0), 0.30, 0.78, Color("d98d52"), 0.06)
+				var fire_inner = cone(props, pos + Vector3(0, 0.66, 0), 0.18, 0.54, Color("e8b567"), 0.02)
+				register_adventure_idle_object(fire_outer, "flame", 0.0)
+				register_adventure_idle_object(fire_inner, "flame", 1.4)
 				floating_text(props, "REST", pos + Vector3(0, 1.48, 0), Color("dfc28b"), 24)
 			"fishing":
 				box(props, pos + Vector3(0, 0.05, 0), Vector3(2.20, 0.08, 1.72), Color("456f78"), true)
-				box(props, pos + Vector3(0, 0.11, 0), Vector3(1.64, 0.03, 1.14), Color("5c8b90"), true)
+				var fishing_ripple = box(props, pos + Vector3(0, 0.11, 0), Vector3(1.64, 0.03, 1.14), Color("5c8b90"), true)
+				register_adventure_idle_object(fishing_ripple, "water", float(cell_row) * 0.21)
 				box(props, pos + Vector3(0.84, 0.66, 0.22), Vector3(0.08, 1.12, 0.08), Color("806548"))
 				box(props, pos + Vector3(0.52, 1.14, 0.22), Vector3(0.72, 0.06, 0.06), Color("806548"))
 				floating_text(props, "FISH", pos + Vector3(0, 1.25, 0), Color("a7d2cf"), 24)
 			"gear_cache":
 				box(props, pos + Vector3(0, 0.34, 0), Vector3(0.92, 0.54, 0.72), Color("796044"))
-				box(props, pos + Vector3(0, 0.66, 0), Vector3(0.98, 0.18, 0.76), Color("9a7a51"))
+				var cache_lid = box(props, pos + Vector3(0, 0.66, 0), Vector3(0.98, 0.18, 0.76), Color("9a7a51"))
+				register_adventure_idle_object(cache_lid, "pulse", float(cell_row) * 0.31)
 				box(props, pos + Vector3(0, 0.54, 0.38), Vector3(0.18, 0.24, 0.06), Color("d0b267"), true)
 				floating_text(props, "GEAR?", pos + Vector3(0, 1.18, 0), Color("d7bf80"), 24)
 			"gloomcap":
 				cone(props, pos + Vector3(0, 0.24, 0), 0.12, 0.46, Color("667a69"), 0.07)
-				cone(props, pos + Vector3(0, 0.55, 0), 0.42, 0.26, Color("8f7aaa"), 0.08)
+				var gloomcap_idle = cone(props, pos + Vector3(0, 0.55, 0), 0.42, 0.26, Color("8f7aaa"), 0.08)
+				register_adventure_idle_object(gloomcap_idle, "sway", float(cell_row) * 0.29)
 				floating_text(props, "GLOOMCAP", pos + Vector3(0, 1.20, 0), Color("d8c6e8"), 23)
 			"prismatic_pearl":
-				sphere(props, pos + Vector3(0, 0.42, 0), 0.56, Color("9ce1d8"), true)
+				var pearl_idle = sphere(props, pos + Vector3(0, 0.42, 0), 0.56, Color("9ce1d8"), true)
+				register_adventure_idle_object(pearl_idle, "collectible", float(cell_row) * 0.33)
 				floating_text(props, "PRISMATIC PEARL", pos + Vector3(0, 1.12, 0), Color("c9f4ed"), 20)
 			"ember_shard":
-				cone(props, pos + Vector3(0, 0.40, 0), 0.28, 0.82, Color("dd7651"), 0.03)
+				var ember_idle = cone(props, pos + Vector3(0, 0.40, 0), 0.28, 0.82, Color("dd7651"), 0.03)
+				register_adventure_idle_object(ember_idle, "collectible", float(cell_row) * 0.35)
 				cone(props, pos + Vector3(0, 0.80, 0), 0.14, 0.38, Color("ffb36d"), 0.01)
 				floating_text(props, "EMBER SHARD", pos + Vector3(0, 1.32, 0), Color("ffc18b"), 21)
 			"skyfeather":
 				var feather = box(props, pos + Vector3(0, 0.52, 0), Vector3(0.16, 0.92, 0.10), Color("cbe3ec"), true)
 				feather.rotation_degrees.z = 24
+				register_adventure_idle_object(feather, "sway", float(cell_row) * 0.41)
 				box(props, pos + Vector3(0.16, 0.58, 0), Vector3(0.34, 0.12, 0.08), Color("91b8c9"), true)
 				floating_text(props, "SKYFEATHER", pos + Vector3(0, 1.32, 0), Color("d9eef5"), 21)
 			"heal":
@@ -1364,7 +1378,16 @@ func refresh_props() -> void:
 						size = Vector3(0.96, 0.86, 1.05)
 					"ogre":
 						size = Vector3(1.38, 1.28, 1.08)
-				var loadout: Dictionary = build_enemy_loadout(props, pos, kind, size, cell, active, elite)
+				var enemy_root := Node3D.new()
+				enemy_root.position = pos
+				props.add_child(enemy_root)
+				var loadout: Dictionary = build_enemy_loadout(enemy_root, Vector3.ZERO, kind, size, cell, active, elite)
+				register_adventure_idle_enemy(
+					enemy_root,
+					kind,
+					float(cell_row) * 0.47 + float(cell.lane) * 0.91,
+					elite
+				)
 				var telegraph: String = "!" if active else "STOMP"
 				if elite:
 					var behavior: Dictionary = state.elite_behavior(kind)
@@ -1383,6 +1406,99 @@ func refresh_props() -> void:
 		for lane in range(-1, 2):
 			if absi(lane - int(state.data.lane)) <= 1:
 				box(props, Vector3(lane * LANE_SPACING, 0.15, -(current_row + 1) * ROW_SPACING + 1.12), Vector3(2.45, 0.04, 0.07), Color("ecdfb7"), true)
+
+func register_adventure_idle_object(node: Node3D, kind: String, phase: float = 0.0) -> void:
+	if not is_instance_valid(node):
+		return
+	adventure_idle_objects.append({
+		"node":node,
+		"kind":kind,
+		"phase":phase,
+		"position":node.position,
+		"rotation":node.rotation,
+		"scale":node.scale
+	})
+
+func register_adventure_idle_enemy(node: Node3D, kind: String, phase: float, elite: bool) -> void:
+	if not is_instance_valid(node):
+		return
+	adventure_idle_enemies.append({
+		"node":node,
+		"kind":kind,
+		"phase":phase,
+		"position":node.position,
+		"rotation":node.rotation,
+		"scale":node.scale,
+		"elite":elite
+	})
+
+func update_adventure_object_idle() -> void:
+	for entry in adventure_idle_objects:
+		var node = entry.get("node")
+		if not is_instance_valid(node):
+			continue
+		var phase: float = float(entry.get("phase", 0.0))
+		var wave: float = sin(elapsed * 2.0 + phase)
+		var base_pos: Vector3 = entry.get("position", Vector3.ZERO)
+		var base_rot: Vector3 = entry.get("rotation", Vector3.ZERO)
+		var base_scale: Vector3 = entry.get("scale", Vector3.ONE)
+		match str(entry.get("kind", "")):
+			"coin":
+				node.position = base_pos + Vector3(0, wave * 0.045, 0)
+				node.rotation = base_rot + Vector3(0, elapsed * 1.35, 0)
+			"gem", "collectible":
+				node.position = base_pos + Vector3(0, wave * 0.035, 0)
+				node.rotation = base_rot + Vector3(0, wave * 0.08, 0)
+			"flame":
+				node.position = base_pos + Vector3(0, wave * 0.025, 0)
+				node.scale = base_scale * Vector3(1.0 - wave * 0.025, 1.0 + wave * 0.055, 1.0 - wave * 0.025)
+			"water":
+				node.scale = base_scale * Vector3(1.0 + wave * 0.018, 1.0, 1.0 - wave * 0.018)
+			"sway":
+				node.rotation = base_rot + Vector3(0, 0, wave * 0.055)
+			"pulse":
+				node.scale = base_scale * (1.0 + wave * 0.025)
+
+func update_adventure_enemy_idle() -> void:
+	for entry in adventure_idle_enemies:
+		var node = entry.get("node")
+		if not is_instance_valid(node):
+			continue
+		var phase: float = float(entry.get("phase", 0.0))
+		var base_pos: Vector3 = entry.get("position", Vector3.ZERO)
+		var base_rot: Vector3 = entry.get("rotation", Vector3.ZERO)
+		var base_scale: Vector3 = entry.get("scale", Vector3.ONE)
+		var wave: float = sin(elapsed * 2.2 + phase)
+		var elite_scale: float = 1.15 if bool(entry.get("elite", false)) else 1.0
+		match str(entry.get("kind", "slime")):
+			"slime":
+				node.position = base_pos + Vector3(0, absf(wave) * 0.035, 0)
+				node.scale = base_scale * Vector3(1.0 + wave * 0.045, 1.0 - wave * 0.055, 1.0 + wave * 0.045)
+			"goblin":
+				node.position = base_pos + Vector3(0, absf(wave) * 0.018, 0)
+				node.rotation = base_rot + Vector3(0, wave * 0.025, wave * 0.025 * elite_scale)
+			"kobold":
+				node.position = base_pos + Vector3(0, absf(wave) * 0.014, 0)
+				node.rotation = base_rot + Vector3(0, wave * 0.035, -wave * 0.018 * elite_scale)
+			"ogre":
+				node.position = base_pos + Vector3(0, wave * 0.008, 0)
+				node.scale = base_scale * Vector3(1.0 + wave * 0.012, 1.0 + wave * 0.022, 1.0 + wave * 0.012)
+
+func apply_adventure_actor_idle() -> void:
+	# Adventure idle is intentionally restrained so it never resembles a move
+	# command and never reintroduces the lower-body clipping problem.
+	reset_walk_pose()
+	var breath: float = sin(elapsed * 1.55)
+	var weight: float = sin(elapsed * 0.72)
+	actor.position = idle_anchor_position + Vector3(0, breath * 0.004, 0)
+	actor.scale = Vector3(1.0 - breath * 0.002, 1.0 + breath * 0.006, 1.0 - breath * 0.002)
+	actor.rotation.x = 0.0
+	actor.rotation.y = idle_base_yaw + weight * 0.012
+	actor.rotation.z = weight * 0.006
+	if is_instance_valid(left_arm):
+		left_arm.rotation.x = -breath * 0.022
+	if is_instance_valid(right_arm):
+		right_arm.rotation.x = breath * 0.022
 
 func reset_walk_pose() -> void:
 	actor.scale = Vector3.ONE
@@ -1657,3 +1773,8 @@ func _process(delta: float) -> void:
 		actor.rotation.y = sin(elapsed * 0.8) * 0.4
 	elif not hopping and str(state.data.mode) == "camp":
 		apply_idle_animation(delta)
+	elif not hopping and str(state.data.mode) in ["travel", "campfire", "fishing", "reward", "shrine", "traveler"]:
+		apply_adventure_actor_idle()
+	if not entrance and str(state.data.mode) in ["travel", "campfire", "fishing"]:
+		update_adventure_object_idle()
+		update_adventure_enemy_idle()
