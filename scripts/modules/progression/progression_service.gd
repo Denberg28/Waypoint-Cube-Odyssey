@@ -165,3 +165,24 @@ static func resolve_rare_event(host) -> String:
 		_:
 			host.add_relic_charge(14)
 			return "Rare encounter — an old relic marker hums beneath the moss. +14 relic charge."
+
+
+static func maybe_place_rare_event(host, corridor_lanes: Dictionary, local_rng: RandomNumberGenerator) -> bool:
+	if local_rng.randf() >= ProgressionCatalog.RARE_EVENT_CHANCE:
+		return false
+	var event_rows: Array[int] = [4, 8, 16]
+	var row: int = event_rows[local_rng.randi_range(0, event_rows.size() - 1)]
+	var safe_lane: int = int(corridor_lanes.get(row, 0))
+	var candidates: Array[int] = []
+	for lane in range(-1, 2):
+		if lane != safe_lane:
+			candidates.append(lane)
+	if candidates.is_empty():
+		return false
+	var chosen_lane: int = candidates[local_rng.randi_range(0, candidates.size() - 1)]
+	var cell: Dictionary = host.cell_at(row, chosen_lane)
+	if cell.is_empty():
+		return false
+	cell.kind = "rare_event"
+	cell.elite = false
+	return true
