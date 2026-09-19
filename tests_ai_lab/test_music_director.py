@@ -81,7 +81,7 @@ def test_music_director_remains_parameter_only_not_raw_audio_generation():
     assert "source code" in agent
     assert "bounded parameters only" in agent
     assert 'GEMINI_MAX_REQUESTS_PER_RUN: "1"' in workflow
-    assert 'cron: "37 2,14 * * *"' in workflow
+    assert 'cron: "37 18 * * *"' in workflow
 
 
 def test_music_workflow_updates_development_branch():
