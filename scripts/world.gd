@@ -1240,11 +1240,12 @@ func refresh_props() -> void:
 					telegraph = "%s  •  %s ELITE" % [str(behavior.get("telegraph", "ELITE")), str(loadout.get("rank_name", "CHAMPION"))]
 				else:
 					telegraph = "%s  •  %s" % [telegraph, str(loadout.get("rank_name", "COMMON"))]
+				var telegraph_color: Color = Color("efd887") if elite else loadout.get("rank_trim", Color("8aa49a"))
 				floating_text(
 					props,
 					telegraph,
 					pos + Vector3(0, size.y + (1.02 if elite else 0.74), 0),
-					Color("efd887") if elite else Color(loadout.get("rank_trim", Color("8aa49a"))),
+					telegraph_color,
 					25
 				)
 	if current_row < State.STAGE_STEPS:
