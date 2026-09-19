@@ -2,6 +2,7 @@
 from __future__ import annotations
 import datetime as dt
 import json
+import os
 import re
 from pathlib import Path
 
@@ -129,9 +130,18 @@ def main() -> None:
         return
 
     support = council_supports_expansion(council)
+    economy_mode = os.environ.get("GEMINI_ECONOMY_MODE", "true").lower() in {"1", "true", "yes", "on"}
     payload = {"six_agent_council": council, "current_world_map": world_map, "aggregate_public_telemetry": telemetry[-40:] if isinstance(telemetry, list) else telemetry, "rule": "At most one planned non-playable region may be added. Preserve every existing node and edge."}
     try:
-        decision = call_gemini(json.dumps(payload, ensure_ascii=False), ARCHITECT_SCHEMA, SYSTEM)
+        if economy_mode:
+            decision = {
+                "decision": "hold",
+                "summary": "Economy mode: World Architect held without an API request.",
+                "council_basis": [],
+                "expansion": {},
+            }
+        else:
+            decision = call_gemini(json.dumps(payload, ensure_ascii=False), ARCHITECT_SCHEMA, SYSTEM)
     except Exception as exc:
         decision = {"decision": "hold", "summary": "World Architect unavailable; map held safely.", "council_basis": [], "expansion": {}}
         reason = f"Gemini call failed safely: {type(exc).__name__}."
