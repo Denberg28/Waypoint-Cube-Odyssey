@@ -753,7 +753,7 @@ func add_waypoint_post(
 	var wood: Color = style_data.post_color
 	var trim: Color = style_data.trim_color
 	var accent: Color = style_data.accent_color
-	var stone := active_theme.shoulder.darkened(0.16)
+	var stone: Color = Color(active_theme.shoulder).darkened(0.16)
 	var metal := Color("46494d")
 
 	# Stone footing + chunky timber shaft.
@@ -792,7 +792,7 @@ func roadside_waymarker(
 	var wood: Color = style_data.post_color
 	var trim: Color = style_data.trim_color
 	var accent: Color = style_data.accent_color
-	var stone := active_theme.shoulder.darkened(0.14)
+	var stone: Color = Color(active_theme.shoulder).darkened(0.14)
 	var metal := Color("45494c")
 	box(parent, base_pos + Vector3(0, 0.12, 0), Vector3(0.52, 0.24, 0.48), stone)
 	box(parent, base_pos + Vector3(0, 0.72, 0), Vector3(0.24, 1.05, 0.24), wood)
