@@ -727,6 +727,8 @@ func build_ui() -> void:
 	enemy_box.add_child(foe)
 	fight_enemy_gear = label("", 9, MUTED)
 	fight_enemy_gear.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fight_enemy_gear.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	fight_enemy_gear.custom_minimum_size.x = 300
 	fight_stack.add_child(fight_enemy_gear)
 
 	fight_balance_label = label("FOE  ◀  STRUGGLE  ▶  YOU", 9, MUTED)
