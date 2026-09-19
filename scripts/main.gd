@@ -1376,7 +1376,13 @@ func show_marketplace(slot: String = "skin") -> void:
 	if bool(game.data.get("cat_owned", false)):
 		var cat_name: String = str(game.data.cat_design.get("name", "Cat"))
 		stack.add_child(label("%s  •  %s  •  SATIETY %d%%" % [cat_name, game.cat_mood(), int(game.data.cat_satiety)], FONT_CAPTION, MINT))
-		action("Cat Companion  •  Manage / Feed", func(): show_cat_companion(), true)
+		stack.add_child(label(
+			"CAT FOOD ×%d  •  %d coins each" % [int(game.data.cat_food_stock), Catalog.CAT_FOOD_PRICE],
+			FONT_CAPTION,
+			MUTED
+		))
+		action("Cat Supplies  •  Buy Food", func(): show_cat_market(), true)
+		action("Cat Companion  •  Manage / Feed", func(): show_cat_companion())
 	else:
 		stack.add_child(label("A persistent camp companion that gives fishing an ongoing purpose.", FONT_CAPTION, MUTED))
 		action("Cat Companion  •  Browse / Adopt  •  %d coins" % Catalog.CAT_PRICE, func(): show_cat_market(), true)
