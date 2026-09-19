@@ -13,12 +13,18 @@ var simple_mode: bool = false
 var material_cache: Dictionary = {}
 var cone_mesh_cache: Dictionary = {}
 var unit_box: BoxMesh
+var unit_sphere: SphereMesh
 
 func _init() -> void:
 	var forced: String = OS.get_environment("CUBE_VISUAL_PROFILE").strip_edges().to_lower()
 	simple_mode = forced == "light" or (forced == "" and OS.has_feature("web"))
 	unit_box = BoxMesh.new()
 	unit_box.size = Vector3.ONE
+	unit_sphere = SphereMesh.new()
+	unit_sphere.radius = 0.5
+	unit_sphere.height = 1.0
+	unit_sphere.radial_segments = 10
+	unit_sphere.rings = 6
 
 func profile_name() -> String:
 	return "light" if simple_mode else "full"
@@ -65,6 +71,16 @@ func cone(parent: Node3D, pos: Vector3, radius: float, height: float, color: Col
 	node.material_override = material(color)
 	node.position = pos
 	node.scale = Vector3(radius, height, radius)
+	parent.add_child(node)
+	return node
+
+
+func sphere(parent: Node3D, pos: Vector3, diameter: float, color: Color, glow: bool = false) -> MeshInstance3D:
+	var node := MeshInstance3D.new()
+	node.mesh = unit_sphere
+	node.material_override = material(color, glow)
+	node.position = pos
+	node.scale = Vector3.ONE * diameter
 	parent.add_child(node)
 	return node
 
