@@ -549,6 +549,11 @@ func refresh_props() -> void:
 				cone(props, pos + Vector3(0, 0.48, 0), 0.24, 0.72, Color("78b7b2"), 0.04)
 				cone(props, pos + Vector3(0, 0.88, 0), 0.15, 0.38, Color("a3d2ca"), 0.0)
 				floating_text(props, "GEM", pos + Vector3(0, 1.35, 0), Color("a8d9ce"), 24)
+			"waypoint_shard":
+				var shard = box(props, pos + Vector3(0, 0.58, 0), Vector3(0.42, 0.76, 0.18), Color("efd094"), true)
+				shard.rotation_degrees = Vector3(18, 36, 12)
+				cone(props, pos + Vector3(0, 1.02, 0), 0.18, 0.34, Color("fff0bd"), 0.01)
+				floating_text(props, "SHARD", pos + Vector3(0, 1.46, 0), Color("fff0bd"), 25)
 			"campfire":
 				for angle_i in range(8):
 					var a: float = float(angle_i) * TAU / 8.0
