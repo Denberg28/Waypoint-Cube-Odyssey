@@ -2,6 +2,7 @@ extends Node3D
 ## Procedural low-poly diorama. No downloaded assets or external plugins.
 signal route_clicked(route_id: String)
 signal marketplace_clicked
+signal cat_clicked
 signal camp_clicked
 signal continue_clicked
 const Catalog = preload("res://scripts/catalog.gd")
@@ -567,9 +568,32 @@ func build_cat_companion() -> void:
 	if design.is_empty():
 		return
 	var root := Node3D.new()
+	root.name = "CampCatCompanion"
 	root.position = Vector3(-1.95, 0.22, -4.15)
 	root.rotation.y = 0.35
 	scenery.add_child(root)
+
+	# One generous interaction hitbox wraps the whole low-poly cat so Web/mobile
+	# clicks do not depend on touching a tiny individual mesh.
+	var cat_area := Area3D.new()
+	cat_area.name = "CatInteraction"
+	cat_area.input_ray_pickable = true
+	root.add_child(cat_area)
+	var cat_collision := CollisionShape3D.new()
+	var cat_shape := BoxShape3D.new()
+	cat_shape.size = Vector3(1.25, 1.55, 1.15)
+	cat_collision.shape = cat_shape
+	cat_collision.position = Vector3(0, 0.62, 0)
+	cat_area.add_child(cat_collision)
+	cat_area.input_event.connect(func(_camera, event: InputEvent, _event_position: Vector3, _normal: Vector3, _shape_idx: int):
+		var pressed: bool = false
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			pressed = true
+		elif event is InputEventScreenTouch and event.pressed:
+			pressed = true
+		if pressed:
+			cat_clicked.emit()
+	)
 	var body_color := Color(str(design.get("body", "c99068")))
 	var accent_color := Color(str(design.get("accent", "f0e1c0")))
 	var eye_color := Color(str(design.get("eyes", "e7c96f")))
@@ -609,7 +633,7 @@ func build_cat_companion() -> void:
 
 	var mood: String = state.cat_mood()
 	var satiety: int = int(state.data.get("cat_satiety", 0))
-	floating_text(root, "%s  •  %s  •  %d%%" % [str(design.get("name", "CAT")), mood, satiety], Vector3(0, 1.45, 0), active_theme.text, 17)
+	floating_text(root, "%s  •  LV %d  •  %s" % [str(design.get("name", "CAT")), state.cat_level(), mood], Vector3(0, 1.45, 0), active_theme.text, 17)
 
 func camp() -> void:
 	var tent = PrismMesh.new()
