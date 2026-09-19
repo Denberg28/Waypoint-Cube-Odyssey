@@ -589,7 +589,7 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
     assert '"HUNGRY"' in state
     assert '"GRUMPY"' in state
     assert "data.fish_stock += fish_portions" in state
-    assert "data.cat_satiety = mini(100" in state
+    assert "host.data.cat_satiety = mini(100" in state
     assert "data.cat_satiety = maxi(0" in state
     assert "var cat_status: String = cat_adventure_tick()" in state
 
@@ -617,7 +617,7 @@ def test_cat_satiety_is_progression_based_not_wall_clock():
         + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
         + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
     )
-    cat_tick = state.split("func cat_adventure_tick() -> String:", 1)[1].split("func owns_cosmetic", 1)[0]
+    cat_tick = PET_SERVICE_PATH.read_text(encoding="utf-8").split("static func cat_adventure_tick(host) -> String:", 1)[1]
 
     assert "Time.get_" not in cat_tick
     assert "delta" not in cat_tick
@@ -832,10 +832,10 @@ def test_cat_market_and_pet_care_loop_is_fully_wired():
     assert "func random_cat_design() -> Dictionary:" in state
     assert "func refresh_cat_offer() -> bool:" in state
     assert "func adopt_cat() -> bool:" in state
-    assert "data.coins -= Catalog.CAT_PRICE" in state
-    assert "data.cat_design = data.cat_offer.duplicate(true)" in state
+    assert "host.data.coins -= PetCatalog.CAT_PRICE" in state
+    assert "host.data.cat_design = host.data.cat_offer.duplicate(true)" in state
     assert "func feed_cat() -> bool:" in state
-    assert "data.fish_stock -= 1" in state
+    assert "host.data.fish_stock -= 1" in state
     assert "data.cat_satiety = mini(100" in state
     assert "func cat_adventure_tick() -> String:" in state
     assert "CAT_SATIETY_ROAD_COST" in state
@@ -1179,7 +1179,7 @@ def test_cat_food_satiates_but_only_fish_advances_rank():
     assert "func buy_cat_food(quantity: int = 1) -> bool:" in state
     assert "func feed_cat_food() -> bool:" in state
     assert "No Bond XP gained." in state
-    assert "add_cat_bond_xp(Catalog.CAT_BOND_XP_PER_FEED)" in state
+    assert "add_cat_bond_xp(host, PetCatalog.CAT_BOND_XP_PER_FEED)" in state
 
     tick = state.split("func cat_adventure_tick() -> String:", 1)[1].split("func owns_cosmetic", 1)[0]
     assert "add_cat_bond_xp" not in tick
