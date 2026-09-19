@@ -71,8 +71,28 @@ def test_tally_counts_distinct_councils_only():
 def test_elite_behavior_profiles_are_danger_gated_and_distinct():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+PET_CATALOG_PATH = Path("scripts/modules/pets/pet_catalog.gd")
+PET_SERVICE_PATH = Path("scripts/modules/pets/pet_service.gd")
+MARKETPLACE_CATALOG_PATH = Path("scripts/modules/marketplace/marketplace_catalog.gd")
+MARKETPLACE_SERVICE_PATH = Path("scripts/modules/marketplace/marketplace_service.gd")
+ROAD_CATALOG_PATH = Path("scripts/modules/road/road_catalog.gd")
+ROAD_SERVICE_PATH = Path("scripts/modules/road/road_service.gd")
+ENEMY_CATALOG_PATH = Path("scripts/modules/enemy/enemy_catalog.gd")
+ENEMY_SERVICE_PATH = Path("scripts/modules/enemy/enemy_service.gd")
+
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
     assert "const ELITE_BEHAVIORS" in catalog
@@ -88,7 +108,13 @@ def test_elite_behavior_profiles_are_danger_gated_and_distinct():
 def test_level_star_progression_and_rpg_encounter_sequence_present():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "const LEVEL_CAP: int = 20" in state
@@ -131,7 +157,13 @@ def test_monitoring_close_uses_fresh_status_and_session_handoff():
 def test_star_rank_conventional_mapping_contract():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert "func star_quarter_count() -> int:" in state
     assert "if level_value <= 1:" in state
@@ -216,7 +248,13 @@ def test_header_places_rank_and_light_yellow_xp_meter_below_day_row():
 def test_hearts_persist_between_trails_and_camp_visits():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     next_stage = state.split("func next_stage() -> void:", 1)[1].split("func bank() -> void:", 1)[0]
@@ -244,7 +282,13 @@ def test_next_expedition_preserves_resources_and_defeat_revive_is_explicit():
     import re
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     prepare = state.split("func prepare_new_expedition() -> void:", 1)[1].split("func begin(class_id: String = \"\") -> void:", 1)[0]
@@ -291,7 +335,13 @@ def test_character_idle_animation_is_camp_only():
 def test_new_save_starts_with_zero_stars_and_zero_xp():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "const START_LEVEL: int = 1" in state
@@ -328,7 +378,13 @@ def test_quit_paths_use_confirmation_window():
 def test_fresh_character_resets_all_progression_and_requires_confirmation():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     fresh = state.split("func start_fresh_character(class_id: String, skin_index: int = 0) -> void:", 1)[1].split("func xp_to_next", 1)[0]
@@ -350,8 +406,19 @@ def test_fresh_character_resets_all_progression_and_requires_confirmation():
 def test_enemy_xp_is_balanced_and_credited_immediately():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert '"slime":{"name":"Moss Slime", "toughness":1, "damage":1, "reward":3, "consolation":2, "xp":2}' in catalog
     assert '"goblin":{"name":"Road Goblin", "toughness":2, "damage":2, "reward":4, "consolation":3, "xp":3}' in catalog
@@ -371,7 +438,13 @@ def test_enemy_xp_is_balanced_and_credited_immediately():
 def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     defeat = state.split("func defeat() -> void:", 1)[1].split("func return_camp() -> void:", 1)[0]
@@ -395,7 +468,13 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
 def test_v11_pending_xp_is_migrated_into_credited_xp():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert 'migrated.has("pending_xp")' in state
     assert 'migrated.erase("pending_xp")' in state
@@ -473,8 +552,19 @@ def test_streamlit_review_has_refresh_and_sync_visibility():
 def test_cat_companion_market_feeding_and_mood_loop_present():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
@@ -521,7 +611,13 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
 def test_cat_satiety_is_progression_based_not_wall_clock():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     cat_tick = state.split("func cat_adventure_tick() -> String:", 1)[1].split("func owns_cosmetic", 1)[0]
 
     assert "Time.get_" not in cat_tick
@@ -534,7 +630,13 @@ def test_cat_satiety_is_progression_based_not_wall_clock():
 def test_v13_save_migrates_cat_companion_fields_through_v17():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert "13, 13.0" in state
     assert 'migrated.fish_stock = 0' in state
@@ -548,7 +650,12 @@ def test_v13_save_migrates_cat_companion_fields_through_v17():
 def test_waypoint_posts_are_standardized_and_location_specific():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
     assert "const WAYPOINT_STYLES" in catalog
@@ -570,8 +677,19 @@ def test_three_planned_regions_are_promoted_to_playable_routes():
     import json
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
     routes = json.loads(Path("game_data/routes.json").read_text(encoding="utf-8"))
     world_map = json.loads(Path("runtime/world_map.json").read_text(encoding="utf-8"))
@@ -596,7 +714,13 @@ def test_three_planned_regions_are_promoted_to_playable_routes():
 def test_expansion_routes_have_distinct_hazards_collectibles_and_rewards():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
     for field in ["prismatic_pearls", "ember_shards", "skyfeathers"]:
@@ -621,7 +745,13 @@ def test_expansion_routes_have_distinct_hazards_collectibles_and_rewards():
 def test_expansion_routes_enter_stage_rotation_and_preserve_safe_corridor():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert '["treasure", "shrine", "sunken_grotto"]' in state
     assert '["moss", "fen", "cinder_caldera"]' in state
@@ -636,7 +766,13 @@ def test_expansion_routes_enter_stage_rotation_and_preserve_safe_corridor():
 def test_v14_cat_save_migrates_to_expansion_schema_v17():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
 
     assert "14, 14.0" in state
     assert '"prismatic_pearls":0' in state
@@ -677,8 +813,19 @@ def test_rpg_waypoint_gateway_and_roadpost_design_is_present():
 def test_cat_market_and_pet_care_loop_is_fully_wired():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
@@ -729,8 +876,19 @@ def test_combat_has_longer_suspense_and_tug_of_war_outcome_meter():
 def test_enemy_visuals_have_ranked_equipment_and_stable_palette_variety():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
@@ -829,8 +987,19 @@ def test_lantern_camp_exposes_physical_marketplace_entry():
 def test_cat_click_status_progression_rank_and_buff_are_wired():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
@@ -862,7 +1031,13 @@ def test_cat_click_status_progression_rank_and_buff_are_wired():
 def test_status_panel_equipment_is_informative_and_sanitized():
     from pathlib import Path
 
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "func best_owned_gear_id(slot: String) -> String:" in state
@@ -981,8 +1156,19 @@ def test_character_shell_is_surface_armor_not_solid_lower_torso_cube():
 def test_cat_food_satiates_but_only_fish_advances_rank():
     from pathlib import Path
 
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = (
+        PET_CATALOG_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
+        + ROAD_CATALOG_PATH.read_text(encoding="utf-8")
+        + ENEMY_CATALOG_PATH.read_text(encoding="utf-8")
+    )
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+        + ROAD_SERVICE_PATH.read_text(encoding="utf-8")
+        + ENEMY_SERVICE_PATH.read_text(encoding="utf-8")
+    )
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
     assert "const CAT_FOOD_PRICE: int = 12" in catalog
