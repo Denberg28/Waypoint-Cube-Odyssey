@@ -173,7 +173,7 @@ def test_gameplay_hud_uses_compact_focus_layout():
     assert "footer.offset_top = -64" in main
     assert "footer.offset_bottom = -16" in main
     assert 'compact_details = button("Details"' in main
-    assert 'compact_best = button("Best"' in main
+    assert 'compact_best_button = button("Best"' in main
     assert 'compact_heal = button("Heal"' in main
     assert 'compact_mana = button("Mana"' in main
     assert "side_panel.offset_top = -84" in main
@@ -276,10 +276,10 @@ def test_character_idle_animation_is_camp_only():
     assert "var idle_base_yaw: float = PI" in world
     assert "func apply_adventure_idle() -> void:" not in world
     assert "func apply_camp_idle() -> void:" in world
-    assert "func apply_idle_animation() -> void:" in world
+    assert "func apply_idle_animation(delta: float) -> void:" in world
     assert 'str(state.data.mode) != "camp"' in world
     assert "apply_camp_idle()" in world
-    assert "actor.position = idle_anchor_position" in world
+    assert "update_camp_actor_roam(delta)" in world
     assert "left_arm.rotation.x" in world
     assert "right_arm.rotation.x" in world
     assert "left_foot.rotation.x" in world
