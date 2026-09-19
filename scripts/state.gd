@@ -4,6 +4,7 @@ const PetService = preload("res://scripts/modules/pets/pet_service.gd")
 const MarketplaceService = preload("res://scripts/modules/marketplace/marketplace_service.gd")
 const EnemyService = preload("res://scripts/modules/enemy/enemy_service.gd")
 const RoadService = preload("res://scripts/modules/road/road_service.gd")
+const ProgressionService = preload("res://scripts/modules/progression/progression_service.gd")
 const STAGE_STEPS: int = 18
 const GENERATED_ROWS: int = STAGE_STEPS - 1
 const CELL_COUNT: int = GENERATED_ROWS * 3
@@ -24,7 +25,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":17,
+		"version":18,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -45,6 +46,9 @@ func reset() -> void:
 		"cosmetics_owned":[],
 		"cosmetics_equipped":{"skin":"", "head":"", "back":"", "face":""},
 		"camp_level":0,
+		"camp_renown":0,
+		"road_objective":{},
+		"rare_events_seen":0,
 		"kills":0,
 		"level":START_LEVEL,
 		"xp":START_XP,
@@ -366,11 +370,30 @@ func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> St
 static func route_options_for_stage_index(stage_index: int) -> Array:
 	return RoadService.route_options_for_stage_index(stage_index)
 
+func begin_road_objective() -> Dictionary:
+	return ProgressionService.begin_road_objective(self)
+
+func progression_record_cell(kind: String, result_text: String) -> String:
+	return ProgressionService.record_cell_result(self, kind, result_text)
+
+func claim_road_objective() -> String:
+	return ProgressionService.claim_road_objective(self)
+
+func objective_text() -> String:
+	return ProgressionService.objective_text(self)
+
+func camp_renown_text() -> String:
+	return ProgressionService.camp_renown_text(self)
+
+func resolve_rare_event() -> String:
+	return ProgressionService.resolve_rare_event(self)
+
 func prepare_new_expedition() -> void:
 	data.popup = {}
 	data.row = 0
 	data.lane = 0
 	data.cells = []
+	data.road_objective = {}
 	data.runs += 1
 	data.stage = 0
 	data.bag = 0
@@ -474,7 +497,9 @@ func make_room(route: String) -> void:
 	# still use the deterministic chance system.
 	if 1 + route_difficulty >= 3:
 		place_elite_encounter(route, corridor_lanes, local_rng)
-	data.last = "The road reveals only a few steps ahead. Optional fires, fishing pools, caches, and elite threats reward exploration."
+	ProgressionService.maybe_place_rare_event(self, corridor_lanes, local_rng)
+	begin_road_objective()
+	data.last = "The road reveals only a few steps ahead. " + objective_text()
 
 func place_elite_encounter(route: String, corridor_lanes: Dictionary, local_rng: RandomNumberGenerator) -> void:
 	var elite_row: int = 10
@@ -735,8 +760,13 @@ func jump_hop(direction: int = 0) -> String:
 				landing_result = collect_gloomcap()
 			"prismatic_pearl", "ember_shard", "skyfeather":
 				landing_result = collect_region_collectible(str(cell.kind))
+			"rare_event":
+				landing_result = resolve_rare_event()
 			"slime", "goblin", "kobold", "ogre":
 				landing_result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
+		var objective_note: String = progression_record_cell(str(cell.kind), landing_result)
+		if objective_note != "":
+			landing_result += "  " + objective_note
 		cell.cleared = true
 	var result: String = "Jumped cleanly over the %s!" % obstacle_name
 	if landing_result != "":
@@ -795,8 +825,13 @@ func hop(direction: int) -> String:
 				result = collect_gloomcap()
 			"prismatic_pearl", "ember_shard", "skyfeather":
 				result = collect_region_collectible(str(cell.kind))
+			"rare_event":
+				result = resolve_rare_event()
 			"slime", "goblin", "kobold", "ogre":
 				result = resolve_enemy(str(cell.kind), enemy_active(cell), enemy_elite(cell))
+		var objective_note: String = progression_record_cell(str(cell.kind), result)
+		if objective_note != "":
+			result += "  " + objective_note
 		cell.cleared = true
 	data.turn += 1
 	data.last = result
@@ -937,6 +972,7 @@ func forge_with_gems() -> String:
 func finish_room() -> void:
 	data.stage += 1
 	data.hp = mini(max_hp(), int(data.hp) + stat("heal"))
+	var objective_reward: String = claim_road_objective()
 	var route_xp: String = award_xp(20)
 	var route_resolve: String = add_resolve(12)
 	var cat_road_bonus: int = cat_buff_coins()
@@ -970,7 +1006,11 @@ func finish_room() -> void:
 		loot += "\n+22 relic charge"
 		if summit_resolve != "":
 			loot += "\n" + summit_resolve + " from summit mastery"
-	data.last = "Found: " + loot
+	data.last = "WAYPOINT REWARD
+Found: " + loot
+	if objective_reward != "":
+		data.last += "
+" + objective_reward
 	if route_xp != "":
 		data.last += "\n" + route_xp
 	if route_resolve != "":
@@ -1141,7 +1181,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [17, 17.0]:
+	if value.get("version") not in [18, 18.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1154,10 +1194,10 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_food_stock", "cat_satiety", "cat_bond_xp", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "camp_renown", "rare_events_seen", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_food_stock", "cat_satiety", "cat_bond_xp", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
 		if not (value[key] is int or value[key] is float):
 			return false
-	if int(value.hp) < 0 or int(value.mana) < 0 or int(value.coins) < 0 or int(value.bag) < 0 or int(value.wins) < 0 or int(value.runs) < 0 or int(value.kills) < 0:
+	if int(value.hp) < 0 or int(value.mana) < 0 or int(value.coins) < 0 or int(value.bag) < 0 or int(value.wins) < 0 or int(value.runs) < 0 or int(value.kills) < 0 or int(value.camp_renown) < 0 or int(value.rare_events_seen) < 0:
 		return false
 	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_food_stock) < 0 or int(value.cat_food_stock) > Catalog.CAT_FOOD_STOCK_CAP or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.cat_bond_xp) < 0 or int(value.cat_bond_xp) > (Catalog.CAT_LEVEL_CAP - 1) * Catalog.CAT_BOND_XP_PER_LEVEL or int(value.gloomcaps) < 0 or int(value.prismatic_pearls) < 0 or int(value.ember_shards) < 0 or int(value.skyfeathers) < 0:
 		return false
@@ -1170,6 +1210,8 @@ func valid_save(value: Variant) -> bool:
 	if int(value.level) == LEVEL_CAP and int(value.xp) != 0:
 		return false
 	if not value.inventory is Array or not value.cells is Array or not value.equipped is Dictionary or not value.potions is Dictionary:
+		return false
+	if not value.road_objective is Dictionary or not ProgressionService.valid_objective(value.road_objective):
 		return false
 	if not value.cosmetics_owned is Array or not value.cosmetics_equipped is Dictionary:
 		return false
@@ -1234,7 +1276,7 @@ func valid_save(value: Variant) -> bool:
 			return false
 		if cell.has("elite") and not cell.elite is bool:
 			return false
-		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "gloomcap", "prismatic_pearl", "ember_shard", "skyfeather", "slime", "goblin", "kobold", "ogre"]:
+		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "gloomcap", "prismatic_pearl", "ember_shard", "skyfeather", "rare_event", "slime", "goblin", "kobold", "ogre"]:
 			return false
 		var cell_key: String = "%d:%d" % [int(cell.row), int(cell.lane)]
 		if seen.has(cell_key):
@@ -1293,6 +1335,13 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.ember_shards = 0
 	if not migrated.has("skyfeathers"):
 		migrated.skyfeathers = 0
+	if not migrated.has("camp_renown"):
+		migrated.camp_renown = 0
+	if not migrated.has("road_objective") or not migrated.road_objective is Dictionary:
+		migrated.road_objective = {}
+	if not migrated.has("rare_events_seen"):
+		migrated.rare_events_seen = 0
+	migrated.camp_level = ProgressionService.camp_level_for_renown(int(migrated.camp_renown))
 	if not migrated.has("level"):
 		# Preserve veteran progress when migrating pre-level-system saves.
 		migrated.level = clampi(1 + int(migrated.get("wins", 0)) * 2 + floori(float(migrated.get("kills", 0)) / 10.0), 1, LEVEL_CAP)
@@ -1338,7 +1387,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 17
+	migrated.version = 18
 	return migrated
 
 func load_game() -> bool:
@@ -1349,7 +1398,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0, 14, 14.0, 15, 15.0, 16, 16.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0, 14, 14.0, 15, 15.0, 16, 16.0, 17, 17.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed
