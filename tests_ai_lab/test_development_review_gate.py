@@ -895,3 +895,26 @@ def test_lantern_camp_player_and_cat_use_bounded_roaming():
     assert "root.position = camp_cat_roam_points[0]" in world
     assert 'camera_target = Vector3(0.0, 0.12, -4.80)' in world
     assert 'actor.position = Vector3(-3.15, 0.52, -3.05)' not in world
+
+
+def test_camp_character_idle_is_calm_and_cat_rests_by_bonfire():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "camp_actor_pause = 7.0" in world
+    assert "camp_roam_rng.randf_range(6.0, 11.0)" in world
+    assert "var step: float = minf(distance, 0.42 * delta)" in world
+
+    # Lower-body stability: camp gait uses foot position offsets, not large rotations.
+    assert "left_foot.rotation = Vector3.ZERO" in world
+    assert "right_foot.rotation = Vector3.ZERO" in world
+    assert "left_lift" in world and "right_lift" in world
+    assert "actor.rotation.z = 0.0" in world
+
+    # Cat remains the more active companion and can rest near either side of the fire.
+    assert "var camp_cat_fire_rest_points" in world
+    assert "func select_cat_fire_rest_target() -> void:" in world
+    assert "camp_cat_resting_by_fire = true" in world
+    assert "camp_roam_rng.randf_range(4.0, 8.0)" in world
+    assert "camp_cat_moves_since_rest >= 4" in world
