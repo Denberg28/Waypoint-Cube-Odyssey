@@ -3,7 +3,16 @@ extends SceneTree
 const State = preload("res://scripts/state.gd")
 const World = preload("res://scripts/world.gd")
 
+var finished: bool = false
+
 func _init() -> void:
+	# Watchdog is armed before touching World. If a GDScript runtime error aborts
+	# the smoke body before quit(), the SceneTree still exits non-zero instead of
+	# hanging the GitHub runner indefinitely.
+	create_timer(8.0).timeout.connect(_watchdog_timeout)
+	call_deferred("_run_smoke")
+
+func _run_smoke() -> void:
 	var game = State.new()
 	game.data.mode = "choice"
 	game.data.class_id = "merchant"
@@ -17,18 +26,27 @@ func _init() -> void:
 	world.setup(game)
 
 	if not is_instance_valid(world.scenery):
-		push_error("CROSSROADS_SMOKE: scenery was not created")
-		quit(2)
+		_fail("scenery was not created", 2)
 		return
 	var scene_children: int = world.scenery.get_child_count()
 	if scene_children < 20:
-		push_error("CROSSROADS_SMOKE: expected populated scenery, got %d children" % scene_children)
-		quit(3)
+		_fail("expected populated scenery, got %d children" % scene_children, 3)
 		return
 	if not is_instance_valid(world.camera):
-		push_error("CROSSROADS_SMOKE: camera missing")
-		quit(4)
+		_fail("camera missing", 4)
 		return
 
+	finished = true
 	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camera=", world.camera.position)
 	quit(0)
+
+func _fail(message: String, code: int) -> void:
+	finished = true
+	push_error("CROSSROADS_SMOKE: " + message)
+	quit(code)
+
+func _watchdog_timeout() -> void:
+	if finished:
+		return
+	push_error("CROSSROADS_SMOKE_TIMEOUT: world build did not complete in 8 seconds; inspect the runtime error immediately above this line.")
+	quit(9)
