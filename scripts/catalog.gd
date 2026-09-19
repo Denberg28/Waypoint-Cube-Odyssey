@@ -57,11 +57,13 @@ const COSMETICS = [
 # unexpectedly after purchase.
 const CAT_PRICE: int = 160
 const CAT_SATIETY_PER_FISH: int = 30
+const CAT_FOOD_PRICE: int = 12
+const CAT_SATIETY_PER_FOOD: int = 20
+const CAT_FOOD_STOCK_CAP: int = 99
 const CAT_SATIETY_ROAD_COST: int = 10
 const CAT_LEVEL_CAP: int = 10
 const CAT_BOND_XP_PER_LEVEL: int = 30
 const CAT_BOND_XP_PER_FEED: int = 10
-const CAT_BOND_XP_PER_ROAD: int = 6
 const CAT_RANKS = [
 	{"min_level":1, "name":"FAMILIAR", "road_coin_bonus":1},
 	{"min_level":3, "name":"TRAILMATE", "road_coin_bonus":2},
