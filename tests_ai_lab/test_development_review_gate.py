@@ -1332,3 +1332,59 @@ def test_lantern_camp_keeps_player_deep_in_wide_hub_shot():
     assert 'Vector3(-0.72, 0.16, -4.72)' in world
     assert 'Vector3(1.42, 0.16, -4.86)' in world
     assert 'camera_target = Vector3(0.0, 0.12, -5.20)' in world
+
+
+def test_global_balance_uses_small_milestone_bonuses_and_bounded_enemy_scaling():
+    from pathlib import Path
+
+    balance = Path("scripts/modules/balance/balance_catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+
+    for level in [1, 5, 9, 13, 17]:
+        assert f'"min_level":{level}' in balance
+
+    # Player growth is intentionally modest: +2 attack, +2 health, +1 armor max.
+    assert '"attack":2, "health":2, "armor":1' in balance
+    assert 'return int(class_info().hp) + stat("health") + int(data.camp_level) + player_rank_bonus("health")' in state
+    assert 'return stat("attack") + int(data.blessing) + player_rank_bonus("attack")' in state
+    assert 'amount - stat("armor") - player_rank_bonus("armor")' in state
+
+    # Enemy rank adds at most +2 toughness and +1 damage.
+    assert '4:{"toughness":2, "damage":1, "xp":3}' in balance
+    assert 'BalanceService.enemy_rank_modifier(rank, "toughness")' in state
+    assert 'BalanceService.enemy_rank_modifier(rank, "damage")' in state
+
+
+def test_four_boss_profiles_reuse_existing_lane_rune_combat():
+    from pathlib import Path
+
+    boss_catalog = Path("scripts/modules/boss/boss_catalog.gd").read_text(encoding="utf-8")
+    boss_service = Path("scripts/modules/boss/boss_service.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    for boss_id in ["heartwood_keeper", "ember_colossus", "tide_warden", "gale_sentinel"]:
+        assert f'"{boss_id}":' in boss_catalog
+
+    assert 'boss_id_for_route(route_id: String)' in boss_service
+    assert 'host.data.danger' in boss_service
+    assert 'host.data.target' in boss_service
+    assert 'BossService.start(self)' in state
+    assert 'BossService.resolve_hop(self, direction)' in state
+
+    assert 'func update_boss_idle() -> void:' in world
+    for style in ['"pulse"', '"float"', '"sway"']:
+        assert style in world
+
+    assert 'title.text = game.boss_name()' in main
+    assert 'game.boss_max_hp()' in main
+    assert 'str(boss_profile.get("telegraph", "SLAM"))' in main
+
+
+def test_balance_changes_do_not_require_save_schema_change():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    assert '"version":18' in state
+    assert 'boss_id' not in state.split('"version":18', 1)[1].split('"last":', 1)[0]
