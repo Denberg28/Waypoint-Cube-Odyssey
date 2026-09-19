@@ -38,16 +38,19 @@ var idle_base_yaw: float = PI
 var camp_cat_root: Node3D
 var camp_actor_roam_index: int = 0
 var camp_cat_roam_index: int = 0
-var camp_actor_pause: float = 0.8
+var camp_actor_pause: float = 7.0
 var camp_cat_pause: float = 0.45
+var camp_cat_moves_since_rest: int = 0
+var camp_cat_heading_to_fire: bool = false
+var camp_cat_resting_by_fire: bool = false
+var camp_cat_fire_rest_target: Vector3 = Vector3(1.18, 0.16, -5.15)
+var camp_roam_rng := RandomNumberGenerator.new()
 var camp_actor_roam_points: Array[Vector3] = [
 	Vector3(-2.15, 0.16, -2.35),
 	Vector3(-0.75, 0.16, -2.55),
 	Vector3(1.55, 0.16, -3.10),
-	Vector3(2.30, 0.16, -5.60),
-	Vector3(1.55, 0.16, -7.10),
+	Vector3(2.10, 0.16, -6.45),
 	Vector3(-0.75, 0.16, -7.05),
-	Vector3(-2.15, 0.16, -5.85),
 	Vector3(-2.55, 0.16, -4.15)
 ]
 var camp_cat_roam_points: Array[Vector3] = [
@@ -58,6 +61,10 @@ var camp_cat_roam_points: Array[Vector3] = [
 	Vector3(0.65, 0.16, -6.55),
 	Vector3(-1.10, 0.16, -6.30),
 	Vector3(-1.55, 0.16, -5.10)
+]
+var camp_cat_fire_rest_points: Array[Vector3] = [
+	Vector3(1.18, 0.16, -5.15),
+	Vector3(-1.18, 0.16, -5.15)
 ]
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
@@ -664,8 +671,14 @@ func build_cat_companion() -> void:
 
 func camp() -> void:
 	camp_actor_roam_index = 0
-	camp_actor_pause = 0.8
+	camp_actor_pause = 7.0
 	camp_cat_root = null
+	camp_cat_roam_index = 0
+	camp_cat_pause = 0.45
+	camp_cat_moves_since_rest = 0
+	camp_cat_heading_to_fire = false
+	camp_cat_resting_by_fire = false
+	camp_roam_rng.seed = int(state.data.seed) + int(state.data.trail) * 131 + 90210
 	var tent = PrismMesh.new()
 	tent.size = Vector3(2.8, 2.5, 3.0)
 	var canvas = MeshInstance3D.new()
@@ -727,7 +740,7 @@ func pose_actor_at_camp() -> void:
 	# here the camp-only roaming loop takes over.
 	reset_walk_pose()
 	camp_actor_roam_index = 0
-	camp_actor_pause = 0.8
+	camp_actor_pause = 7.0
 	actor.position = camp_actor_roam_points[0]
 	var next_target: Vector3 = camp_actor_roam_points[1]
 	actor.look_at(Vector3(next_target.x, actor.position.y, next_target.z), Vector3.UP, true)
@@ -1364,25 +1377,18 @@ func hop_to(pos: Vector3) -> void:
 	await jump_to(pos)
 
 func apply_camp_idle() -> void:
-	# Standing rest pose used during short pauses between autonomous camp steps.
-	var breath: float = sin(elapsed * 1.65)
-	var sway: float = sin(elapsed * 0.72)
-	actor.position.y = idle_anchor_position.y + breath * 0.008
-	actor.scale = Vector3(1.0 - breath * 0.0025, 1.0 + breath * 0.010, 1.0 - breath * 0.0025)
+	# Very restrained standing idle. Feet stay in their neutral pose so the
+	# lower half never inherits walk rotations while the character is resting.
+	reset_walk_pose()
+	var breath: float = sin(elapsed * 1.35)
+	actor.position.y = idle_anchor_position.y + breath * 0.004
+	actor.scale = Vector3.ONE
 	actor.rotation.x = 0.0
-	actor.rotation.z = sway * 0.008
-	if is_instance_valid(left_foot):
-		left_foot.position = Vector3(-0.24, -0.13, 0.08)
-		left_foot.rotation.x = sway * 0.025
-	if is_instance_valid(right_foot):
-		right_foot.position = Vector3(0.24, -0.13, 0.08)
-		right_foot.rotation.x = -sway * 0.025
+	actor.rotation.z = 0.0
 	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.006, 0)
-		left_arm.rotation.x = -sway * 0.035
+		left_arm.rotation.x = -breath * 0.018
 	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.55, 0.20 + breath * 0.006, 0)
-		right_arm.rotation.x = sway * 0.035
+		right_arm.rotation.x = breath * 0.018
 
 func update_camp_actor_roam(delta: float) -> void:
 	if camp_actor_roam_points.is_empty():
@@ -1399,51 +1405,90 @@ func update_camp_actor_roam(delta: float) -> void:
 	var distance: float = flat_delta.length()
 	if distance <= 0.10:
 		camp_actor_roam_index = next_index
-		camp_actor_pause = 0.95 + float(camp_actor_roam_index % 3) * 0.35
+		camp_actor_pause = camp_roam_rng.randf_range(6.0, 11.0)
 		actor.position = target
 		idle_anchor_position = target
 		reset_walk_pose()
 		return
 
 	var direction: Vector3 = flat_delta / distance
-	var step: float = minf(distance, 0.72 * delta)
+	var step: float = minf(distance, 0.42 * delta)
 	actor.position += direction * step
-	actor.position.y = 0.16 + absf(sin(elapsed * 7.5)) * 0.035
+	actor.position.y = 0.16 + absf(sin(elapsed * 5.2)) * 0.012
+	actor.scale = Vector3.ONE
+	actor.rotation.z = 0.0
 	actor.look_at(Vector3(target.x, actor.position.y, target.z), Vector3.UP, true)
 	idle_base_yaw = actor.rotation.y
-	var gait: float = sin(elapsed * 7.5)
-	actor.rotation.z = -gait * 0.018
+
+	# Stable low-amplitude positional gait: feet lift/slide slightly instead of
+	# rotating around their mesh centers, which caused the lower-half glitch.
+	var gait: float = sin(elapsed * 5.2)
+	var left_lift: float = maxf(0.0, gait) * 0.045
+	var right_lift: float = maxf(0.0, -gait) * 0.045
 	if is_instance_valid(left_foot):
-		left_foot.rotation.x = gait * 0.48
+		left_foot.rotation = Vector3.ZERO
+		left_foot.position = Vector3(-0.24, -0.13 + left_lift, 0.08 + gait * 0.025)
 	if is_instance_valid(right_foot):
-		right_foot.rotation.x = -gait * 0.48
+		right_foot.rotation = Vector3.ZERO
+		right_foot.position = Vector3(0.24, -0.13 + right_lift, 0.08 - gait * 0.025)
 	if is_instance_valid(left_arm):
-		left_arm.rotation.x = -gait * 0.34
+		left_arm.rotation = Vector3(-gait * 0.12, 0, 0)
 	if is_instance_valid(right_arm):
-		right_arm.rotation.x = gait * 0.34
+		right_arm.rotation = Vector3(gait * 0.12, 0, 0)
+
+func select_cat_fire_rest_target() -> void:
+	var index: int = camp_roam_rng.randi_range(0, camp_cat_fire_rest_points.size() - 1)
+	camp_cat_fire_rest_target = camp_cat_fire_rest_points[index]
+	camp_cat_heading_to_fire = true
 
 func update_camp_cat_roam(delta: float) -> void:
 	if not is_instance_valid(camp_cat_root) or camp_cat_roam_points.is_empty():
 		return
+
 	if camp_cat_pause > 0.0:
 		camp_cat_pause = maxf(0.0, camp_cat_pause - delta)
-		camp_cat_root.position.y = 0.16 + sin(elapsed * 1.9) * 0.006
+		if camp_cat_resting_by_fire:
+			camp_cat_root.position.y = 0.16
+			camp_cat_root.look_at(Vector3(0.0, camp_cat_root.position.y, -5.15), Vector3.UP, true)
+		else:
+			camp_cat_root.position.y = 0.16 + sin(elapsed * 1.9) * 0.004
 		return
 
-	var next_index: int = (camp_cat_roam_index + 1) % camp_cat_roam_points.size()
-	var target: Vector3 = camp_cat_roam_points[next_index]
+	if camp_cat_resting_by_fire:
+		# Rest finished: resume normal wandering.
+		camp_cat_resting_by_fire = false
+		camp_cat_heading_to_fire = false
+
+	var target: Vector3
+	var next_index: int = camp_cat_roam_index
+	if camp_cat_heading_to_fire:
+		target = camp_cat_fire_rest_target
+	else:
+		next_index = (camp_cat_roam_index + 1) % camp_cat_roam_points.size()
+		target = camp_cat_roam_points[next_index]
+
 	var flat_delta := Vector3(target.x - camp_cat_root.position.x, 0.0, target.z - camp_cat_root.position.z)
 	var distance: float = flat_delta.length()
 	if distance <= 0.08:
-		camp_cat_roam_index = next_index
-		camp_cat_pause = 0.65 + float(camp_cat_roam_index % 4) * 0.28
 		camp_cat_root.position = target
+		if camp_cat_heading_to_fire:
+			camp_cat_heading_to_fire = false
+			camp_cat_resting_by_fire = true
+			camp_cat_moves_since_rest = 0
+			camp_cat_pause = camp_roam_rng.randf_range(4.0, 8.0)
+			camp_cat_root.look_at(Vector3(0.0, camp_cat_root.position.y, -5.15), Vector3.UP, true)
+		else:
+			camp_cat_roam_index = next_index
+			camp_cat_moves_since_rest += 1
+			camp_cat_pause = camp_roam_rng.randf_range(0.45, 1.35)
+			if camp_cat_moves_since_rest >= 4 or (camp_cat_moves_since_rest >= 2 and camp_roam_rng.randf() < 0.45):
+				select_cat_fire_rest_target()
 		return
 
 	var direction: Vector3 = flat_delta / distance
-	var step: float = minf(distance, 0.52 * delta)
+	var step: float = minf(distance, 0.56 * delta)
 	camp_cat_root.position += direction * step
-	camp_cat_root.position.y = 0.16 + absf(sin(elapsed * 8.8)) * 0.018
+	camp_cat_root.position.y = 0.16 + absf(sin(elapsed * 8.8)) * 0.014
 	camp_cat_root.look_at(Vector3(target.x, camp_cat_root.position.y, target.z), Vector3.UP, true)
 
 func apply_idle_animation(delta: float) -> void:
