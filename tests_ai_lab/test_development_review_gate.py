@@ -1188,3 +1188,21 @@ def test_cat_food_satiates_but_only_fish_advances_rank():
     assert "Buy 5 Cat Food" in main
     assert "Feed Cat Food" in main
     assert "Only caught fish advances Bond XP, level, and rank." in main
+
+
+def test_trail_finish_uses_current_waypoint_gate_design():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "func trail_finish_waypoint(finish_z: float) -> void:" in world
+    assert "trail_finish_waypoint(finish_z)" in world
+    assert "Standard trail finish gate." in world
+    assert 'floating_text(scenery, "WAYPOINT"' in world
+    assert "Main beveled sign" in world
+    assert "Secondary bar matches the current board system" in world
+    assert "add_waypoint_post(scenery, Vector3(-3.20" in world
+    assert "add_waypoint_post(scenery, Vector3(3.20" in world
+
+    old_plain = 'Vector3(8.5, 0.3, 0.35)'
+    assert old_plain not in world
