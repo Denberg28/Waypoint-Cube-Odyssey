@@ -21,6 +21,15 @@ func _run() -> void:
 	if not is_instance_valid(scene):
 		_fail("main scene was freed during startup", 4)
 		return
+	var director = root.get_node_or_null("MusicDirector")
+	if not is_instance_valid(director):
+		_fail("MusicDirector autoload missing", 16)
+		return
+	var danger_music: Dictionary = director.call("context_config", "road_danger")
+	if danger_music.is_empty() or not danger_music.has("tempo_scale"):
+		_fail("MusicDirector Audio Profile v2 road_danger config missing", 17)
+		return
+
 	var ui = scene.get("ui")
 	var world = scene.get("world")
 	if not is_instance_valid(ui):
