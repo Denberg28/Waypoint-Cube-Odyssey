@@ -75,11 +75,14 @@ func _run_smoke() -> void:
 		_fail("Lantern Camp cat did not roam from spawn", 9)
 		return
 
-	# Advance enough time for the player's occasional walk and at least one cat
-	# bonfire rest opportunity.
+	# Advance enough simulated time to cover occasional player movement, the
+	# player's bonfire rest cycle, and the cat's independent bonfire rest.
 	var actor_before_long: Vector3 = world.actor.position
 	var cat_saw_fire_rest: bool = false
-	for _i in range(1200):
+	var actor_saw_fire_rest: bool = false
+	var actor_left_fire_after_rest: bool = false
+	var actor_rest_ended: bool = false
+	for _i in range(4200):
 		world._process(1.0 / 60.0)
 		if absf(world.left_foot.rotation.x) > 0.001 or absf(world.right_foot.rotation.x) > 0.001:
 			_fail("actor boots rotated during camp walk", 14)
@@ -91,14 +94,27 @@ func _run_smoke() -> void:
 			return
 		if bool(world.camp_cat_resting_by_fire):
 			cat_saw_fire_rest = true
+		if bool(world.camp_actor_resting_by_fire):
+			actor_saw_fire_rest = true
+		elif actor_saw_fire_rest:
+			actor_rest_ended = true
+		if actor_rest_ended and world.actor.position.distance_to(world.camp_actor_fire_rest_target) > 0.35:
+			actor_left_fire_after_rest = true
+
 	if world.actor.position.distance_to(actor_before_long) < 0.10:
 		_fail("Lantern Camp actor never performed an occasional reposition", 10)
 		return
 	if is_instance_valid(cat_root) and not cat_saw_fire_rest:
 		_fail("Lantern Camp cat never entered bonfire rest state", 11)
 		return
+	if not actor_saw_fire_rest:
+		_fail("Lantern Camp actor never entered bonfire rest state", 16)
+		return
+	if not actor_left_fire_after_rest:
+		_fail("Lantern Camp actor did not resume roaming after bonfire rest", 17)
+		return
 
-	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present calm_actor=verified cat_fire_rest=verified camera=", world.camera.position)
+	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present calm_actor=verified actor_fire_rest=verified cat_fire_rest=verified camera=", world.camera.position)
 	quit(0)
 
 func _fail(message: String, code: int) -> void:
