@@ -824,3 +824,36 @@ def test_lantern_camp_exposes_physical_marketplace_entry():
     assert 'clickable_board(scenery, market_pos' in world
     assert 'world.marketplace_clicked.connect' in main
     assert 'show_marketplace("skin")' in main
+
+
+def test_cat_click_status_progression_rank_and_buff_are_wired():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "const CAT_LEVEL_CAP: int = 10" in catalog
+    assert "const CAT_BOND_XP_PER_FEED: int = 10" in catalog
+    assert "const CAT_BOND_XP_PER_ROAD: int = 6" in catalog
+    assert "const CAT_RANKS" in catalog
+
+    assert '"cat_bond_xp":0' in state
+    assert "func cat_level() -> int:" in state
+    assert "func cat_rank_name() -> String:" in state
+    assert "func cat_bond_progress() -> Dictionary:" in state
+    assert "func cat_buff_coins() -> int:" in state
+    assert "func cat_buff_text() -> String:" in state
+    assert "Cat Road Luck:" in state
+
+    assert "signal cat_clicked" in world
+    assert 'root.name = "CampCatCompanion"' in world
+    assert 'cat_area.name = "CatInteraction"' in world
+    assert "cat_clicked.emit()" in world
+
+    assert "world.cat_clicked.connect" in main
+    assert "companion_progress_bar" in main
+    assert "BOND XP" in main
+    assert "ACTIVE BUFF" in main
+    assert "Manage / Feed" in main
