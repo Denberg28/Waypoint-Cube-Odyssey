@@ -60,6 +60,7 @@ func _run() -> void:
 	if game.cat_buff_coins() <= 0 or "ROAD LUCK" not in game.cat_buff_text():
 		_fail("cat Road Luck buff did not activate", 8)
 		return
+	game.data.coins = maxi(int(game.data.coins), int(cosmetic.price))
 	if not game.buy_cosmetic(str(cosmetic.id)) or not game.owns_cosmetic(str(cosmetic.id)):
 		_fail("market cosmetic purchase failed", 6)
 		return
