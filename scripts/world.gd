@@ -56,12 +56,12 @@ var camp_cat_resting_by_fire: bool = false
 var camp_cat_fire_rest_target: Vector3 = Vector3(1.18, 0.16, -5.15)
 var camp_roam_rng := RandomNumberGenerator.new()
 var camp_actor_roam_points: Array[Vector3] = [
-	Vector3(-2.15, 0.16, -2.35),
-	Vector3(-0.75, 0.16, -2.55),
-	Vector3(1.55, 0.16, -3.10),
+	Vector3(-2.15, 0.16, -3.55),
+	Vector3(-0.75, 0.16, -3.70),
+	Vector3(1.55, 0.16, -3.85),
 	Vector3(2.10, 0.16, -6.45),
 	Vector3(-0.75, 0.16, -7.05),
-	Vector3(-2.55, 0.16, -4.15)
+	Vector3(-2.55, 0.16, -4.55)
 ]
 var camp_actor_fire_rest_points: Array[Vector3] = [
 	Vector3(2.0, 0.16, -5.15),
@@ -1240,8 +1240,15 @@ func update_camera() -> void:
 		camera.position = Vector3(0, 1.9, 4.4)
 		camera.look_at(Vector3(0, 0.85, 0))
 		return
-	camera.position = camera_target + Vector3(0, 4.35, 7.5)
-	camera.look_at(camera_target + Vector3(0, 0.72, -4.6))
+	var camera_offset := Vector3(0, 4.35, 7.5)
+	var look_offset := Vector3(0, 0.72, -4.6)
+	if not entrance and str(state.data.mode) == "camp":
+		# Camp is a hub composition, not a close follow camera. Keep the tent,
+		# fire, companion and both service signs readable even while actors roam.
+		camera_offset = Vector3(0, 4.65, 8.65)
+		look_offset = Vector3(0, 0.66, -4.35)
+	camera.position = camera_target + camera_offset
+	camera.look_at(camera_target + look_offset)
 
 func refresh_props() -> void:
 	for child in props.get_children():
