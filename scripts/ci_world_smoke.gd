@@ -54,6 +54,14 @@ func _run_smoke() -> void:
 		_fail("Lantern Camp actor is still positioned above bench height", 7)
 		return
 	var actor_start: Vector3 = world.actor.position
+	if not is_instance_valid(world.left_foot) or not is_instance_valid(world.right_foot):
+		_fail("actor boot meshes missing", 12)
+		return
+	var left_boot_bottom: float = world.actor.position.y + world.left_foot.position.y - 0.08
+	var right_boot_bottom: float = world.actor.position.y + world.right_foot.position.y - 0.08
+	if left_boot_bottom < -0.005 or right_boot_bottom < -0.005:
+		_fail("actor boots clip below Lantern Camp ground", 13)
+		return
 	var cat_root = world.scenery.get_node_or_null("CampCatCompanion")
 	var cat_start: Vector3 = cat_root.position if is_instance_valid(cat_root) else Vector3.ZERO
 	# The player should idle much more than the cat. Over the first 3 seconds,
@@ -73,6 +81,14 @@ func _run_smoke() -> void:
 	var cat_saw_fire_rest: bool = false
 	for _i in range(1200):
 		world._process(1.0 / 60.0)
+		if absf(world.left_foot.rotation.x) > 0.001 or absf(world.right_foot.rotation.x) > 0.001:
+			_fail("actor boots rotated during camp walk", 14)
+			return
+		left_boot_bottom = world.actor.position.y + world.left_foot.position.y - 0.08
+		right_boot_bottom = world.actor.position.y + world.right_foot.position.y - 0.08
+		if left_boot_bottom < -0.005 or right_boot_bottom < -0.005:
+			_fail("actor boots clipped below ground during camp walk", 15)
+			return
 		if bool(world.camp_cat_resting_by_fire):
 			cat_saw_fire_rest = true
 	if world.actor.position.distance_to(actor_before_long) < 0.10:
