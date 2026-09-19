@@ -1206,3 +1206,24 @@ def test_trail_finish_uses_current_waypoint_gate_design():
 
     old_plain = 'Vector3(8.5, 0.3, 0.35)'
     assert old_plain not in world
+
+
+def test_owned_cat_marketplace_exposes_food_supplies_directly():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "Cat Supplies  •  Buy Food" in main
+    assert "CAT FOOD ×%d  •  %d coins each" in main
+    assert "show_cat_market()" in main
+
+
+def test_lantern_camp_uses_wide_hub_framing_and_safe_roam_depth():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert 'Vector3(-2.15, 0.16, -2.35)' not in world
+    assert 'Vector3(-0.75, 0.16, -2.55)' not in world
+    assert 'camera_offset = Vector3(0, 4.65, 8.65)' in world
+    assert 'look_offset = Vector3(0, 0.66, -4.35)' in world
