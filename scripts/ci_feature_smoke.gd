@@ -43,6 +43,20 @@ func _run() -> void:
 		_fail("market cosmetic purchase failed", 6)
 		return
 
+	# Reproduce the status-panel regression: owned gear exists while all slots
+	# are empty. Best-owned lookup must still work, and Equip Best must repair it.
+	game.data.inventory = ["ember", "bark", "clover", "storm", "stone", "bell"]
+	game.data.equipped = {"core":"", "shell":"", "charm":""}
+	for slot in ["core", "shell", "charm"]:
+		if game.best_owned_gear_id(slot) == "":
+			_fail("best-owned gear lookup failed for " + slot, 15)
+			return
+	game.equip_best()
+	for slot in ["core", "shell", "charm"]:
+		if game.sanitized_equipped_id(slot) == "":
+			_fail("Equip Best left an owned equipment slot empty: " + slot, 16)
+			return
+
 	# Every route must generate a complete, save-valid 18-step road.
 	for route_id in Catalog.ROUTES:
 		game.make_room(str(route_id))
