@@ -12,7 +12,7 @@
     ]
   },
   "forge": {
-    "name": "Ember Forge",
+    "name": "Bramble Forge",
     "difficulty": 2,
     "theme": "ash and iron",
     "collectibles": [
@@ -24,7 +24,7 @@
     ]
   },
   "shrine": {
-    "name": "Moon Shrine",
+    "name": "Moonlit Steps",
     "difficulty": 2,
     "theme": "moonlit stones",
     "collectibles": [
@@ -36,7 +36,7 @@
     ]
   },
   "treasure": {
-    "name": "Treasure Run",
+    "name": "Lantern Crossing",
     "difficulty": 2,
     "theme": "merchant road",
     "collectibles": [
