@@ -12,7 +12,15 @@ static func enemy_rank(host, kind: String, elite: bool = false) -> int:
 		base += 1
 	elif kind in ["goblin", "kobold"] and host.danger_level() >= 4:
 		base += 1
-	return clampi(base, 1, 3)
+
+	# Experienced characters can now meet Champion normal mobs on dangerous
+	# late-expedition roads. Early characters keep the original rank curve.
+	var player_level: int = int(host.data.get("level", 1))
+	if player_level >= 9 and host.danger_level() >= 3:
+		base += 1
+	if player_level >= 17 and host.danger_level() >= 4:
+		base += 1
+	return clampi(base, 1, 4)
 
 static func enemy_rank_name(host, kind: String, elite: bool = false) -> String:
 	var rank: int = enemy_rank(host, kind, elite)
