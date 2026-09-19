@@ -1260,3 +1260,44 @@ def test_repo_sanity_covers_recursive_resources_and_modular_catalogs():
     assert "duplicate cosmetic id" in sanity
     assert "pet rank thresholds" in sanity
     assert "route name drift between JSON and Godot catalog" in sanity
+
+
+def test_adventure_idle_animation_covers_actor_props_and_enemies():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "var adventure_idle_objects: Array[Dictionary]" in world
+    assert "var adventure_idle_enemies: Array[Dictionary]" in world
+    assert "func register_adventure_idle_object" in world
+    assert "func register_adventure_idle_enemy" in world
+    assert "func apply_adventure_actor_idle() -> void:" in world
+    assert "func update_adventure_object_idle() -> void:" in world
+    assert "func update_adventure_enemy_idle() -> void:" in world
+
+    assert 'register_adventure_idle_object(coin, "coin"' in world
+    assert 'register_adventure_idle_object(fire_outer, "flame"' in world
+    assert 'register_adventure_idle_object(fishing_ripple, "water"' in world
+    assert 'register_adventure_idle_object(cache_lid, "pulse"' in world
+    assert 'register_adventure_idle_enemy(' in world
+
+    assert '"slime":' in world
+    assert '"goblin":' in world
+    assert '"kobold":' in world
+    assert '"ogre":' in world
+
+    assert 'str(state.data.mode) in ["travel", "campfire", "fishing"]' in world
+    assert "update_adventure_object_idle()" in world
+    assert "update_adventure_enemy_idle()" in world
+
+
+def test_adventure_actor_idle_keeps_lower_body_stable():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+    block = world.split("func apply_adventure_actor_idle() -> void:", 1)[1].split("func reset_walk_pose", 1)[0]
+
+    assert "reset_walk_pose()" in block
+    assert "left_foot.rotation" not in block
+    assert "right_foot.rotation" not in block
+    assert "actor.position = idle_anchor_position" in block
