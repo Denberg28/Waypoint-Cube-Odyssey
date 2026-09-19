@@ -434,7 +434,14 @@ func build() -> void:
 		if row % 2 == 0:
 			for side in [-1, 1]:
 				var edge_x: float = side * 4.55
-				box(scenery, Vector3(edge_x, 0.28, -row * ROW_SPACING), Vector3(0.18, 0.72, 0.18), active_theme.post)
+				var road_style: Dictionary = waypoint_style_for(str(state.data.get("route", "moss")))
+				roadside_waymarker(
+					scenery,
+					Vector3(edge_x, 0.0, -row * ROW_SPACING),
+					road_style,
+					side,
+					row % 4 == 0
+				)
 		if row % 3 == 0:
 			for side in [-1, 1]:
 				var x: float = side * local_rng.randf_range(6.2, 7.7)
@@ -729,6 +736,115 @@ func add_waypoint_motif(parent: Node3D, route_id: String, pos: Vector3, style_da
 			cone(parent, pos + Vector3(-0.09, 0.18, 0), 0.10, 0.34, trim, 0.03)
 			cone(parent, pos + Vector3(0.10, 0.14, 0), 0.09, 0.28, accent, 0.03)
 
+func add_waypoint_lantern(parent: Node3D, pos: Vector3, scale: float = 1.0) -> void:
+	var metal := Color("3f4448")
+	var warm := Color("ffd36e")
+	box(parent, pos + Vector3(0, 0.20 * scale, 0), Vector3(0.34, 0.08, 0.34) * scale, metal)
+	box(parent, pos + Vector3(0, -0.20 * scale, 0), Vector3(0.34, 0.08, 0.34) * scale, metal)
+	box(parent, pos, Vector3(0.24, 0.38, 0.24) * scale, warm, true)
+	for x in [-0.15, 0.15]:
+		box(parent, pos + Vector3(x * scale, 0, 0), Vector3(0.035, 0.42, 0.035) * scale, metal)
+	box(parent, pos + Vector3(0, 0, 0.15 * scale), Vector3(0.32, 0.035, 0.035) * scale, metal)
+	box(parent, pos + Vector3(0, 0.34 * scale, 0), Vector3(0.12, 0.18, 0.12) * scale, metal)
+
+func add_rope_wrap(parent: Node3D, pos: Vector3, width: float, scale: float = 1.0) -> void:
+	var rope := Color("b79a69")
+	for offset_y in [-0.08, 0.0, 0.08]:
+		box(parent, pos + Vector3(0, offset_y * scale, 0.19 * scale), Vector3(width, 0.045, 0.06) * scale, rope)
+
+func add_waypoint_banner(parent: Node3D, pos: Vector3, style_data: Dictionary, scale: float = 1.0) -> void:
+	var fabric: Color = style_data.trim_color.darkened(0.34)
+	var accent: Color = style_data.accent_color
+	box(parent, pos, Vector3(0.68, 0.92, 0.055) * scale, fabric)
+	cone(parent, pos + Vector3(0, -0.55 * scale, 0), 0.34 * scale, 0.36 * scale, fabric, 0.02 * scale)
+	box(parent, pos + Vector3(0, 0.34 * scale, 0.035 * scale), Vector3(0.52, 0.06, 0.045) * scale, accent)
+	# Tiny geometric crest echoes the route-specific waypoint motif without
+	# requiring an external texture.
+	cone(parent, pos + Vector3(0, 0.08 * scale, 0.06 * scale), 0.13 * scale, 0.28 * scale, accent, 0.02 * scale)
+	box(parent, pos + Vector3(0, -0.14 * scale, 0.06 * scale), Vector3(0.24, 0.055, 0.055) * scale, accent)
+
+func add_waypoint_post(
+	parent: Node3D,
+	base_pos: Vector3,
+	style_data: Dictionary,
+	lantern_side: int = 0,
+	scale: float = 1.0,
+	with_banner: bool = false
+) -> void:
+	var wood: Color = style_data.post_color
+	var trim: Color = style_data.trim_color
+	var accent: Color = style_data.accent_color
+	var stone := active_theme.shoulder.darkened(0.16)
+	var metal := Color("46494d")
+
+	# Stone footing + chunky timber shaft.
+	box(parent, base_pos + Vector3(0, 0.18 * scale, 0), Vector3(0.92, 0.36, 0.80) * scale, stone)
+	box(parent, base_pos + Vector3(0, 0.47 * scale, 0), Vector3(0.68, 0.24, 0.62) * scale, stone.lightened(0.06))
+	box(parent, base_pos + Vector3(0, 1.42 * scale, 0), Vector3(0.50, 1.85, 0.50) * scale, wood)
+	box(parent, base_pos + Vector3(0, 2.38 * scale, 0), Vector3(0.66, 0.18, 0.62) * scale, wood.lightened(0.08))
+	cone(parent, base_pos + Vector3(0, 2.62 * scale, 0), 0.38 * scale, 0.34 * scale, accent.darkened(0.06), 0.08 * scale)
+
+	# Metal crest plate and rope wraps match the main gateway.
+	box(parent, base_pos + Vector3(0, 1.92 * scale, 0.29 * scale), Vector3(0.46, 0.46, 0.07) * scale, metal)
+	var crest = box(parent, base_pos + Vector3(0, 1.92 * scale, 0.335 * scale), Vector3(0.18, 0.18, 0.035) * scale, accent)
+	crest.rotation_degrees.z = 45.0
+	add_rope_wrap(parent, base_pos + Vector3(0, 0.83 * scale, 0), 0.60, scale)
+
+	if lantern_side != 0:
+		var direction: float = float(lantern_side)
+		box(parent, base_pos + Vector3(direction * 0.55 * scale, 2.18 * scale, 0), Vector3(0.95, 0.12, 0.14) * scale, wood.darkened(0.05))
+		box(parent, base_pos + Vector3(direction * 0.95 * scale, 1.98 * scale, 0), Vector3(0.06, 0.42, 0.06) * scale, metal)
+		add_waypoint_lantern(parent, base_pos + Vector3(direction * 0.95 * scale, 1.58 * scale, 0.02), 0.72 * scale)
+
+	if with_banner:
+		var banner_side: float = -float(lantern_side) if lantern_side != 0 else 1.0
+		add_waypoint_banner(parent, base_pos + Vector3(banner_side * 0.72 * scale, 1.45 * scale, 0.28 * scale), style_data, 0.72 * scale)
+
+func roadside_waymarker(
+	parent: Node3D,
+	base_pos: Vector3,
+	style_data: Dictionary,
+	side: int,
+	with_lantern: bool = false
+) -> void:
+	# Lightweight roadside variant keeps the recurring trail rhythm readable on
+	# web builds while sharing the same stone/wood/metal language as the hub.
+	var wood: Color = style_data.post_color
+	var trim: Color = style_data.trim_color
+	var accent: Color = style_data.accent_color
+	var stone := active_theme.shoulder.darkened(0.14)
+	var metal := Color("45494c")
+	box(parent, base_pos + Vector3(0, 0.12, 0), Vector3(0.52, 0.24, 0.48), stone)
+	box(parent, base_pos + Vector3(0, 0.72, 0), Vector3(0.24, 1.05, 0.24), wood)
+	box(parent, base_pos + Vector3(0, 1.30, 0), Vector3(0.38, 0.12, 0.34), trim)
+	var badge = box(parent, base_pos + Vector3(0, 0.94, 0.145), Vector3(0.13, 0.13, 0.025), accent, true)
+	badge.rotation_degrees.z = 45.0
+	if with_lantern:
+		var inward: float = -float(side)
+		box(parent, base_pos + Vector3(inward * 0.36, 1.18, 0), Vector3(0.62, 0.08, 0.10), wood)
+		add_waypoint_lantern(parent, base_pos + Vector3(inward * 0.62, 0.80, 0), 0.42)
+
+func add_gateway_brace(parent: Node3D, pos: Vector3, side: int, wood: Color) -> void:
+	var brace = box(parent, pos, Vector3(0.18, 1.22, 0.22), wood.darkened(0.05))
+	brace.rotation_degrees.z = 34.0 * float(side)
+
+func add_gateway_title_board(
+	parent: Node3D,
+	pos: Vector3,
+	style_data: Dictionary,
+	location_name: String
+) -> void:
+	var wood: Color = style_data.post_color.darkened(0.10)
+	var trim: Color = style_data.trim_color
+	var accent: Color = style_data.accent_color
+	box(parent, pos, Vector3(3.15, 0.76, 0.24), wood)
+	box(parent, pos + Vector3(0, 0.32, 0.05), Vector3(2.72, 0.08, 0.08), trim)
+	box(parent, pos + Vector3(0, -0.32, 0.05), Vector3(2.72, 0.08, 0.08), trim.darkened(0.08))
+	for x in [-1.48, 1.48]:
+		box(parent, pos + Vector3(x, 0, 0.02), Vector3(0.18, 0.58, 0.28), wood.lightened(0.06))
+	floating_text(parent, "WAYPOINT", pos + Vector3(0, 0.02, 0.16), Color("fff0c7"), 31)
+	floating_text(parent, location_name, pos + Vector3(0, -0.48, 0.14), accent, 14)
+
 func waypoint_destination_board(
 	parent: Node3D,
 	pos: Vector3,
@@ -739,106 +855,69 @@ func waypoint_destination_board(
 	accent: Color,
 	camp_return: bool = false
 ) -> void:
-	clickable_board(parent, pos, size, primary_color, route_id, false, camp_return)
-	# A thin high-contrast top rail standardizes the silhouette and remains
-	# readable against every biome/weather palette.
-	box(parent, pos + Vector3(0, size.y * 0.43, 0.04), Vector3(size.x * 0.94, 0.07, 0.08), accent)
-	floating_text(parent, label_text, pos + Vector3(0, 0.03, 0.18), Color("fff4d2"), 20)
+	# Click target remains the full board, while layered trim gives the simple
+	# procedural geometry the carved-sign silhouette from the RPG concept.
+	clickable_board(parent, pos, size, primary_color.darkened(0.08), route_id, false, camp_return)
+	box(parent, pos + Vector3(0, 0, 0.055), Vector3(size.x * 0.92, size.y * 0.76, 0.075), primary_color)
+	box(parent, pos + Vector3(0, size.y * 0.42, 0.075), Vector3(size.x * 0.90, 0.07, 0.08), accent)
+	box(parent, pos + Vector3(0, -size.y * 0.42, 0.075), Vector3(size.x * 0.90, 0.07, 0.08), accent.darkened(0.14))
+	for x in [-size.x * 0.44, size.x * 0.44]:
+		var rivet = box(parent, pos + Vector3(x, 0, 0.12), Vector3(0.09, 0.09, 0.04), accent)
+		rivet.rotation_degrees.z = 45.0
+	floating_text(parent, label_text, pos + Vector3(0, 0.03, 0.18), Color("fff4d2"), 19)
 
 func road_end_waypoint(finish_z: float) -> void:
-	# Standard road-end grammar:
-	# 1) a location arch says where the player just arrived,
-	# 2) three destination boards use consistent placement and difficulty labels,
-	# 3) Lantern Camp is always the lowest/right return option.
-	# Colors and the small finial motif change per completed location.
+	# Hero checkpoint inspired by classic RPG hubs: stone-footed timber gateway,
+	# crest plates, rope/metal trim, hanging lanterns, banners, and carved route
+	# boards. Geometry stays procedural so every biome inherits the same visual
+	# language while keeping its own route palette.
 	var current_route_id: String = str(state.data.get("route", "moss"))
 	var current_route: Dictionary = Catalog.ROUTES.get(current_route_id, Catalog.ROUTES["moss"])
 	var style_data: Dictionary = waypoint_style_for(current_route_id)
 	var post_color: Color = style_data.post_color
 	var trim_color: Color = style_data.trim_color
 	var accent_color: Color = style_data.accent_color
+	var z: float = finish_z + 0.05
 
-	# Twin-post gateway is easier to parse than the old single crowded pole.
-	var left_post := Vector3(-2.35, 1.90, finish_z + 0.05)
-	var right_post := Vector3(2.35, 1.90, finish_z + 0.05)
-	box(scenery, left_post, Vector3(0.34, 4.20, 0.34), post_color)
-	box(scenery, right_post, Vector3(0.34, 4.20, 0.34), post_color)
-	box(scenery, Vector3(0, 3.63, finish_z + 0.05), Vector3(5.05, 0.30, 0.34), post_color)
-	box(scenery, Vector3(0, 3.46, finish_z + 0.12), Vector3(4.55, 0.11, 0.10), trim_color)
-	add_waypoint_motif(scenery, current_route_id, left_post + Vector3(0, 2.28, 0), style_data)
-	add_waypoint_motif(scenery, current_route_id, right_post + Vector3(0, 2.28, 0), style_data)
+	add_waypoint_post(scenery, Vector3(-2.48, 0, z), style_data, 1, 1.02, true)
+	add_waypoint_post(scenery, Vector3(2.48, 0, z), style_data, -1, 1.02, true)
 
-	floating_text(
+	# Heavy crossbeam and diagonal braces create a recognizable silhouette.
+	box(scenery, Vector3(0, 3.18, z), Vector3(5.55, 0.38, 0.46), post_color)
+	box(scenery, Vector3(0, 3.39, z + 0.02), Vector3(5.12, 0.09, 0.18), trim_color)
+	for x in [-1.82, 1.82]:
+		box(scenery, Vector3(x, 3.18, z + 0.24), Vector3(0.16, 0.54, 0.08), Color("45484b"))
+	add_gateway_brace(scenery, Vector3(-1.95, 2.72, z), -1, post_color)
+	add_gateway_brace(scenery, Vector3(1.95, 2.72, z), 1, post_color)
+
+	add_gateway_title_board(
 		scenery,
-		"WAYPOINT  •  " + str(style_data.get("label", str(current_route.name).to_upper())),
-		Vector3(0, 4.22, finish_z + 0.10),
-		accent_color,
-		24
+		Vector3(0, 2.86, z + 0.18),
+		style_data,
+		str(style_data.get("label", str(current_route.name).to_upper()))
 	)
+
+	# Central crest and two warm lanterns make the checkpoint readable at a
+	# glance even before the text becomes legible.
+	var crest_back = box(scenery, Vector3(0, 3.72, z + 0.06), Vector3(0.92, 0.62, 0.22), trim_color.darkened(0.28))
+	crest_back.rotation_degrees.z = 0.0
+	add_waypoint_motif(scenery, current_route_id, Vector3(0, 3.55, z + 0.22), style_data)
+	add_waypoint_lantern(scenery, Vector3(-1.42, 2.70, z + 0.24), 0.74)
+	add_waypoint_lantern(scenery, Vector3(1.42, 2.70, z + 0.24), 0.74)
+
 	floating_text(
 		scenery,
-		"ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD",
-		Vector3(0, 3.90, finish_z + 0.10),
-		active_theme.text,
+		"ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD OR CAMP",
+		Vector3(0, 4.18, z + 0.10),
+		accent_color,
 		16
 	)
 
 	var options: Array = route_options_for_stage()
 	var board_layout: Array = [
-		{"pos":Vector3(-1.05, 2.92, finish_z + 0.16), "size":Vector3(3.45, 0.58, 0.26)},
-		{"pos":Vector3(1.05, 2.15, finish_z + 0.16), "size":Vector3(3.45, 0.58, 0.26)},
-		{"pos":Vector3(-1.05, 1.38, finish_z + 0.16), "size":Vector3(3.45, 0.58, 0.26)}
-	]
-	for i in range(mini(options.size(), board_layout.size())):
-		var route_id: String = str(options[i])
-		var route: Dictionary = Catalog.ROUTES[route_id]
-		var board: Dictionary = board_layout[i]
-		var destination_color: Color = Color(str(route.get("color", "c59b61"))).darkened(0.16)
-		var difficulty_label: String = str(route.get("difficulty_label", "ROAD"))
-		waypoint_destination_board(
-			scenery,
-			board.pos,
-			board.size,
-			route_id,
-			"→  %s  •  %s" % [str(route.name).to_upper(), difficulty_label],
-			destination_color,
-			Color(str(route.get("color", "c59b61"))).lightened(0.12)
-		)
-
-	var camp_pos := Vector3(1.05, 0.61, finish_z + 0.19)
-	waypoint_destination_board(
-		scenery,
-		camp_pos,
-		Vector3(3.35, 0.58, 0.26),
-		"",
-		"↩  LANTERN CAMP  •  REST / SUPPLIES",
-		Color("52685f"),
-		Color("c6d8b4"),
-		true
-	)
-
-	# Ground pads frame the interaction zone consistently in every biome.
-	for x in [-2.25, 0.0, 2.25]:
-		box(scenery, Vector3(x, 0.08, finish_z + 1.40), Vector3(1.55, 0.12, 1.55), active_theme.shoulder)
-	box(scenery, Vector3(0, 0.10, finish_z + 0.74), Vector3(5.40, 0.08, 0.20), trim_color.darkened(0.12))
-
-func crossroads(finish_z: float) -> void:
-	# Crossroads reuses the destination-board grammar from Road End so route
-	# selection behaves the same everywhere.
-	var current_route_id: String = str(state.data.get("route", "moss"))
-	var style_data: Dictionary = waypoint_style_for(current_route_id)
-	var post_color: Color = style_data.post_color
-	var trim_color: Color = style_data.trim_color
-	box(scenery, Vector3(-1.95, 1.58, finish_z), Vector3(0.30, 3.45, 0.30), post_color)
-	box(scenery, Vector3(1.95, 1.58, finish_z), Vector3(0.30, 3.45, 0.30), post_color)
-	box(scenery, Vector3(0, 2.96, finish_z), Vector3(4.25, 0.26, 0.30), post_color)
-	box(scenery, Vector3(0, 2.80, finish_z + 0.05), Vector3(3.85, 0.08, 0.08), trim_color)
-
-	var options: Array = route_options_for_stage()
-	var board_layout: Array = [
-		{"pos":Vector3(-0.95, 2.28, finish_z + 0.10), "size":Vector3(3.05, 0.52, 0.24)},
-		{"pos":Vector3(0.95, 1.62, finish_z + 0.10), "size":Vector3(3.05, 0.52, 0.24)},
-		{"pos":Vector3(-0.95, 0.96, finish_z + 0.10), "size":Vector3(3.05, 0.52, 0.24)}
+		{"pos":Vector3(-0.92, 2.02, z + 0.24), "size":Vector3(3.28, 0.54, 0.25)},
+		{"pos":Vector3(0.92, 1.39, z + 0.24), "size":Vector3(3.28, 0.54, 0.25)},
+		{"pos":Vector3(-0.92, 0.76, z + 0.24), "size":Vector3(3.28, 0.54, 0.25)}
 	]
 	for i in range(mini(options.size(), board_layout.size())):
 		var route_id: String = str(options[i])
@@ -851,13 +930,74 @@ func crossroads(finish_z: float) -> void:
 			board.size,
 			route_id,
 			"→  %s  •  %s" % [str(route.name).to_upper(), str(route.get("difficulty_label", "ROAD"))],
-			route_color.darkened(0.18),
-			route_color.lightened(0.12)
+			route_color.darkened(0.20),
+			route_color.lightened(0.16)
 		)
 
-	floating_text(scenery, "CROSSROADS  •  CHOOSE YOUR NEXT ROAD", Vector3(0, 3.35, finish_z + 0.10), active_theme.text, 19)
+	var camp_pos := Vector3(0.92, 0.18, z + 0.26)
+	waypoint_destination_board(
+		scenery,
+		camp_pos,
+		Vector3(3.18, 0.52, 0.25),
+		"",
+		"↩  LANTERN CAMP  •  REST / SUPPLIES",
+		Color("52685f"),
+		Color("c6d8b4"),
+		true
+	)
+
+	# Small stones/moss around the feet visually anchor the gateway instead of
+	# leaving it floating on top of the road tiles.
+	for side in [-1, 1]:
+		var sx: float = float(side) * 3.00
+		box(scenery, Vector3(sx, 0.16, z + 0.38), Vector3(0.56, 0.32, 0.48), active_theme.shoulder.darkened(0.08))
+		cone(scenery, Vector3(sx + float(side) * 0.34, 0.16, z + 0.44), 0.18, 0.32, active_theme.shrub, 0.04)
+
+	for x in [-2.25, 0.0, 2.25]:
+		box(scenery, Vector3(x, 0.08, z + 1.38), Vector3(1.55, 0.12, 1.55), active_theme.shoulder)
+	box(scenery, Vector3(0, 0.10, z + 0.72), Vector3(5.40, 0.08, 0.20), trim_color.darkened(0.12))
+
+func crossroads(finish_z: float) -> void:
+	# Smaller route-selection counterpart to the road-end gateway. It reuses the
+	# same timber/stone/lantern language so players recognize navigation props
+	# everywhere in the world.
+	var current_route_id: String = str(state.data.get("route", "moss"))
+	var style_data: Dictionary = waypoint_style_for(current_route_id)
+	var post_color: Color = style_data.post_color
+	var trim_color: Color = style_data.trim_color
+	var z: float = finish_z + 0.04
+
+	add_waypoint_post(scenery, Vector3(-2.12, 0, z), style_data, 1, 0.78, false)
+	add_waypoint_post(scenery, Vector3(2.12, 0, z), style_data, -1, 0.78, false)
+	box(scenery, Vector3(0, 2.43, z), Vector3(4.55, 0.30, 0.34), post_color)
+	box(scenery, Vector3(0, 2.60, z + 0.02), Vector3(4.15, 0.08, 0.14), trim_color)
+	add_waypoint_lantern(scenery, Vector3(-1.45, 2.10, z + 0.18), 0.55)
+	add_waypoint_lantern(scenery, Vector3(1.45, 2.10, z + 0.18), 0.55)
+
+	var options: Array = route_options_for_stage()
+	var board_layout: Array = [
+		{"pos":Vector3(-0.90, 1.82, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)},
+		{"pos":Vector3(0.90, 1.22, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)},
+		{"pos":Vector3(-0.90, 0.62, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)}
+	]
+	for i in range(mini(options.size(), board_layout.size())):
+		var route_id: String = str(options[i])
+		var route: Dictionary = Catalog.ROUTES[route_id]
+		var board: Dictionary = board_layout[i]
+		var route_color: Color = Color(str(route.get("color", "c59b61")))
+		waypoint_destination_board(
+			scenery,
+			board.pos,
+			board.size,
+			route_id,
+			"→  %s  •  %s" % [str(route.name).to_upper(), str(route.get("difficulty_label", "ROAD"))],
+			route_color.darkened(0.20),
+			route_color.lightened(0.14)
+		)
+
+	floating_text(scenery, "CROSSROADS  •  CHOOSE YOUR NEXT ROAD", Vector3(0, 3.02, z + 0.10), active_theme.text, 19)
 	for x in [-2.2, 0.0, 2.2]:
-		box(scenery, Vector3(x, 0.08, finish_z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
+		box(scenery, Vector3(x, 0.08, z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
 
 func guardian() -> void:
 	var root = Node3D.new()
