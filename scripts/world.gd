@@ -758,9 +758,35 @@ func camp() -> void:
 	if not visuals.simple_mode:
 		add_waypoint_lantern(scenery, market_pos + Vector3(1.25, -0.58, 0.08), 0.50)
 
-	for i in range(int(state.data.camp_level)):
-		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
+	build_camp_progression()
 	build_cat_companion()
+
+func build_camp_progression() -> void:
+	var level: int = clampi(int(state.data.get("camp_level", 0)), 0, 3)
+	if level <= 0:
+		return
+
+	# Level 1: a permanent pair of warm path lanterns.
+	add_waypoint_lantern(scenery, Vector3(-2.65, 0.74, -6.85), 0.72)
+	add_waypoint_lantern(scenery, Vector3(2.65, 0.74, -6.85), 0.72)
+
+	if level >= 2:
+		# Level 2: a small supply rack beside the tent.
+		var rack_color := active_theme.post.darkened(0.04)
+		box(scenery, Vector3(-4.55, 0.68, -6.15), Vector3(1.45, 0.16, 0.50), rack_color)
+		for x in [-0.55, 0.55]:
+			box(scenery, Vector3(-4.55 + x, 0.34, -6.15), Vector3(0.14, 0.68, 0.14), rack_color)
+		box(scenery, Vector3(-4.82, 0.90, -6.15), Vector3(0.34, 0.34, 0.34), Color("9f7b55"))
+		box(scenery, Vector3(-4.30, 0.90, -6.15), Vector3(0.28, 0.42, 0.28), Color("738b72"))
+
+	if level >= 3:
+		# Level 3: a trophy crest overlooking the fire.
+		var crest_post := active_theme.post.darkened(0.08)
+		box(scenery, Vector3(0, 1.20, -7.45), Vector3(0.20, 2.20, 0.20), crest_post)
+		box(scenery, Vector3(0, 2.22, -7.45), Vector3(2.10, 0.18, 0.24), crest_post)
+		var trophy = box(scenery, Vector3(0, 2.55, -7.36), Vector3(0.42, 0.42, 0.12), Color("e1bd68"), true)
+		trophy.rotation_degrees.z = 45.0
+		floating_text(scenery, "WAYFARER CAMP", Vector3(0, 2.90, -7.30), active_theme.text, 18)
 
 func pose_actor_at_camp() -> void:
 	# Spawn on the ground beside the camp path, not on top of the bench. From
@@ -1380,6 +1406,15 @@ func refresh_props() -> void:
 			"heal":
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.2, 0.6, 0.2), Color("a7eac2"), true)
 				box(props, pos + Vector3(0, 0.35, 0), Vector3(0.6, 0.2, 0.2), Color("a7eac2"), true)
+			"rare_event":
+				var event_root := Node3D.new()
+				event_root.position = pos
+				props.add_child(event_root)
+				box(event_root, Vector3(0, 0.48, 0), Vector3(0.82, 0.86, 0.54), Color("4d6059"))
+				var event_mark = box(event_root, Vector3(0, 0.92, 0.30), Vector3(0.28, 0.28, 0.06), Color("e1bd68"), true)
+				event_mark.rotation_degrees.z = 45.0
+				register_adventure_idle_object(event_root, "pulse", float(cell_row) * 0.27)
+				floating_text(props, "?", pos + Vector3(0, 1.42, 0), Color("f0d98c"), 28)
 			"spike":
 				match str(state.data.route):
 					"gloomwood":
