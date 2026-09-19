@@ -605,6 +605,11 @@ func begin(class_id: String = "") -> void:
 	prepare_new_expedition()
 
 func make_room(route: String) -> void:
+	# Route IDs can originate from UI, AI directives, or migrated state. Never
+	# allow an unknown key to index the catalog and crash the session.
+	if route not in Catalog.ROUTES:
+		data.last = "Unknown road request; returning to Moss Trail."
+		route = "moss"
 	data.route = route
 	data.environment = roll_environment(route)
 	data.mode = "travel"
