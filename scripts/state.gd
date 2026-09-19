@@ -17,7 +17,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":9,
+		"version":10,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -51,6 +51,8 @@ func reset() -> void:
 		"relic_charge":0,
 		"gems":0,
 		"fish_caught":0,
+		"odyssey_shards":0,
+		"odyssey_caches":0,
 		"last":"Welcome, little wanderer. Your first journey starts here."
 	}
 
@@ -271,6 +273,7 @@ func begin(class_id: String = "") -> void:
 	data.bag = 0
 	data.blessing = 0
 	data.streak = 0
+	data.odyssey_shards = 0
 	data.mode = "choice"
 	data.last = "Choose a route. Every road has something to offer."
 
@@ -321,6 +324,8 @@ func make_room(route: String) -> void:
 				cell.kind = "coin" if row % 2 == 0 else "empty"
 	# Optional roadside discoveries: players can stay on the safe corridor or detour.
 	place_special_cell(6, int(corridor_lanes[6]), "campfire", local_rng)
+	# Retention hook: every trail hides one optional Waypoint Shard away from the safe corridor.
+	place_special_cell(10, int(corridor_lanes[10]), "waypoint_shard", local_rng)
 	place_special_cell(12, int(corridor_lanes[12]), "fishing", local_rng)
 	if local_rng.randf() < (0.78 if route in ["frost", "fen"] else 0.48):
 		place_special_cell(15, int(corridor_lanes[15]), "gear_cache", local_rng)
@@ -379,6 +384,18 @@ func enemy_elite(cell: Dictionary) -> bool:
 
 func add_relic_charge(amount: int) -> void:
 	data.relic_charge = clampi(int(data.relic_charge) + amount, 0, 100)
+
+func collect_waypoint_shard() -> String:
+	if int(data.odyssey_shards) >= 3:
+		add_relic_charge(5)
+		return "The shard answers your opened cache. +5 Relic charge."
+	data.odyssey_shards = mini(3, int(data.odyssey_shards) + 1)
+	add_relic_charge(8)
+	if int(data.odyssey_shards) >= 3:
+		data.odyssey_caches += 1
+		var cache_loot: String = award_gear(true, true, "ODYSSEY CACHE")
+		return "Waypoint Shard 3 / 3! Odyssey Cache cracked: " + cache_loot
+	return "Waypoint Shard %d / 3 found. The hidden cache is getting closer." % int(data.odyssey_shards)
 
 func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 	var profile: Dictionary = enemy_profile(kind)
@@ -466,6 +483,8 @@ func jump_hop(direction: int = 0) -> String:
 				data.gems += amount
 				add_relic_charge(10 * amount)
 				landing_result = "Found %d gem%s! Relic energy rises." % [amount, "" if amount == 1 else "s"]
+			"waypoint_shard":
+				landing_result = collect_waypoint_shard()
 			"heal":
 				data.potions.heal += 1
 				landing_result = "Found a healing potion."
@@ -522,6 +541,8 @@ func hop(direction: int) -> String:
 				data.gems += amount
 				add_relic_charge(10 * amount)
 				result = "Found %d gem%s! Relic energy rises." % [amount, "" if amount == 1 else "s"]
+			"waypoint_shard":
+				result = collect_waypoint_shard()
 			"heal":
 				data.potions.heal += 1
 				result = "Found a healing potion."
@@ -811,7 +832,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [9, 9.0]:
+	if value.get("version") not in [10, 10.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -824,10 +845,12 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "odyssey_shards", "odyssey_caches"]:
 		if not (value[key] is int or value[key] is float):
 			return false
 	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0:
+		return false
+	if int(value.odyssey_shards) < 0 or int(value.odyssey_shards) > 3 or int(value.odyssey_caches) < 0:
 		return false
 	if not value.inventory is Array or not value.cells is Array or not value.equipped is Dictionary or not value.potions is Dictionary:
 		return false
@@ -878,7 +901,7 @@ func valid_save(value: Variant) -> bool:
 				return false
 		if not (cell.row is float or cell.row is int) or not (cell.lane is float or cell.lane is int) or not cell.cleared is bool:
 			return false
-		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "slime", "goblin", "kobold", "ogre"]:
+		if int(cell.row) < 1 or int(cell.row) > GENERATED_ROWS or absi(int(cell.lane)) > 1 or cell.kind not in ["empty", "coin", "gem", "heal", "spike", "campfire", "fishing", "gear_cache", "waypoint_shard", "slime", "goblin", "kobold", "ogre"]:
 			return false
 		var cell_key: String = "%d:%d" % [int(cell.row), int(cell.lane)]
 		if seen.has(cell_key):
@@ -909,6 +932,10 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.gems = 0
 	if not migrated.has("fish_caught"):
 		migrated.fish_caught = 0
+	if not migrated.has("odyssey_shards"):
+		migrated.odyssey_shards = 0
+	if not migrated.has("odyssey_caches"):
+		migrated.odyssey_caches = 0
 	if not migrated.has("cosmetics_owned") or not migrated.cosmetics_owned is Array:
 		migrated.cosmetics_owned = []
 	if not migrated.has("cosmetics_equipped") or not migrated.cosmetics_equipped is Dictionary:
@@ -929,7 +956,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 9
+	migrated.version = 10
 	return migrated
 
 func load_game() -> bool:
@@ -940,7 +967,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed
