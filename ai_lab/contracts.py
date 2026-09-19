@@ -1,5 +1,10 @@
 from __future__ import annotations
-ALLOWED_ROUTES={"moss","forge","shrine","treasure","frost","fen","gloomwood"}
+import json
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parents[1]
+_ROUTE_CATALOG = json.loads((_ROOT / "game_data" / "routes.json").read_text(encoding="utf-8"))
+ALLOWED_ROUTES = set(_ROUTE_CATALOG)
 ALLOWED_TYPES={"world_event","challenge","collectible_rumor","market_special","route_modifier"}
 ALLOWED_EXPERIMENTS={"none","market_discount","route_coin_bonus","enemy_pressure","obstacle_pressure"}
 WORLD_SCHEMA={
