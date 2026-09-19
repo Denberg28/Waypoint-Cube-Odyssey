@@ -31,9 +31,12 @@ var left_foot: MeshInstance3D
 var right_foot: MeshInstance3D
 var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
-const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.21, -0.08, 0.04)
-const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.21, -0.08, 0.04)
-const ACTOR_FOOT_SIZE := Vector3(0.24, 0.16, 0.34)
+const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.20, -0.07, 0.00)
+const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.20, -0.07, 0.00)
+const ACTOR_FOOT_SIZE := Vector3(0.22, 0.14, 0.24)
+const ACTOR_LEFT_ARM_NEUTRAL := Vector3(-0.54, 0.30, 0.00)
+const ACTOR_RIGHT_ARM_NEUTRAL := Vector3(0.54, 0.30, 0.00)
+const ACTOR_ARM_SIZE := Vector3(0.16, 0.34, 0.18)
 var active_theme: Dictionary = {}
 var brightness_scale: float = 1.0
 var idle_anchor_position: Vector3 = Vector3.ZERO
@@ -294,15 +297,21 @@ func refresh_actor(preview_class: String = "", preview_skin: int = -1) -> void:
 	box(actor, Vector3(0, 0.08, 0), Vector3(0.62, 0.34, 0.52), skin.darkened(0.08))
 	left_foot = box(actor, ACTOR_LEFT_FOOT_NEUTRAL, ACTOR_FOOT_SIZE, Color("355c58"))
 	right_foot = box(actor, ACTOR_RIGHT_FOOT_NEUTRAL, ACTOR_FOOT_SIZE, Color("355c58"))
-	left_arm = box(actor, Vector3(-0.55, 0.20, 0), Vector3(0.18, 0.46, 0.22), skin.darkened(0.12))
-	right_arm = box(actor, Vector3(0.55, 0.20, 0), Vector3(0.18, 0.46, 0.22), skin.darkened(0.12))
+	left_arm = box(actor, ACTOR_LEFT_ARM_NEUTRAL, ACTOR_ARM_SIZE, skin.darkened(0.12))
+	right_arm = box(actor, ACTOR_RIGHT_ARM_NEUTRAL, ACTOR_ARM_SIZE, skin.darkened(0.12))
 	for x in [-0.19, 0.19]:
 		box(actor, Vector3(x, 0.72, 0.467), Vector3(0.09, 0.13, 0.025), Color("17333a"))
 		box(actor, Vector3(x + 0.016, 0.755, 0.483), Vector3(0.026, 0.032, 0.01), Color("fff6dc"))
 	box(actor, Vector3(0, 0.49, 0.473), Vector3(0.17, 0.045, 0.022), Color("784f49"))
 	box(actor, Vector3(0, 0.21, 0), Vector3(0.72, 0.12, 0.58), Color("397e7d"))
 	if state.data.equipped.shell != "":
-		box(actor, Vector3(0, 0.25, -0.02), Vector3(0.96, 0.23, 0.96), Color("778782"))
+		# Shell equipment is surface armor, never a solid cube through the lower
+		# torso. Thin plates prevent the old slab-like front clipping artifact.
+		var shell_color := Color("778782")
+		box(actor, Vector3(0, 0.46, 0.475), Vector3(0.72, 0.42, 0.055), shell_color)
+		box(actor, Vector3(0, 0.46, -0.475), Vector3(0.72, 0.42, 0.055), shell_color.darkened(0.06))
+		box(actor, Vector3(-0.475, 0.42, 0), Vector3(0.055, 0.36, 0.62), shell_color.darkened(0.03))
+		box(actor, Vector3(0.475, 0.42, 0), Vector3(0.055, 0.36, 0.62), shell_color.darkened(0.03))
 	if state.data.equipped.core != "":
 		box(actor, Vector3(0, 0.62, -0.46), Vector3(0.26, 0.26, 0.08), Color("ffdf92"), true)
 	if state.data.equipped.charm != "":
@@ -1327,10 +1336,10 @@ func reset_walk_pose() -> void:
 		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL
 		right_foot.rotation = Vector3.ZERO
 	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.55, 0.20, 0)
+		left_arm.position = ACTOR_LEFT_ARM_NEUTRAL
 		left_arm.rotation = Vector3.ZERO
 	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.55, 0.20, 0)
+		right_arm.position = ACTOR_RIGHT_ARM_NEUTRAL
 		right_arm.rotation = Vector3.ZERO
 
 func walk_to(pos: Vector3) -> void:
@@ -1347,18 +1356,16 @@ func walk_to(pos: Vector3) -> void:
 		actor.position = start.lerp(pos, t) + Vector3(0, absf(gait) * 0.075, 0)
 		actor.rotation.y = PI + clampf(travel.x * 0.05, -0.12, 0.12)
 		actor.rotation.z = -gait * 0.025
-		var left_lift: float = maxf(0.0, gait) * 0.045
-		var right_lift: float = maxf(0.0, -gait) * 0.045
 		if is_instance_valid(left_foot):
 			left_foot.rotation = Vector3.ZERO
-			left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL + Vector3(0, left_lift, 0)
+			left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL
 		if is_instance_valid(right_foot):
 			right_foot.rotation = Vector3.ZERO
-			right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL + Vector3(0, right_lift, 0)
+			right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL
 		if is_instance_valid(left_arm):
-			left_arm.rotation.x = -gait * 0.42
+			left_arm.rotation.x = -gait * 0.16
 		if is_instance_valid(right_arm):
-			right_arm.rotation.x = gait * 0.42
+			right_arm.rotation.x = gait * 0.16
 	, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
 	actor.position = pos
@@ -1427,11 +1434,11 @@ func apply_camp_fire_rest() -> void:
 	actor.rotation.z = 0.0
 	actor.look_at(Vector3(0.0, actor.position.y, -5.15), Vector3.UP, true)
 	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.46, 0.24, 0.15)
-		left_arm.rotation = Vector3(-0.30 + breath * 0.025, 0, 0)
+		left_arm.position = Vector3(-0.46, 0.32, 0.10)
+		left_arm.rotation = Vector3(-0.18 + breath * 0.020, 0, 0)
 	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.46, 0.24, 0.15)
-		right_arm.rotation = Vector3(-0.30 - breath * 0.025, 0, 0)
+		right_arm.position = Vector3(0.46, 0.32, 0.10)
+		right_arm.rotation = Vector3(-0.18 - breath * 0.020, 0, 0)
 
 func select_actor_fire_rest_target() -> void:
 	var index: int = camp_roam_rng.randi_range(0, camp_actor_fire_rest_points.size() - 1)
@@ -1500,20 +1507,18 @@ func update_camp_actor_roam(delta: float) -> void:
 
 	# Stable low-amplitude positional gait. Boots never rotate independently.
 	var gait: float = sin(elapsed * 5.2)
-	var left_lift: float = maxf(0.0, gait) * 0.045
-	var right_lift: float = maxf(0.0, -gait) * 0.045
 	if is_instance_valid(left_foot):
 		left_foot.rotation = Vector3.ZERO
-		left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL + Vector3(0, left_lift, 0)
+		left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL
 	if is_instance_valid(right_foot):
 		right_foot.rotation = Vector3.ZERO
-		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL + Vector3(0, right_lift, 0)
+		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL
 	if is_instance_valid(left_arm):
-		left_arm.position = Vector3(-0.55, 0.20, 0)
-		left_arm.rotation = Vector3(-gait * 0.12, 0, 0)
+		left_arm.position = ACTOR_LEFT_ARM_NEUTRAL
+		left_arm.rotation = Vector3(-gait * 0.08, 0, 0)
 	if is_instance_valid(right_arm):
-		right_arm.position = Vector3(0.55, 0.20, 0)
-		right_arm.rotation = Vector3(gait * 0.12, 0, 0)
+		right_arm.position = ACTOR_RIGHT_ARM_NEUTRAL
+		right_arm.rotation = Vector3(gait * 0.08, 0, 0)
 
 func select_cat_fire_rest_target() -> void:
 	var index: int = camp_roam_rng.randi_range(0, camp_cat_fire_rest_points.size() - 1)
