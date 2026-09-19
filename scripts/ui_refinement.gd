@@ -91,9 +91,6 @@ func _refine_surfaces() -> void:
 	var modal_panel := _get_control("panel")
 	if modal_panel is PanelContainer:
 		(modal_panel as PanelContainer).add_theme_stylebox_override("panel", _style(PANEL_BG_ALT, 14, Color("567e6d"), 12))
-	var route_panel := _get_control("route_panel")
-	if route_panel is PanelContainer:
-		(route_panel as PanelContainer).add_theme_stylebox_override("panel", _style(Color("122f30"), 12, Color("6c8d7f"), 10))
 	var fight_card := _get_control("fight_card")
 	if fight_card is PanelContainer:
 		(fight_card as PanelContainer).add_theme_stylebox_override("panel", _style(Color("112d30"), 12, Color("c9ad70"), 10))
