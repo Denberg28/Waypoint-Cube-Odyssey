@@ -36,7 +36,6 @@ func _run_smoke() -> void:
 		_fail("camera missing", 4)
 		return
 
-	finished = true
 	# Rebuild as Lantern Camp and ensure persistent hub services are physically
 	# reachable from the 3D world, not only from menu code.
 	game.data.mode = "camp"
@@ -114,6 +113,7 @@ func _run_smoke() -> void:
 		_fail("Lantern Camp actor did not resume roaming after bonfire rest", 17)
 		return
 
+	finished = true
 	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present calm_actor=verified actor_fire_rest=verified cat_fire_rest=verified camera=", world.camera.position)
 	quit(0)
 
