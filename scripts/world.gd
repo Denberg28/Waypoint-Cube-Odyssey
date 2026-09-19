@@ -647,10 +647,23 @@ func camp() -> void:
 	box(scenery, Vector3(3.8, 2.7, -7), Vector3(0.7, 0.8, 0.7), active_theme.text, true)
 	floating_text(scenery, "LANTERN CAMP", Vector3(0, 3.5, -8), active_theme.text, 48)
 
-	# Keep camp navigation intentionally simple: one clear way back to the adventure.
+	# Camp presents the two persistent hub actions directly in the world:
+	# continue the journey on the right, marketplace/companion care on the left.
 	var continue_pos := Vector3(4.55, 1.95, -4.70)
-	clickable_board(scenery, continue_pos, Vector3(3.05, 0.62, 0.24), Color("78906f"), "", false, false, true)
+	var continue_board := clickable_board(scenery, continue_pos, Vector3(3.05, 0.62, 0.24), Color("78906f"), "", false, false, true)
+	continue_board.name = "CampContinueAdventure"
 	floating_text(scenery, "CONTINUE ADVENTURE", continue_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 20)
+
+	var market_pos := Vector3(-4.55, 1.95, -4.70)
+	var market_board := clickable_board(scenery, market_pos, Vector3(3.25, 0.62, 0.24), Color("8e7654"), "", true, false, false)
+	market_board.name = "CampMarketplace"
+	floating_text(scenery, "MARKETPLACE  •  CAT COMPANION", market_pos + Vector3(0, 0.03, 0.16), Color("fff0bd"), 18)
+
+	# Small hanging lantern makes the market sign read as a camp service, while
+	# staying within the lightweight visual budget.
+	if not visuals.simple_mode:
+		add_waypoint_lantern(scenery, market_pos + Vector3(1.25, -0.58, 0.08), 0.50)
+
 	for i in range(int(state.data.camp_level)):
 		box(scenery, Vector3(3.7 + i * 0.5, 0.3, -3), Vector3(0.38, 0.7, 0.38), Color("b2d58c"))
 	build_cat_companion()
