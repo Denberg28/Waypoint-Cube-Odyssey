@@ -97,6 +97,13 @@ var fight_balance: ProgressBar
 var fight_balance_label: Label
 var fight_enemy_gear: Label
 var side_challenge: Label
+var side_best_button: Button
+var side_inventory_button: Button
+var side_heal_button: Button
+var side_mana_button: Button
+var compact_best_button: Button
+var compact_heal_button: Button
+var compact_mana_button: Button
 var brightness_mode: int = 0
 var brightness_buttons: Array = []
 var fishing_layer: Control
