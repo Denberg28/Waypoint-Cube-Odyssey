@@ -1118,7 +1118,7 @@ func update_hud() -> void:
 		var cat_line: String = cat_hud
 		if bool(game.data.get("cat_owned", false)):
 			cat_line += "  •  LV %d %s  •  %s" % [game.cat_level(), game.cat_rank_name(), game.cat_buff_text()]
-		side_challenge.text = "EXPEDITION  •  THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%\nFISH %d/%d   •   %s\nPEARLS %d   •   EMBERS %d   •   SKYFEATHERS %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_stock), int(game.data.fish_caught), cat_line, int(game.data.prismatic_pearls), int(game.data.ember_shards), int(game.data.skyfeathers)]
+		side_challenge.text = "EXPEDITION  •  THREAT %d / 5   •   STREAK ×%d\n%s\nRELIC %s   •   RESOLVE %d%%\n%s\nFISH %d/%d   •   %s\nPEARLS %d   •   EMBERS %d   •   SKYFEATHERS %d" % [game.danger_level(), int(game.data.streak), game.objective_text(), relic_text, int(game.data.resolve), game.camp_renown_text(), int(game.data.fish_stock), int(game.data.fish_caught), cat_line, int(game.data.prismatic_pearls), int(game.data.ember_shards), int(game.data.skyfeathers)]
 		var safe_waypoint: bool = game.data.mode in ["camp", "rest", "choice"]
 		if is_instance_valid(side_best_button):
 			side_best_button.disabled = busy or not safe_waypoint or game.data.inventory.is_empty()
