@@ -96,6 +96,9 @@ var fight_title: Label
 var fight_status: Label
 var fight_player: ColorRect
 var fight_enemy: ColorRect
+var fight_balance: ProgressBar
+var fight_balance_label: Label
+var fight_enemy_gear: Label
 var side_challenge: Label
 var brightness_mode: int = 0
 var brightness_buttons: Array = []
@@ -668,7 +671,7 @@ func build_ui() -> void:
 	fight_scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fight_layer.add_child(fight_scrim)
 	fight_card = PanelContainer.new()
-	place_bottom_card(fight_card, WINDOW_FIGHT_WIDTH, 138.0)
+	place_bottom_card(fight_card, WINDOW_FIGHT_WIDTH, 188.0)
 	fight_card.pivot_offset = Vector2(185, 80)
 	fight_card.add_theme_stylebox_override("panel", style(Color("112d30"), 18, Color("e8c77f")))
 	fight_layer.add_child(fight_card)
@@ -722,6 +725,23 @@ func build_ui() -> void:
 	var foe = label("FOE", 12, Color("e5b08e"))
 	foe.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	enemy_box.add_child(foe)
+	fight_enemy_gear = label("", 9, MUTED)
+	fight_enemy_gear.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fight_stack.add_child(fight_enemy_gear)
+
+	fight_balance_label = label("FOE  ◀  STRUGGLE  ▶  YOU", 9, MUTED)
+	fight_balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	fight_stack.add_child(fight_balance_label)
+	fight_balance = ProgressBar.new()
+	fight_balance.min_value = 0
+	fight_balance.max_value = 100
+	fight_balance.value = 50
+	fight_balance.show_percentage = false
+	fight_balance.custom_minimum_size = Vector2(300, 10)
+	fight_balance.add_theme_stylebox_override("background", style(Color("3a4545"), 5))
+	fight_balance.add_theme_stylebox_override("fill", style(Color("9bddc2"), 5))
+	fight_stack.add_child(fight_balance)
+
 	fight_status = label("", 12, INK)
 	fight_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	fight_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2219,28 +2239,39 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	if not is_instance_valid(fight_layer):
 		return
 	var enemy_defeated: bool = "defeated" in result.to_lower() or (kind == "guardian" and str(game.data.mode) == "victory")
+	var player_wins_exchange: bool = enemy_defeated or (kind == "guardian" and "damage" in result.to_lower())
 	var action_word: String = "ELITE ENCOUNTER" if elite else "ENCOUNTER"
 	var elite_profile: Dictionary = game.elite_behavior(kind) if elite else {}
+	var visual: Dictionary = game.enemy_visual_variant(kind, int(game.data.row), int(game.data.lane), elite) if kind != "guardian" else {}
+	var rank_name: String = str(visual.get("rank_name", "BOSS" if kind == "guardian" else "COMMON"))
 	if kind == "guardian":
 		action_word = "BOSS ENCOUNTER"
 	if elite:
-		fight_title.text = action_word + "  /  " + str(elite_profile.get("name", "Elite")).to_upper() + " " + enemy_display_name(kind)
+		fight_title.text = "%s  /  %s %s" % [action_word, str(elite_profile.get("name", "Elite")).to_upper(), enemy_display_name(kind)]
 	else:
-		fight_title.text = action_word + "  /  " + enemy_display_name(kind)
+		fight_title.text = "%s  /  %s  •  %s" % [action_word, rank_name, enemy_display_name(kind)]
 	fight_title.add_theme_color_override("font_color", GOLD if elite else (Color("ef9974") if enemy_was_active else MINT))
+
 	fight_status.text = "ENCOUNTER!"
+	fight_balance.value = 50
+	fight_balance_label.text = "FOE  ◀  STRUGGLE  ▶  YOU"
+	fight_balance.add_theme_stylebox_override("fill", style(Color("9bddc2"), 5))
 	fight_player.color = current_character_color()
-	match kind:
-		"goblin":
-			fight_enemy.color = Color("7fb76b")
-		"kobold":
-			fight_enemy.color = Color("c8896b")
-		"ogre":
-			fight_enemy.color = Color("9aa56b")
-		_:
-			fight_enemy.color = Color("e7926f") if enemy_was_active else Color("84ccbd")
+
+	if kind == "guardian":
+		fight_enemy.color = Color("857957")
+		fight_enemy_gear.text = "BOSS  •  HEARTWOOD ARMOR  •  SLAM"
+	else:
+		fight_enemy.color = Color(str(visual.get("body", "84ccbd")))
+		fight_enemy_gear.text = "%s  •  %s  •  %s  •  %s" % [
+			rank_name,
+			str(visual.get("armor_style", "armor")).replace("_", " ").to_upper(),
+			str(visual.get("helmet_style", "helmet")).replace("_", " ").to_upper(),
+			str(visual.get("weapon_style", "weapon")).replace("_", " ").to_upper()
+		]
 	if enemy_was_active:
 		fight_enemy.color = fight_enemy.color.darkened(0.08)
+
 	fight_player.scale = Vector2.ONE
 	fight_enemy.scale = Vector2.ONE
 	fight_player.rotation = 0.0
@@ -2251,18 +2282,19 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	fight_card.rotation = 0.0
 	fight_layer.modulate = Color(1, 1, 1, 0)
 	fight_layer.show()
+
 	var old_music_db: float = music_player.volume_db if is_instance_valid(music_player) else -23.0
 	if is_instance_valid(music_player):
-		music_player.volume_db = old_music_db - 5.0
+		music_player.volume_db = old_music_db - 6.0
 	play_rpg_sfx("encounter", elite)
 
 	var enter = create_tween()
 	enter.set_parallel(true)
-	enter.tween_property(fight_layer, "modulate:a", 1.0, 0.12)
-	enter.tween_property(fight_card, "scale", Vector2.ONE, 0.20).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	enter.tween_property(fight_enemy, "scale", Vector2(1.18, 0.88), 0.16)
+	enter.tween_property(fight_layer, "modulate:a", 1.0, 0.20)
+	enter.tween_property(fight_card, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	enter.tween_property(fight_enemy, "scale", Vector2(1.16, 0.90), 0.26)
 	await enter.finished
-	await get_tree().create_timer(0.12).timeout
+	await get_tree().create_timer(0.25).timeout
 
 	if elite:
 		fight_status.text = str(elite_profile.get("telegraph", "ELITE")) + "  •  " + ("ENEMY INITIATIVE" if enemy_was_active else "YOUR OPENING")
@@ -2271,55 +2303,79 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	var windup = create_tween()
 	windup.set_parallel(true)
 	if enemy_was_active:
-		windup.tween_property(fight_enemy, "scale", Vector2(1.28, 0.82), 0.15)
-		windup.tween_property(fight_enemy, "rotation", deg_to_rad(-4.0), 0.15)
+		windup.tween_property(fight_enemy, "scale", Vector2(1.30, 0.82), 0.26)
+		windup.tween_property(fight_enemy, "rotation", deg_to_rad(-5.0), 0.26)
 	else:
-		windup.tween_property(fight_player, "scale", Vector2(1.24, 0.84), 0.15)
-		windup.tween_property(fight_player, "rotation", deg_to_rad(4.0), 0.15)
+		windup.tween_property(fight_player, "scale", Vector2(1.26, 0.84), 0.26)
+		windup.tween_property(fight_player, "rotation", deg_to_rad(5.0), 0.26)
 	play_rpg_sfx("attack", elite)
 	await windup.finished
+	await get_tree().create_timer(0.16).timeout
 
-	fight_status.text = "CLASH!"
+	fight_status.text = "CLASH!  HOLDING..."
 	play_rpg_sfx("impact", elite)
 	var impact = create_tween()
 	impact.set_parallel(true)
-	impact.tween_property(fight_card, "rotation", deg_to_rad(-1.8 if player_hit else 1.8), 0.06)
-	if player_hit:
-		impact.tween_property(fight_player, "scale", Vector2(0.74, 1.20), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		impact.tween_property(fight_player, "modulate", Color("ff9e86"), 0.10)
-	else:
-		impact.tween_property(fight_enemy, "scale", Vector2(0.72, 1.18), 0.10).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		impact.tween_property(fight_enemy, "modulate", Color("fff0a8"), 0.10)
+	impact.tween_property(fight_card, "rotation", deg_to_rad(-1.8 if player_hit else 1.8), 0.10)
+	impact.tween_property(fight_player, "scale", Vector2(0.90, 1.08), 0.18)
+	impact.tween_property(fight_enemy, "scale", Vector2(0.90, 1.08), 0.18)
 	await impact.finished
 	fight_card.rotation = 0.0
-	await get_tree().create_timer(0.10).timeout
+
+	var struggle_points: Array[float] = [42.0, 59.0, 47.0, 64.0 if player_wins_exchange else 36.0]
+	if enemy_was_active:
+		struggle_points = [37.0, 55.0, 43.0, 61.0 if player_wins_exchange else 31.0]
+	var suspense_labels: Array[String] = ["PUSHING...", "FOE RESISTS...", "LAST EFFORT...", "BREAKING POINT..."]
+	for i in range(struggle_points.size()):
+		fight_status.text = suspense_labels[i]
+		var struggle = create_tween()
+		struggle.tween_property(fight_balance, "value", struggle_points[i], 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		await struggle.finished
+		if i < struggle_points.size() - 1:
+			play_rpg_sfx("impact", elite)
+			await get_tree().create_timer(0.08).timeout
+
+	var final_balance: float = 92.0 if player_wins_exchange else 8.0
+	var settle = create_tween()
+	settle.tween_property(fight_balance, "value", final_balance, 0.48).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await settle.finished
+
+	if player_wins_exchange:
+		fight_balance_label.text = "FOE  ◀  YOU WIN  ▶  YOU"
+		fight_balance.add_theme_stylebox_override("fill", style(MINT, 5))
+	else:
+		fight_balance_label.text = "FOE  ◀  FOE WINS  ▶  YOU"
+		fight_balance.add_theme_stylebox_override("fill", style(Color("df8b72"), 5))
 
 	if enemy_defeated:
 		fight_status.text = "HARD-WON VICTORY" if player_hit else "VICTORY"
 		play_rpg_sfx("victory", elite)
 		var finish = create_tween()
 		finish.set_parallel(true)
-		finish.tween_property(fight_enemy, "scale", Vector2(0.20, 1.20), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-		finish.tween_property(fight_enemy, "modulate:a", 0.18, 0.16)
-		finish.tween_property(fight_player, "scale", Vector2(1.10, 1.10), 0.16)
+		finish.tween_property(fight_enemy, "scale", Vector2(0.20, 1.20), 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		finish.tween_property(fight_enemy, "modulate:a", 0.18, 0.28)
+		finish.tween_property(fight_player, "scale", Vector2(1.10, 1.10), 0.28)
 		await finish.finished
 	elif kind == "guardian" and "damage" in result.to_lower():
 		fight_status.text = "RUNE STRIKE"
 		play_rpg_sfx("victory")
-		await get_tree().create_timer(0.20).timeout
+		await get_tree().create_timer(0.36).timeout
 	else:
-		fight_status.text = "ENEMY STRIKES"
+		fight_status.text = "ENEMY BREAKS THROUGH"
+		fight_player.modulate = Color("ff9e86")
 		play_rpg_sfx("hurt", elite)
-		await get_tree().create_timer(0.20).timeout
+		await get_tree().create_timer(0.36).timeout
 
 	fight_status.text = result.replace("\n", "  ")
-	await get_tree().create_timer(0.58).timeout
+	await get_tree().create_timer(0.90).timeout
 	var leave = create_tween()
 	leave.set_parallel(true)
-	leave.tween_property(fight_layer, "modulate:a", 0.0, 0.18)
-	leave.tween_property(fight_card, "scale", Vector2(1.04, 1.04), 0.18)
+	leave.tween_property(fight_layer, "modulate:a", 0.0, 0.26)
+	leave.tween_property(fight_card, "scale", Vector2(1.04, 1.04), 0.26)
 	await leave.finished
 	fight_layer.hide()
 	fight_layer.modulate = Color.WHITE
+	fight_player.modulate = Color.WHITE
 	if is_instance_valid(music_player):
 		music_player.volume_db = old_music_db
+
