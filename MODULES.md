@@ -98,3 +98,13 @@ Examples:
 
 > Retention/progression updates  
 > Update **progression** first; touch **road**, **ui**, or **visuals** only when the progression feature requires presentation or road placement changes.
+
+
+- **balance**
+  - `scripts/modules/balance/balance_catalog.gd`
+  - `scripts/modules/balance/balance_service.gd`
+  - player rank milestones and enemy-rank combat modifiers
+- **boss**
+  - `scripts/modules/boss/boss_catalog.gd`
+  - `scripts/modules/boss/boss_service.gd`
+  - fixed boss profiles reusing the existing lane/rune combat
