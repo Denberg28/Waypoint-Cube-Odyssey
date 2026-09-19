@@ -1277,6 +1277,8 @@ func show_inventory() -> void:
 	action("Marketplace / Wardrobe", func(): show_marketplace("skin"))
 	if bool(game.data.get("cat_owned", false)):
 		action("Cat Companion / Feed", func(): show_cat_companion())
+	else:
+		action("Cat Market / Adopt Companion", func(): show_cat_market())
 	action("Done", func(): show_mode(), true)
 	schedule_modal_fit()
 
@@ -1308,13 +1310,23 @@ func show_marketplace(slot: String = "skin") -> void:
 	var tabs = HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 5)
 	stack.add_child(tabs)
-	for category in ["skin", "head", "back", "face", "cat"]:
+	for category in ["skin", "head", "back", "face"]:
 		var category_id: String = category
 		var tab = button(cosmetic_slot_name(category_id), func(): show_marketplace(category_id), category_id == slot)
 		tab.custom_minimum_size.y = 34
 		tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		tab.add_theme_font_size_override("font_size", FONT_CAPTION)
 		tabs.add_child(tab)
+
+	stack.add_child(label("COMPANION", FONT_CAPTION, GOLD))
+	if bool(game.data.get("cat_owned", false)):
+		var cat_name: String = str(game.data.cat_design.get("name", "Cat"))
+		stack.add_child(label("%s  •  %s  •  SATIETY %d%%" % [cat_name, game.cat_mood(), int(game.data.cat_satiety)], FONT_CAPTION, MINT))
+		action("Cat Companion  •  Manage / Feed", func(): show_cat_companion(), true)
+	else:
+		stack.add_child(label("A persistent camp companion that gives fishing an ongoing purpose.", FONT_CAPTION, MUTED))
+		action("Cat Companion  •  Browse / Adopt  •  %d coins" % Catalog.CAT_PRICE, func(): show_cat_market(), true)
+
 	var equipped_id: String = str(game.data.cosmetics_equipped.get(slot, ""))
 	var equipped_item: Dictionary = Catalog.cosmetic(equipped_id)
 	stack.add_child(label("%s  •  %s" % [cosmetic_slot_name(slot), str(equipped_item.get("name", "Default"))], FONT_CAPTION, MINT))
