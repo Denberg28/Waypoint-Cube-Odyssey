@@ -12,7 +12,7 @@ func _init() -> void:
 func _run() -> void:
 	var game = State.new()
 	if not game.valid_save(game.data):
-		_fail("fresh reset state is not a valid v15 save", 2)
+		_fail("fresh reset state is not a valid v16 save", 2)
 		return
 
 	# Marketplace + cat companion.
@@ -27,8 +27,17 @@ func _run() -> void:
 		return
 	game.data.cat_satiety = 50
 	game.data.fish_stock = 1
+	if game.cat_level() != 1 or game.cat_rank_name() != "FAMILIAR":
+		_fail("cat initial level/rank invariant failed", 5)
+		return
 	if not game.feed_cat() or int(game.data.fish_stock) != 0 or int(game.data.cat_satiety) != 80:
-		_fail("cat feeding/satiety invariant failed", 5)
+		_fail("cat feeding/satiety invariant failed", 6)
+		return
+	if int(game.data.cat_bond_xp) != Catalog.CAT_BOND_XP_PER_FEED:
+		_fail("cat feed did not award Bond XP", 7)
+		return
+	if game.cat_buff_coins() <= 0 or "ROAD LUCK" not in game.cat_buff_text():
+		_fail("cat Road Luck buff did not activate", 8)
 		return
 	if not game.buy_cosmetic(str(cosmetic.id)) or not game.owns_cosmetic(str(cosmetic.id)):
 		_fail("market cosmetic purchase failed", 6)
