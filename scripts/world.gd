@@ -56,12 +56,12 @@ var camp_cat_resting_by_fire: bool = false
 var camp_cat_fire_rest_target: Vector3 = Vector3(1.18, 0.16, -5.15)
 var camp_roam_rng := RandomNumberGenerator.new()
 var camp_actor_roam_points: Array[Vector3] = [
-	Vector3(-2.15, 0.16, -3.55),
-	Vector3(-0.75, 0.16, -3.70),
-	Vector3(1.55, 0.16, -3.85),
-	Vector3(2.10, 0.16, -6.45),
-	Vector3(-0.75, 0.16, -7.05),
-	Vector3(-2.55, 0.16, -4.55)
+	Vector3(-2.10, 0.16, -4.55),
+	Vector3(-0.72, 0.16, -4.72),
+	Vector3(1.42, 0.16, -4.86),
+	Vector3(2.05, 0.16, -6.55),
+	Vector3(-0.72, 0.16, -7.15),
+	Vector3(-2.42, 0.16, -5.12)
 ]
 var camp_actor_fire_rest_points: Array[Vector3] = [
 	Vector3(2.0, 0.16, -5.15),
@@ -525,7 +525,7 @@ func build() -> void:
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	if not entrance and state.data.mode == "camp":
 		# Keep the hub framed while the character and cat roam independently.
-		camera_target = Vector3(0.0, 0.12, -4.80)
+		camera_target = Vector3(0.0, 0.12, -5.20)
 	update_camera()
 	refresh_props()
 
@@ -1275,16 +1275,19 @@ func build_enemy_loadout(parent: Node3D, pos: Vector3, kind: String, size: Vecto
 
 func update_camera() -> void:
 	if showcase:
+		camera.fov = 57.0
 		camera.position = Vector3(0, 1.9, 4.4)
 		camera.look_at(Vector3(0, 0.85, 0))
 		return
+	camera.fov = 57.0
 	var camera_offset := Vector3(0, 4.35, 7.5)
 	var look_offset := Vector3(0, 0.72, -4.6)
 	if not entrance and str(state.data.mode) == "camp":
-		# Camp is a hub composition, not a close follow camera. Keep the tent,
-		# fire, companion and both service signs readable even while actors roam.
-		camera_offset = Vector3(0, 4.65, 8.65)
-		look_offset = Vector3(0, 0.66, -4.35)
+		# Lantern Camp uses a deliberately wide hub shot. The player should read
+		# as one camp resident, not fill the foreground while roaming.
+		camera.fov = 61.0
+		camera_offset = Vector3(0, 5.15, 10.60)
+		look_offset = Vector3(0, 0.58, -4.55)
 	camera.position = camera_target + camera_offset
 	camera.look_at(camera_target + look_offset)
 
@@ -1800,7 +1803,7 @@ func _process(delta: float) -> void:
 	elapsed += delta
 	var target: Vector3
 	if str(state.data.mode) == "camp" and not entrance:
-		target = Vector3(0.0, 0.12, -4.80)
+		target = Vector3(0.0, 0.12, -5.20)
 	else:
 		target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	camera_target = camera_target.lerp(target, 1.0 - exp(-delta * 5.0))
