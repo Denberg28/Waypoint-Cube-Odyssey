@@ -174,8 +174,8 @@ def test_gameplay_hud_uses_compact_focus_layout():
     assert "footer.offset_bottom = -16" in main
     assert 'compact_details = button("Details"' in main
     assert 'compact_best_button = button("Best"' in main
-    assert 'compact_heal = button("Heal"' in main
-    assert 'compact_mana = button("Mana"' in main
+    assert 'compact_heal_button = button("Heal"' in main
+    assert 'compact_mana_button = button("Mana"' in main
     assert "side_panel.offset_top = -84" in main
     assert "side_panel.offset_bottom = -16" in main
     assert "side_header.hide()" in main
@@ -285,7 +285,7 @@ def test_character_idle_animation_is_camp_only():
     assert "left_foot.rotation.x" in world
     assert "right_foot.rotation.x" in world
     assert 'elif not hopping and str(state.data.mode) == "camp":' in world
-    assert "apply_idle_animation()" in world
+    assert "apply_idle_animation(delta)" in world
 
 
 def test_new_save_starts_with_zero_stars_and_zero_xp():
