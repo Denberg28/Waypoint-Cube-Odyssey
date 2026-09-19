@@ -1172,8 +1172,11 @@ func show_mode() -> void:
 				fishing_layer.hide()
 		"choice":
 			overlay.hide()
-			route_panel.hide()
-			push_chat("Crossroads ahead. Choose one of the route signs.")
+			# 3D route signs remain the primary selector. Keep the compact route
+			# panel visible as an accessibility/runtime fallback so a rendering
+			# fault can never strand the player on an empty Crossroads screen.
+			show_routes()
+			push_chat("Crossroads ahead. Choose a route sign or use the route panel.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
