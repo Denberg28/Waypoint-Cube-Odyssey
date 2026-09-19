@@ -54,9 +54,19 @@ func _run() -> void:
 	if not game.adopt_cat():
 		_fail("cat adoption failed during UI smoke", 10)
 		return
-	scene.call("show_cat_companion")
+	world.build()
+	overlay.hide()
+	world.cat_clicked.emit()
+	await process_frame
 	if not bool(overlay.visible):
-		_fail("cat companion modal did not render", 11)
+		_fail("clicking the camp cat did not open companion status", 11)
+		return
+	var status_text: String = ""
+	for child in stack.get_children():
+		if child is Label:
+			status_text += " " + str(child.text)
+	if "BOND XP" not in status_text or "ACTIVE BUFF" not in status_text:
+		_fail("cat status panel missing Bond XP or buff status", 12)
 		return
 
 	var fight_layer = scene.get("fight_layer")
