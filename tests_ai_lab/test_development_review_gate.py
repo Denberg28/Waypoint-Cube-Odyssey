@@ -783,6 +783,7 @@ def test_deleted_crossroads_fallback_has_no_stale_references():
 
 
 def test_web_telemetry_requires_opt_in_and_drops_free_text():
+    import json
     from pathlib import Path
 
     telemetry = Path("scripts/ai_telemetry.gd").read_text(encoding="utf-8")
