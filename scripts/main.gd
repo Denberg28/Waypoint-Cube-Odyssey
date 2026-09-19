@@ -633,21 +633,21 @@ func build_ui() -> void:
 	compact_details.custom_minimum_size = Vector2(58, 30)
 	compact_details.add_theme_font_size_override("font_size", 9)
 	compact_actions.add_child(compact_details)
-	var compact_best = button("Best", func(): equip_best_quick(), true)
-	compact_best.custom_minimum_size = Vector2(64, 30)
-	compact_best.add_theme_font_size_override("font_size", 10)
-	compact_best.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	compact_actions.add_child(compact_best)
-	var compact_heal = button("Heal", func(): use_quick_potion("heal"))
-	compact_heal.custom_minimum_size = Vector2(58, 30)
-	compact_heal.add_theme_font_size_override("font_size", 10)
-	compact_heal.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	compact_actions.add_child(compact_heal)
-	var compact_mana = button("Mana", func(): use_quick_potion("mana"))
-	compact_mana.custom_minimum_size = Vector2(58, 30)
-	compact_mana.add_theme_font_size_override("font_size", 10)
-	compact_mana.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	compact_actions.add_child(compact_mana)
+	compact_best_button = button("Best", func(): equip_best_quick(), true)
+	compact_best_button.custom_minimum_size = Vector2(64, 30)
+	compact_best_button.add_theme_font_size_override("font_size", 10)
+	compact_best_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	compact_actions.add_child(compact_best_button)
+	compact_heal_button = button("Heal", func(): use_quick_potion("heal"))
+	compact_heal_button.custom_minimum_size = Vector2(58, 30)
+	compact_heal_button.add_theme_font_size_override("font_size", 10)
+	compact_heal_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	compact_actions.add_child(compact_heal_button)
+	compact_mana_button = button("Mana", func(): use_quick_potion("mana"))
+	compact_mana_button.custom_minimum_size = Vector2(58, 30)
+	compact_mana_button.add_theme_font_size_override("font_size", 10)
+	compact_mana_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	compact_actions.add_child(compact_mana_button)
 	compact_message = label("", 9, MUTED)
 	compact_message.custom_minimum_size.y = 14
 	compact_message.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1121,6 +1121,12 @@ func update_hud() -> void:
 			side_heal_button.disabled = busy or int(game.data.potions.heal) <= 0 or int(game.data.hp) >= game.max_hp()
 		if is_instance_valid(side_mana_button):
 			side_mana_button.disabled = busy or int(game.data.potions.mana) <= 0 or int(game.data.mana) >= game.max_mana()
+		if is_instance_valid(compact_best_button):
+			compact_best_button.disabled = busy or not safe_waypoint or game.data.inventory.is_empty()
+		if is_instance_valid(compact_heal_button):
+			compact_heal_button.disabled = busy or int(game.data.potions.heal) <= 0 or int(game.data.hp) >= game.max_hp()
+		if is_instance_valid(compact_mana_button):
+			compact_mana_button.disabled = busy or int(game.data.potions.mana) <= 0 or int(game.data.mana) >= game.max_mana()
 		if is_instance_valid(compact_message):
 			compact_message.text = str(game.data.last).replace("\n", " ")
 
