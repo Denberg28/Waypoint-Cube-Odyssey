@@ -918,3 +918,14 @@ def test_camp_character_idle_is_calm_and_cat_rests_by_bonfire():
     assert "camp_cat_resting_by_fire = true" in world
     assert "camp_roam_rng.randf_range(4.0, 8.0)" in world
     assert "camp_cat_moves_since_rest >= 4" in world
+
+
+def test_camp_roaming_uses_only_valid_save_fields():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "state.data.trail" not in world
+    assert 'state.data.get("seed", 1)' in world
+    assert 'state.data.get("wins", 0)' in world
+    assert 'state.data.get("camp_level", 0)' in world
