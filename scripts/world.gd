@@ -772,7 +772,7 @@ func build_camp_progression() -> void:
 
 	if level >= 2:
 		# Level 2: a small supply rack beside the tent.
-		var rack_color := active_theme.post.darkened(0.04)
+		var rack_color: Color = Color(active_theme.post).darkened(0.04)
 		box(scenery, Vector3(-4.55, 0.68, -6.15), Vector3(1.45, 0.16, 0.50), rack_color)
 		for x in [-0.55, 0.55]:
 			box(scenery, Vector3(-4.55 + x, 0.34, -6.15), Vector3(0.14, 0.68, 0.14), rack_color)
@@ -781,7 +781,7 @@ func build_camp_progression() -> void:
 
 	if level >= 3:
 		# Level 3: a trophy crest overlooking the fire.
-		var crest_post := active_theme.post.darkened(0.08)
+		var crest_post: Color = Color(active_theme.post).darkened(0.08)
 		box(scenery, Vector3(0, 1.20, -7.45), Vector3(0.20, 2.20, 0.20), crest_post)
 		box(scenery, Vector3(0, 2.22, -7.45), Vector3(2.10, 0.18, 0.24), crest_post)
 		var trophy = box(scenery, Vector3(0, 2.55, -7.36), Vector3(0.42, 0.42, 0.12), Color("e1bd68"), true)
