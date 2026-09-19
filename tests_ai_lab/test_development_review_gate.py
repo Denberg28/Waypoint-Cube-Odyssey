@@ -671,3 +671,101 @@ def test_rpg_waypoint_gateway_and_roadpost_design_is_present():
 
     assert "procedural geometry the carved-sign silhouette from the RPG concept" in world
     assert "CROSSROADS  •  CHOOSE YOUR NEXT ROAD" in world
+
+
+def test_cat_market_and_pet_care_loop_is_fully_wired():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "const CAT_PRICE: int = 160" in catalog
+    assert "func random_cat_design() -> Dictionary:" in state
+    assert "func refresh_cat_offer() -> bool:" in state
+    assert "func adopt_cat() -> bool:" in state
+    assert "data.coins -= Catalog.CAT_PRICE" in state
+    assert "data.cat_design = data.cat_offer.duplicate(true)" in state
+    assert "func feed_cat() -> bool:" in state
+    assert "data.fish_stock -= 1" in state
+    assert "data.cat_satiety = mini(100" in state
+    assert "func cat_adventure_tick() -> String:" in state
+    assert "CAT_SATIETY_ROAD_COST" in state
+    assert "data.fish_stock += fish_portions" in state
+
+    assert 'for category in ["skin", "head", "back", "face", "cat"]' in main
+    assert "func show_cat_market() -> void:" in main
+    assert "Refresh random cat design" in main
+    assert "func show_cat_companion() -> void:" in main
+    assert "cat_adopted" in main
+    assert "cat_market_refreshed" in main
+    assert "cat_fed" in main
+    assert "func build_cat_companion() -> void:" in world
+
+
+def test_combat_has_longer_suspense_and_tug_of_war_outcome_meter():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "var fight_balance: ProgressBar" in main
+    assert "FOE  ◀  STRUGGLE  ▶  YOU" in main
+    assert "CLASH!  HOLDING..." in main
+    assert "PUSHING..." in main
+    assert "FOE RESISTS..." in main
+    assert "LAST EFFORT..." in main
+    assert "BREAKING POINT..." in main
+    assert "var struggle_points: Array[float]" in main
+    assert 'tween_property(fight_balance, "value"' in main
+    assert "0.48" in main
+    assert "YOU WIN" in main
+    assert "FOE WINS" in main
+    assert "get_tree().create_timer(0.90)" in main
+
+
+def test_enemy_visuals_have_ranked_equipment_and_stable_palette_variety():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "const ENEMY_VISUALS" in catalog
+    assert "const ENEMY_RANKS" in catalog
+    for enemy in ["slime", "goblin", "kobold", "ogre"]:
+        assert f'"{enemy}":{{' in catalog
+
+    for style in [
+        "moss_shell", "leaf_cap", "thorn_spike",
+        "scrap_vest", "iron_cap", "short_sword",
+        "scale_coat", "horn_guard", "spear",
+        "plate_harness", "war_helm", "stone_hammer",
+    ]:
+        assert style in catalog
+
+    assert "func enemy_rank(kind: String, elite: bool = false) -> int:" in state
+    assert "func enemy_visual_variant(" in state
+    assert "int(data.seed)" in state
+    assert "palettes[signature % palettes.size()]" in state
+
+    assert "func build_enemy_loadout(" in world
+    assert "Armor silhouette scales by rank" in world
+    assert "Every enemy type now has a helmet/cap identity." in world
+    assert "Weapon silhouettes are distinct at a glance." in world
+
+    assert "fight_enemy_gear" in main
+    assert "armor_style" in main
+    assert "helmet_style" in main
+    assert "weapon_style" in main
+
+
+def test_market_telemetry_distinguishes_success_from_failed_purchase():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "var market_success: bool" in main
+    assert "if market_success:" in main
+    assert '"cosmetic_action_failed"' in main
