@@ -67,6 +67,9 @@ jobs:
       - name: Smoke test Crossroads world build
         run: timeout 20s godot --headless --path . --script res://scripts/ci_world_smoke.gd
 
+      - name: Smoke test feature invariants
+        run: timeout 20s godot --headless --path . --script res://scripts/ci_feature_smoke.gd
+
       - name: Export actual Godot game for Web
         run: |
           set -euo pipefail
