@@ -1447,6 +1447,33 @@ func show_cat_market() -> void:
 		stack.add_child(label("ADOPTED  •  %s" % cat_design_summary(game.data.cat_design), FONT_BODY, MINT))
 		stack.add_child(label("SATIETY %d%%  •  %s" % [int(game.data.cat_satiety), game.cat_mood()], FONT_BODY, GOLD))
 		stack.add_child(label(game.cat_mood_text(), FONT_CAPTION, MUTED))
+		stack.add_child(label(
+			"CAT FOOD PANTRY ×%d  •  %d coins each  •  +%d satiety  •  NO BOND XP" % [
+				int(game.data.cat_food_stock),
+				Catalog.CAT_FOOD_PRICE,
+				Catalog.CAT_SATIETY_PER_FOOD
+			],
+			FONT_CAPTION,
+			MUTED
+		))
+		action("Buy 1 Cat Food  •  %d coins" % Catalog.CAT_FOOD_PRICE, func():
+			if game.buy_cat_food(1):
+				ai_telemetry.record("cat_food_purchased", game, {"quantity":1, "price":Catalog.CAT_FOOD_PRICE})
+				play_chime([392.0, 523.25, 587.33], 0.12, 0.02)
+			game.save_game()
+			push_chat(str(game.data.last))
+			update_hud()
+			show_cat_market()
+		)
+		action("Buy 5 Cat Food  •  %d coins" % (Catalog.CAT_FOOD_PRICE * 5), func():
+			if game.buy_cat_food(5):
+				ai_telemetry.record("cat_food_purchased", game, {"quantity":5, "price":Catalog.CAT_FOOD_PRICE * 5})
+				play_chime([392.0, 523.25, 659.25], 0.12, 0.02)
+			game.save_game()
+			push_chat(str(game.data.last))
+			update_hud()
+			show_cat_market()
+		)
 		action("Manage / Feed Cat", func(): show_cat_companion(), true)
 	else:
 		var offer: Dictionary = game.data.get("cat_offer", {})
@@ -1520,13 +1547,13 @@ func show_cat_companion() -> void:
 	stack.add_child(label(buff_text, FONT_BODY, MINT if game.cat_buff_coins() > 0 else MUTED))
 
 	stack.add_child(label(
-		"FISH PANTRY  ×%d   •   LIFETIME CATCHES ×%d" % [int(game.data.fish_stock), int(game.data.fish_caught)],
+		"FISH ×%d   •   CAT FOOD ×%d   •   LIFETIME CATCHES ×%d" % [int(game.data.fish_stock), int(game.data.cat_food_stock), int(game.data.fish_caught)],
 		FONT_BODY,
 		MINT
 	))
 	stack.add_child(label(cat_design_summary(game.data.cat_design), FONT_CAPTION, MUTED))
 
-	var feed_text: String = "Feed 1 fish  •  +%d satiety  •  +%d Bond XP" % [Catalog.CAT_SATIETY_PER_FISH, Catalog.CAT_BOND_XP_PER_FEED]
+	var feed_text: String = "Feed Fish  •  +%d satiety  •  +%d Bond XP / RANK" % [Catalog.CAT_SATIETY_PER_FISH, Catalog.CAT_BOND_XP_PER_FEED]
 	var feed_btn = button(feed_text, func():
 		var before_mood: String = game.cat_mood()
 		var before_level: int = game.cat_level()
@@ -1550,11 +1577,36 @@ func show_cat_companion() -> void:
 	feed_btn.disabled = int(game.data.fish_stock) <= 0 or int(game.data.cat_satiety) >= 100
 	stack.add_child(feed_btn)
 
+	var food_btn = button(
+		"Feed Cat Food  •  +%d satiety  •  NO Bond XP" % Catalog.CAT_SATIETY_PER_FOOD,
+		func():
+			var before_bond: int = int(game.data.cat_bond_xp)
+			var before_mood: String = game.cat_mood()
+			if game.feed_cat_food():
+				ai_telemetry.record("cat_food_fed", game, {
+					"before_mood":before_mood,
+					"after_mood":game.cat_mood(),
+					"satiety":int(game.data.cat_satiety),
+					"cat_food_stock":int(game.data.cat_food_stock),
+					"bond_unchanged":int(game.data.cat_bond_xp) == before_bond
+				})
+				play_chime([349.23, 440.0, 523.25], 0.11, 0.02)
+			game.save_game()
+			world.build()
+			push_chat(str(game.data.last))
+			update_hud()
+			show_cat_companion(),
+		true
+	)
+	food_btn.disabled = int(game.data.cat_food_stock) <= 0 or int(game.data.cat_satiety) >= 100
+	stack.add_child(food_btn)
+	stack.add_child(label("Only caught fish advances Bond XP, level, and rank. Market cat food restores satiety only.", FONT_CAPTION, GOLD))
+
 	if int(game.data.fish_stock) <= 0:
 		stack.add_child(label("Adventure motivation: find a fishing pool and bring a catch home.", FONT_CAPTION, GOLD))
 	else:
 		stack.add_child(label(
-			"Completed roads cost %d satiety and grant +%d Bond XP while cared for." % [Catalog.CAT_SATIETY_ROAD_COST, Catalog.CAT_BOND_XP_PER_ROAD],
+			"Completed roads cost %d satiety. Only feeding caught fish grants Bond XP and rank progress." % Catalog.CAT_SATIETY_ROAD_COST,
 			FONT_CAPTION,
 			MUTED
 		))
@@ -1566,7 +1618,7 @@ func show_cat_companion() -> void:
 func show_help() -> void:
 	if busy:
 		return
-	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over.\n\nGLOOMWOOD HOLLOW: a twilight route around the Whispering Hollow Root. Jump over Ensnaring Briars and detour for Gloomcaps. Every Gloomcap adds Resolve; every third Gloomcap also grants 1 gem. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats. CAT COMPANION: the marketplace can show a random adoptable cat design. Fishing can stock the cat pantry; feeding raises satiety and changes mood. Each completed road lowers satiety slightly, giving fishing a persistent non-combat purpose. EXPANSION ROADS: Sunken Grotto adds Prismatic Pearls and cave pools; Cinder Caldera adds Magma Ember Shards and extreme magma hazards; Galecrest Spire adds Skyfeather Relics and extreme alpine gusts.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
+	modal("HOW TO PLAY", "Walk. Jump. Explore.", "A / LEFT = walk left   •   W / UP = walk forward   •   D / RIGHT = walk right   •   SPACE = jump\n\nJump directly toward a thorn tile to vault over that entire row and land two tiles ahead. Without a jumpable obstacle, Jump moves one tile as normal.\n\nFIRE = rest   •   FISH = timing catch   •   CHEST = gear   •   CRYSTAL = gem\n\nClean wins build Streak and Relic charge. At 100% Relic, the next normal gear drop is Rare+. Harder routes raise hazards and Elite enemies, but improve rewards.\n\nLEVELS: a brand-new save or Fresh Character starts at 0 stars and 0 XP (LV 1 baseline). Enemy XP is credited immediately and is never removed by defeat. Completed roads and guardian victories also earn XP.\n\nRESOLVE: this positive motivation meter never decreases on defeat. Each completed road adds 12%, Elite victories add 4%, and the guardian adds 28%. At 100%, you earn a Resolve Supply with +1 healing and +1 mana potion, then the meter rolls over.\n\nGLOOMWOOD HOLLOW: a twilight route around the Whispering Hollow Root. Jump over Ensnaring Briars and detour for Gloomcaps. Every Gloomcap adds Resolve; every third Gloomcap also grants 1 gem. Level 1 begins with five empty stars. Level 2 shows ¼★, Level 3 shows ½★, Level 4 earns the first full ★, and progression continues in quarter-star steps until Level 20 reaches ★ ★ ★ ★ ★.\n\nAt the end of a road, choose the next adventure directly from the signpost or visit LANTERN CAMP for supplies. Hearts and mana carry between trails and into the next expedition; camp does not refill them automatically. Trail-heal gear and class perks still recover their stated amount after a completed trail. After defeat, Lantern Camp offers an explicit 1-heart revival. Only choosing a new character starts at full resources. Marketplace / Wardrobe remains available from the menu. Cosmetics never affect stats. CAT COMPANION: the marketplace can show a random adoptable cat design. Caught fish and market cat food both restore satiety, but only feeding caught fish grants Bond XP, level, and rank progress. Market cat food is a convenience supply only. Each completed road lowers satiety slightly. EXPANSION ROADS: Sunken Grotto adds Prismatic Pearls and cave pools; Cinder Caldera adds Magma Ember Shards and extreme magma hazards; Galecrest Spire adds Skyfeather Relics and extreme alpine gusts.\n\nBrightness presets are beside WAYPOINT. Progress autosaves after every move.")
 	action("Got it", func(): show_mode(), true)
 
 func return_from_quit_window() -> void:
