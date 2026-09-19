@@ -43,6 +43,10 @@ var camp_actor_roam_index: int = 0
 var camp_cat_roam_index: int = 0
 var camp_actor_pause: float = 7.0
 var camp_cat_pause: float = 0.45
+var camp_actor_moves_since_rest: int = 0
+var camp_actor_heading_to_fire: bool = false
+var camp_actor_resting_by_fire: bool = false
+var camp_actor_fire_rest_target: Vector3 = Vector3(2.0, 0.16, -5.15)
 var camp_cat_moves_since_rest: int = 0
 var camp_cat_heading_to_fire: bool = false
 var camp_cat_resting_by_fire: bool = false
@@ -55,6 +59,10 @@ var camp_actor_roam_points: Array[Vector3] = [
 	Vector3(2.10, 0.16, -6.45),
 	Vector3(-0.75, 0.16, -7.05),
 	Vector3(-2.55, 0.16, -4.15)
+]
+var camp_actor_fire_rest_points: Array[Vector3] = [
+	Vector3(2.0, 0.16, -5.15),
+	Vector3(-2.0, 0.16, -5.15)
 ]
 var camp_cat_roam_points: Array[Vector3] = [
 	Vector3(-1.35, 0.16, -3.55),
@@ -675,6 +683,9 @@ func build_cat_companion() -> void:
 func camp() -> void:
 	camp_actor_roam_index = 0
 	camp_actor_pause = 7.0
+	camp_actor_moves_since_rest = 0
+	camp_actor_heading_to_fire = false
+	camp_actor_resting_by_fire = false
 	camp_cat_root = null
 	camp_cat_roam_index = 0
 	camp_cat_pause = 0.45
@@ -749,6 +760,9 @@ func pose_actor_at_camp() -> void:
 	reset_walk_pose()
 	camp_actor_roam_index = 0
 	camp_actor_pause = 7.0
+	camp_actor_moves_since_rest = 0
+	camp_actor_heading_to_fire = false
+	camp_actor_resting_by_fire = false
 	actor.position = camp_actor_roam_points[0]
 	var next_target: Vector3 = camp_actor_roam_points[1]
 	actor.look_at(Vector3(next_target.x, actor.position.y, next_target.z), Vector3.UP, true)
@@ -1402,25 +1416,77 @@ func apply_camp_idle() -> void:
 	if is_instance_valid(right_arm):
 		right_arm.rotation.x = breath * 0.018
 
+func apply_camp_fire_rest() -> void:
+	# Bonfire rest pose: feet remain grounded and stable while the arms move
+	# forward slightly as if warming by the fire. No lower-body rotations.
+	reset_walk_pose()
+	var breath: float = sin(elapsed * 1.05)
+	actor.position.y = idle_anchor_position.y + breath * 0.003
+	actor.scale = Vector3.ONE
+	actor.rotation.x = 0.0
+	actor.rotation.z = 0.0
+	actor.look_at(Vector3(0.0, actor.position.y, -5.15), Vector3.UP, true)
+	if is_instance_valid(left_arm):
+		left_arm.position = Vector3(-0.46, 0.24, 0.15)
+		left_arm.rotation = Vector3(-0.30 + breath * 0.025, 0, 0)
+	if is_instance_valid(right_arm):
+		right_arm.position = Vector3(0.46, 0.24, 0.15)
+		right_arm.rotation = Vector3(-0.30 - breath * 0.025, 0, 0)
+
+func select_actor_fire_rest_target() -> void:
+	var index: int = camp_roam_rng.randi_range(0, camp_actor_fire_rest_points.size() - 1)
+	camp_actor_fire_rest_target = camp_actor_fire_rest_points[index]
+	camp_actor_heading_to_fire = true
+
 func update_camp_actor_roam(delta: float) -> void:
 	if camp_actor_roam_points.is_empty():
 		return
+
 	if camp_actor_pause > 0.0:
 		camp_actor_pause = maxf(0.0, camp_actor_pause - delta)
 		idle_anchor_position = Vector3(actor.position.x, 0.16, actor.position.z)
-		apply_camp_idle()
+		if camp_actor_resting_by_fire:
+			apply_camp_fire_rest()
+		else:
+			apply_camp_idle()
 		return
 
-	var next_index: int = (camp_actor_roam_index + 1) % camp_actor_roam_points.size()
-	var target: Vector3 = camp_actor_roam_points[next_index]
+	if camp_actor_resting_by_fire:
+		# Fire rest finished: return cleanly to the neutral rig before roaming.
+		camp_actor_resting_by_fire = false
+		camp_actor_heading_to_fire = false
+		reset_walk_pose()
+
+	var next_index: int = camp_actor_roam_index
+	var target: Vector3
+	if camp_actor_heading_to_fire:
+		target = camp_actor_fire_rest_target
+	else:
+		next_index = (camp_actor_roam_index + 1) % camp_actor_roam_points.size()
+		target = camp_actor_roam_points[next_index]
+
 	var flat_delta := Vector3(target.x - actor.position.x, 0.0, target.z - actor.position.z)
 	var distance: float = flat_delta.length()
 	if distance <= 0.10:
-		camp_actor_roam_index = next_index
-		camp_actor_pause = camp_roam_rng.randf_range(6.0, 11.0)
 		actor.position = target
 		idle_anchor_position = target
 		reset_walk_pose()
+		if camp_actor_heading_to_fire:
+			camp_actor_heading_to_fire = false
+			camp_actor_resting_by_fire = true
+			camp_actor_moves_since_rest = 0
+			camp_actor_pause = camp_roam_rng.randf_range(8.0, 14.0)
+			apply_camp_fire_rest()
+		else:
+			camp_actor_roam_index = next_index
+			camp_actor_moves_since_rest += 1
+			if camp_actor_moves_since_rest >= 2:
+				# After a couple of ordinary camp positions, head to the fire
+				# after a short settling pause. This stays much slower than cat activity.
+				camp_actor_pause = camp_roam_rng.randf_range(2.0, 4.0)
+				select_actor_fire_rest_target()
+			else:
+				camp_actor_pause = camp_roam_rng.randf_range(6.0, 11.0)
 		return
 
 	var direction: Vector3 = flat_delta / distance
@@ -1432,8 +1498,7 @@ func update_camp_actor_roam(delta: float) -> void:
 	actor.look_at(Vector3(target.x, actor.position.y, target.z), Vector3.UP, true)
 	idle_base_yaw = actor.rotation.y
 
-	# Stable low-amplitude positional gait: feet lift/slide slightly instead of
-	# rotating around their mesh centers, which caused the lower-half glitch.
+	# Stable low-amplitude positional gait. Boots never rotate independently.
 	var gait: float = sin(elapsed * 5.2)
 	var left_lift: float = maxf(0.0, gait) * 0.045
 	var right_lift: float = maxf(0.0, -gait) * 0.045
@@ -1444,8 +1509,10 @@ func update_camp_actor_roam(delta: float) -> void:
 		right_foot.rotation = Vector3.ZERO
 		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL + Vector3(0, right_lift, 0)
 	if is_instance_valid(left_arm):
+		left_arm.position = Vector3(-0.55, 0.20, 0)
 		left_arm.rotation = Vector3(-gait * 0.12, 0, 0)
 	if is_instance_valid(right_arm):
+		right_arm.position = Vector3(0.55, 0.20, 0)
 		right_arm.rotation = Vector3(gait * 0.12, 0, 0)
 
 func select_cat_fire_rest_target() -> void:
