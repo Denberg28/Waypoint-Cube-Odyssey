@@ -5,7 +5,7 @@ from ai_lab.simulation import simulate_trace
 
 def test_simulated_trace_uses_real_game_rules():
     trace = simulate_trace("qa_edge_cases", seed=7, max_actions=12)
-    assert trace["starting_route"] == "forge"
+    assert trace["starting_route"] == "galecrest_spire"
     assert isinstance(trace["telemetry"], list)
     assert trace["actions"]
 
