@@ -1996,8 +1996,7 @@ func show_title() -> void:
 	for child in ui.get_children():
 		if child != overlay:
 			child.hide()
-	if is_instance_valid(route_panel):
-		update_music(true)
+	update_music(true)
 	update_ambient()
 	modal("WAYPOINT  /  FREE EDITION", "Cube Odyssey", "A compact voxel adventure. Choose a cube, follow the signs, and keep moving.")
 	action("PLAY  /  New expedition", func(): request_play(), not has_save)
@@ -2029,8 +2028,7 @@ func enter_game() -> void:
 	for child in ui.get_children():
 		if child != overlay:
 			child.show()
-	if is_instance_valid(route_panel):
-		if is_instance_valid(fight_layer):
+	if is_instance_valid(fight_layer):
 		fight_layer.hide()
 	if is_instance_valid(fishing_layer):
 		fishing_layer.hide()
