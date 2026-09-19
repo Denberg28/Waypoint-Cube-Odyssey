@@ -26,8 +26,8 @@ def test_gloomwood_is_promoted_and_playable_everywhere():
     assert '["moss", "forge", "gloomwood"]' in state
     assert "State.route_options_for_stage_index" in world
     assert "State.route_options_for_stage_index" in main
-    assert '"gloomwood"' in bridge
-    assert '"gloomwood"' in nightly
+    assert "Catalog.ROUTES" in bridge
+    assert "game_data" in nightly and "routes.json" in nightly
 
 
 def test_gloomwood_has_distinct_biome_hazard_landmark_and_collectible():
@@ -58,3 +58,16 @@ def test_gloomwood_save_schema_migrates_existing_players():
     assert "migrated.gloomcaps = 0" in state
     assert "12, 12.0" in state
     assert "migrated.version = 15" in state
+
+
+def test_all_playable_routes_share_one_catalog_across_ai_layers():
+    import ai_gamemaster.nightly_gamemaster as nightly
+    from ai_lab.contracts import ALLOWED_ROUTES
+
+    route_data = json.loads(Path("game_data/routes.json").read_text(encoding="utf-8"))
+    expected = set(route_data)
+
+    assert set(ROUTES) == expected
+    assert ALLOWED_ROUTES == expected
+    assert nightly.ROUTES == expected
+    assert {"sunken_grotto", "cinder_caldera", "galecrest_spire"} <= expected
