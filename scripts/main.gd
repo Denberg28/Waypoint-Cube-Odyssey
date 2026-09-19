@@ -552,10 +552,14 @@ func build_ui() -> void:
 	var quick = HBoxContainer.new()
 	quick.add_theme_constant_override("separation", 6)
 	side.add_child(quick)
-	var best = button("Equip Best", func(): equip_best_quick())
-	best.custom_minimum_size.y = 38
-	best.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	quick.add_child(best)
+	side_inventory_button = button("Equipment", func(): show_inventory())
+	side_inventory_button.custom_minimum_size.y = 38
+	side_inventory_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick.add_child(side_inventory_button)
+	side_best_button = button("Equip Best", func(): equip_best_quick(), true)
+	side_best_button.custom_minimum_size.y = 38
+	side_best_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quick.add_child(side_best_button)
 	side_potions = label("", FONT_BODY, MINT)
 	side.add_child(side_potions)
 	side_challenge = label("", 11, GOLD)
@@ -567,14 +571,14 @@ func build_ui() -> void:
 	var potions = HBoxContainer.new()
 	potions.add_theme_constant_override("separation", 6)
 	side.add_child(potions)
-	var heal_b = button("Use Heal", func(): use_quick_potion("heal"))
-	heal_b.custom_minimum_size.y = 38
-	heal_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	potions.add_child(heal_b)
-	var mana_b = button("Use Mana", func(): use_quick_potion("mana"))
-	mana_b.custom_minimum_size.y = 38
-	mana_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	potions.add_child(mana_b)
+	side_heal_button = button("Use Heal", func(): use_quick_potion("heal"))
+	side_heal_button.custom_minimum_size.y = 38
+	side_heal_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	potions.add_child(side_heal_button)
+	side_mana_button = button("Use Mana", func(): use_quick_potion("mana"))
+	side_mana_button.custom_minimum_size.y = 38
+	side_mana_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	potions.add_child(side_mana_button)
 	side.add_child(label("MESSAGES", FONT_CAPTION, GOLD))
 	chat_log = RichTextLabel.new()
 	chat_log.bbcode_enabled = true
@@ -1073,17 +1077,50 @@ func update_hud() -> void:
 	if is_instance_valid(side_panel):
 		side_panel.visible = not at_title
 		side_stats.text = "%s  •  LEVEL %d\n%s\nHP %d/%d   MP %d/%d\nAttack %d   Bank %d   Bag %d   Gems %d" % [game.class_info().name, int(game.data.level), game.star_rank_text() + "  •  " + game.level_progress_text(), maxi(0, int(game.data.hp)), game.max_hp(), int(game.data.mana), game.max_mana(), game.attack(), int(game.data.coins), int(game.data.bag), int(game.data.gems)]
+		game.repair_equipment_slots()
 		var eq: Array[String] = []
+		var equipped_slots: int = 0
 		for slot in ["core", "shell", "charm"]:
-			var item: Dictionary = Catalog.item(str(game.data.equipped[slot]))
-			eq.append("%s: %s" % [str(slot).capitalize(), str(item.get("name", "—"))])
-		side_equipment.text = "\n".join(eq) + "\nOwned gear: %d / %d" % [game.data.inventory.size(), Catalog.GEAR.size()]
-		side_potions.text = "Healing ×%d    Mana ×%d" % [int(game.data.potions.heal), int(game.data.potions.mana)]
+			var equipped_id: String = game.sanitized_equipped_id(slot)
+			if equipped_id != "":
+				var item: Dictionary = Catalog.item(equipped_id)
+				equipped_slots += 1
+				eq.append("%s: [%s] %s\n  %s" % [
+					str(slot).capitalize(),
+					str(item.get("rarity", "")),
+					str(item.get("name", "Unknown")),
+					str(item.get("text", ""))
+				])
+			else:
+				var best_owned_id: String = game.best_owned_gear_id(slot)
+				if best_owned_id != "":
+					var best_owned: Dictionary = Catalog.item(best_owned_id)
+					eq.append("%s: —  •  BEST OWNED [%s] %s" % [
+						str(slot).capitalize(),
+						str(best_owned.get("rarity", "")),
+						str(best_owned.get("name", "Unknown"))
+					])
+				else:
+					eq.append("%s: —  •  NO OWNED GEAR" % str(slot).capitalize())
+		side_equipment.text = "\n".join(eq) + "\n\nEquipped %d / 3   •   Owned %d / %d" % [equipped_slots, game.data.inventory.size(), Catalog.GEAR.size()]
+		side_potions.text = "POTIONS  •  Healing ×%d   •   Mana ×%d" % [int(game.data.potions.heal), int(game.data.potions.mana)]
 		var relic_text: String = "READY — NEXT GEAR RARE+" if int(game.data.relic_charge) >= 100 else "%d%%" % int(game.data.relic_charge)
 		var cat_hud: String = "NO CAT"
 		if bool(game.data.get("cat_owned", false)):
 			cat_hud = "CAT %s %d%%" % [game.cat_mood(), int(game.data.cat_satiety)]
-		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%   •   FISH %d/%d   •   %s\nPEARLS %d   •   EMBERS %d   •   SKYFEATHERS %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_stock), int(game.data.fish_caught), cat_hud, int(game.data.prismatic_pearls), int(game.data.ember_shards), int(game.data.skyfeathers)]
+		var cat_line: String = cat_hud
+		if bool(game.data.get("cat_owned", false)):
+			cat_line += "  •  LV %d %s  •  %s" % [game.cat_level(), game.cat_rank_name(), game.cat_buff_text()]
+		side_challenge.text = "EXPEDITION  •  THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   RESOLVE %d%%\nFISH %d/%d   •   %s\nPEARLS %d   •   EMBERS %d   •   SKYFEATHERS %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.resolve), int(game.data.fish_stock), int(game.data.fish_caught), cat_line, int(game.data.prismatic_pearls), int(game.data.ember_shards), int(game.data.skyfeathers)]
+		var safe_waypoint: bool = game.data.mode in ["camp", "rest", "choice"]
+		if is_instance_valid(side_best_button):
+			side_best_button.disabled = busy or not safe_waypoint or game.data.inventory.is_empty()
+		if is_instance_valid(side_inventory_button):
+			side_inventory_button.disabled = busy or not safe_waypoint
+		if is_instance_valid(side_heal_button):
+			side_heal_button.disabled = busy or int(game.data.potions.heal) <= 0 or int(game.data.hp) >= game.max_hp()
+		if is_instance_valid(side_mana_button):
+			side_mana_button.disabled = busy or int(game.data.potions.mana) <= 0 or int(game.data.mana) >= game.max_mana()
 		if is_instance_valid(compact_message):
 			compact_message.text = str(game.data.last).replace("\n", " ")
 
