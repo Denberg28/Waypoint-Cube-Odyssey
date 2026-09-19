@@ -22,7 +22,6 @@ const WINDOW_SAFE_TOP: float = 170.0
 const WINDOW_MIN_HEIGHT: float = 118.0
 const WINDOW_STANDARD_WIDTH: float = 430.0
 const WINDOW_MAX_HEIGHT_FALLBACK: float = 590.0
-const WINDOW_ROUTE_WIDTH: float = 420.0
 const WINDOW_FIGHT_WIDTH: float = 360.0
 const WINDOW_FISH_WIDTH: float = 400.0
 var game = State.new()
@@ -87,8 +86,6 @@ var chat_log: RichTextLabel
 var ai_feedback_log: RichTextLabel
 var ai_feedback_input: TextEdit
 var ai_feedback_status: Label
-var route_panel: PanelContainer
-var route_box: VBoxContainer
 var event_history: Array[String] = []
 var fight_layer: Control
 var fight_card: PanelContainer
@@ -650,15 +647,6 @@ func build_ui() -> void:
 	side_compact_body.add_child(compact_message)
 	side_compact_body.hide()
 
-	# Crossroads uses the same compact centered popup lane as gameplay dialogs.
-	route_panel = PanelContainer.new()
-	place_bottom_card(route_panel, WINDOW_ROUTE_WIDTH, 205.0)
-	route_panel.add_theme_stylebox_override("panel", style(Color(0.07, 0.16, 0.16, 0.96), 16, Color("7d9b76")))
-	ui.add_child(route_panel)
-	route_box = VBoxContainer.new()
-	route_box.add_theme_constant_override("separation", 7)
-	route_panel.add_child(route_box)
-	route_panel.hide()
 
 	# Automatic combat beat: short, readable, and never asks for an extra confirmation.
 	fight_layer = Control.new()
@@ -980,7 +968,6 @@ func preview_route(route_key: String) -> void:
 		return
 	if route_key not in route_options_for_stage():
 		return
-	route_panel.hide()
 	var route: Dictionary = Catalog.ROUTES[route_key]
 	var body: String = "%s\n\nDIFFICULTY  •  %s\nENCOUNTERS  •  %s\nCOLLECTIBLES  •  %s" % [
 		str(route.get("text", "")),
@@ -1013,22 +1000,7 @@ func choose_route(route_key: String) -> void:
 	push_chat("Route chosen: " + str(route.name))
 	commit()
 
-func show_routes() -> void:
-	# Keyboard/UI fallback. The 3D signboards are the primary route selector.
-	for child in route_box.get_children():
-		route_box.remove_child(child)
-		child.queue_free()
-	route_box.add_child(label("CROSSROADS  /  CHOOSE A SIGN", 13, GOLD))
-	for key in route_options_for_stage():
-		var route_key: String = str(key)
-		var route: Dictionary = Catalog.ROUTES[route_key]
-		var b = button("%s  →  %s" % [route.name, route.tag], func(): preview_route(route_key), route_key == "moss")
-		b.tooltip_text = str(route.text)
-		route_box.add_child(b)
-	route_panel.show()
-
 func modal(kicker: String, heading: String, body: String) -> void:
-	route_panel.hide()
 	place_modal()
 	for child in stack.get_children():
 		stack.remove_child(child)
@@ -1139,7 +1111,6 @@ func show_mode() -> void:
 		return
 	update_music()
 	update_ambient()
-	route_panel.hide()
 	if not game.data.popup.is_empty():
 		var popup_info: Dictionary = game.data.popup.duplicate(true)
 		push_chat(str(popup_info.heading) + ": " + str(popup_info.body))
@@ -1163,21 +1134,18 @@ func show_mode() -> void:
 			show_fishing_game()
 		"road_end":
 			overlay.hide()
-			route_panel.hide()
-			push_chat("Road complete. Choose the next adventure, or visit LANTERN CAMP for supplies. Hearts carry over.")
+					push_chat("Road complete. Choose the next adventure, or visit LANTERN CAMP for supplies. Hearts carry over.")
 		"camp":
 			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
 			# so the side bench, seated character, and bonfire are visible immediately.
 			overlay.hide()
-			route_panel.hide()
-			if is_instance_valid(fishing_layer):
+					if is_instance_valid(fishing_layer):
 				fishing_layer.hide()
 		"choice":
 			# Crossroads is now fully represented by the clickable 3D signposts.
 			# Keep the scene clean and do not duplicate route choices in UI.
 			overlay.hide()
-			route_panel.hide()
-			push_chat("Crossroads ahead. Choose one of the route signs.")
+					push_chat("Crossroads ahead. Choose one of the route signs.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
@@ -2029,8 +1997,7 @@ func show_title() -> void:
 		if child != overlay:
 			child.hide()
 	if is_instance_valid(route_panel):
-		route_panel.hide()
-	update_music(true)
+		update_music(true)
 	update_ambient()
 	modal("WAYPOINT  /  FREE EDITION", "Cube Odyssey", "A compact voxel adventure. Choose a cube, follow the signs, and keep moving.")
 	action("PLAY  /  New expedition", func(): request_play(), not has_save)
@@ -2063,8 +2030,7 @@ func enter_game() -> void:
 		if child != overlay:
 			child.show()
 	if is_instance_valid(route_panel):
-		route_panel.hide()
-	if is_instance_valid(fight_layer):
+		if is_instance_valid(fight_layer):
 		fight_layer.hide()
 	if is_instance_valid(fishing_layer):
 		fishing_layer.hide()
