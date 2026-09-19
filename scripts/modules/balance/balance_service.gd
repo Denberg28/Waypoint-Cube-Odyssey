@@ -18,6 +18,27 @@ static func enemy_rank_modifier(rank: int, key: String) -> int:
 	var info: Dictionary = BalanceCatalog.ENEMY_RANK_COMBAT.get(clampi(rank, 1, 4), {})
 	return int(info.get(key, 0))
 
+# Late progression pressure keeps high-rank gear meaningful without making
+# low-level roads unfair. These bonuses activate only after the player has
+# already earned substantial permanent power.
+static func enemy_progression_toughness(level: int, danger: int) -> int:
+	var bonus: int = 0
+	if level >= 13:
+		bonus += 1
+	if level >= 17:
+		bonus += 1
+	if danger >= 5:
+		bonus += 1
+	return bonus
+
+static func enemy_progression_damage(level: int, danger: int, elite: bool = false) -> int:
+	var bonus: int = 0
+	if level >= 13 and danger >= 4:
+		bonus += 1
+	if elite and level >= 17 and danger >= 5:
+		bonus += 1
+	return bonus
+
 static func equipment_power_score(item: Dictionary) -> int:
 	return (
 		int(item.get("attack", 0)) * 5
