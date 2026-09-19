@@ -35,6 +35,30 @@ var active_theme: Dictionary = {}
 var brightness_scale: float = 1.0
 var idle_anchor_position: Vector3 = Vector3.ZERO
 var idle_base_yaw: float = PI
+var camp_cat_root: Node3D
+var camp_actor_roam_index: int = 0
+var camp_cat_roam_index: int = 0
+var camp_actor_pause: float = 0.8
+var camp_cat_pause: float = 0.45
+var camp_actor_roam_points: Array[Vector3] = [
+	Vector3(-2.15, 0.16, -2.35),
+	Vector3(-0.75, 0.16, -2.55),
+	Vector3(1.55, 0.16, -3.10),
+	Vector3(2.30, 0.16, -5.60),
+	Vector3(1.55, 0.16, -7.10),
+	Vector3(-0.75, 0.16, -7.05),
+	Vector3(-2.15, 0.16, -5.85),
+	Vector3(-2.55, 0.16, -4.15)
+]
+var camp_cat_roam_points: Array[Vector3] = [
+	Vector3(-1.35, 0.16, -3.55),
+	Vector3(-0.35, 0.16, -3.00),
+	Vector3(1.25, 0.16, -3.65),
+	Vector3(1.55, 0.16, -5.65),
+	Vector3(0.65, 0.16, -6.55),
+	Vector3(-1.10, 0.16, -6.30),
+	Vector3(-1.55, 0.16, -5.10)
+]
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	return visuals.material(color, glow)
@@ -474,8 +498,8 @@ func build() -> void:
 	idle_base_yaw = actor.rotation.y
 	camera_target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	if not entrance and state.data.mode == "camp":
-		# Frame the side bench, seated character, and bonfire together.
-		camera_target = Vector3(-1.35, 0.12, -3.95)
+		# Keep the hub framed while the character and cat roam independently.
+		camera_target = Vector3(0.0, 0.12, -4.80)
 	update_camera()
 	refresh_props()
 
@@ -569,7 +593,10 @@ func build_cat_companion() -> void:
 		return
 	var root := Node3D.new()
 	root.name = "CampCatCompanion"
-	root.position = Vector3(-1.95, 0.22, -4.15)
+	camp_cat_root = root
+	camp_cat_roam_index = 0
+	camp_cat_pause = 0.45
+	root.position = camp_cat_roam_points[0]
 	root.rotation.y = 0.35
 	scenery.add_child(root)
 
@@ -636,6 +663,9 @@ func build_cat_companion() -> void:
 	floating_text(root, "%s  •  LV %d  •  %s" % [str(design.get("name", "CAT")), state.cat_level(), mood], Vector3(0, 1.45, 0), active_theme.text, 17)
 
 func camp() -> void:
+	camp_actor_roam_index = 0
+	camp_actor_pause = 0.8
+	camp_cat_root = null
 	var tent = PrismMesh.new()
 	tent.size = Vector3(2.8, 2.5, 3.0)
 	var canvas = MeshInstance3D.new()
@@ -693,22 +723,16 @@ func camp() -> void:
 	build_cat_companion()
 
 func pose_actor_at_camp() -> void:
-	actor.position = Vector3(-3.15, 0.52, -3.05)
-	# The bench and cube both use local +Z as the direction toward the fire.
-	var fire_look_target := Vector3(0.0, actor.position.y, -5.15)
-	actor.look_at(fire_look_target, Vector3.UP, true)
-	if is_instance_valid(left_foot):
-		left_foot.position = Vector3(-0.24, -0.22, 0.34)
-		left_foot.rotation.x = -0.48
-	if is_instance_valid(right_foot):
-		right_foot.position = Vector3(0.24, -0.22, 0.34)
-		right_foot.rotation.x = -0.48
-	if is_instance_valid(left_arm):
-		left_arm.position.y = 0.20
-		left_arm.rotation.x = -0.22
-	if is_instance_valid(right_arm):
-		right_arm.position.y = 0.20
-		right_arm.rotation.x = -0.22
+	# Spawn on the ground beside the camp path, not on top of the bench. From
+	# here the camp-only roaming loop takes over.
+	reset_walk_pose()
+	camp_actor_roam_index = 0
+	camp_actor_pause = 0.8
+	actor.position = camp_actor_roam_points[0]
+	var next_target: Vector3 = camp_actor_roam_points[1]
+	actor.look_at(Vector3(next_target.x, actor.position.y, next_target.z), Vector3.UP, true)
+	idle_anchor_position = actor.position
+	idle_base_yaw = actor.rotation.y
 
 func waypoint_style_for(route_id: String) -> Dictionary:
 	var style_data: Dictionary = Catalog.waypoint_style(route_id).duplicate(true)
@@ -1340,48 +1364,108 @@ func hop_to(pos: Vector3) -> void:
 	await jump_to(pos)
 
 func apply_camp_idle() -> void:
-	# Industry-standard rest-space idle: restrained breathing and small seated
-	# gestures only. The character stays locked to the bench anchor and never
-	# gains autonomous travel while the player is inactive.
+	# Standing rest pose used during short pauses between autonomous camp steps.
 	var breath: float = sin(elapsed * 1.65)
 	var sway: float = sin(elapsed * 0.72)
-	var foot_swing: float = sin(elapsed * 1.05)
-	var glance: float = sin(elapsed * 0.33)
-	actor.position = idle_anchor_position + Vector3(0, breath * 0.008, 0)
+	actor.position.y = idle_anchor_position.y + breath * 0.008
 	actor.scale = Vector3(1.0 - breath * 0.0025, 1.0 + breath * 0.010, 1.0 - breath * 0.0025)
 	actor.rotation.x = 0.0
-	actor.rotation.y = idle_base_yaw + glance * 0.015
 	actor.rotation.z = sway * 0.008
 	if is_instance_valid(left_foot):
-		left_foot.position = Vector3(-0.24, -0.22, 0.34)
-		left_foot.rotation.x = -0.48 + foot_swing * 0.040
+		left_foot.position = Vector3(-0.24, -0.13, 0.08)
+		left_foot.rotation.x = sway * 0.025
 	if is_instance_valid(right_foot):
-		right_foot.position = Vector3(0.24, -0.22, 0.34)
-		right_foot.rotation.x = -0.48 - foot_swing * 0.040
+		right_foot.position = Vector3(0.24, -0.13, 0.08)
+		right_foot.rotation.x = -sway * 0.025
 	if is_instance_valid(left_arm):
 		left_arm.position = Vector3(-0.55, 0.20 + breath * 0.006, 0)
-		left_arm.rotation.x = -0.22 - sway * 0.028
-		left_arm.rotation.z = sway * 0.014
+		left_arm.rotation.x = -sway * 0.035
 	if is_instance_valid(right_arm):
 		right_arm.position = Vector3(0.55, 0.20 + breath * 0.006, 0)
-		right_arm.rotation.x = -0.22 + sway * 0.028
-		right_arm.rotation.z = sway * 0.014
+		right_arm.rotation.x = sway * 0.035
 
-func apply_idle_animation() -> void:
-	# Idle animation is intentionally camp-only. Adventure/travel readability
-	# stays static between player inputs so movement always communicates intent.
+func update_camp_actor_roam(delta: float) -> void:
+	if camp_actor_roam_points.is_empty():
+		return
+	if camp_actor_pause > 0.0:
+		camp_actor_pause = maxf(0.0, camp_actor_pause - delta)
+		idle_anchor_position = Vector3(actor.position.x, 0.16, actor.position.z)
+		apply_camp_idle()
+		return
+
+	var next_index: int = (camp_actor_roam_index + 1) % camp_actor_roam_points.size()
+	var target: Vector3 = camp_actor_roam_points[next_index]
+	var flat_delta := Vector3(target.x - actor.position.x, 0.0, target.z - actor.position.z)
+	var distance: float = flat_delta.length()
+	if distance <= 0.10:
+		camp_actor_roam_index = next_index
+		camp_actor_pause = 0.95 + float(camp_actor_roam_index % 3) * 0.35
+		actor.position = target
+		idle_anchor_position = target
+		reset_walk_pose()
+		return
+
+	var direction: Vector3 = flat_delta / distance
+	var step: float = minf(distance, 0.72 * delta)
+	actor.position += direction * step
+	actor.position.y = 0.16 + absf(sin(elapsed * 7.5)) * 0.035
+	actor.look_at(Vector3(target.x, actor.position.y, target.z), Vector3.UP, true)
+	idle_base_yaw = actor.rotation.y
+	var gait: float = sin(elapsed * 7.5)
+	actor.rotation.z = -gait * 0.018
+	if is_instance_valid(left_foot):
+		left_foot.rotation.x = gait * 0.48
+	if is_instance_valid(right_foot):
+		right_foot.rotation.x = -gait * 0.48
+	if is_instance_valid(left_arm):
+		left_arm.rotation.x = -gait * 0.34
+	if is_instance_valid(right_arm):
+		right_arm.rotation.x = gait * 0.34
+
+func update_camp_cat_roam(delta: float) -> void:
+	if not is_instance_valid(camp_cat_root) or camp_cat_roam_points.is_empty():
+		return
+	if camp_cat_pause > 0.0:
+		camp_cat_pause = maxf(0.0, camp_cat_pause - delta)
+		camp_cat_root.position.y = 0.16 + sin(elapsed * 1.9) * 0.006
+		return
+
+	var next_index: int = (camp_cat_roam_index + 1) % camp_cat_roam_points.size()
+	var target: Vector3 = camp_cat_roam_points[next_index]
+	var flat_delta := Vector3(target.x - camp_cat_root.position.x, 0.0, target.z - camp_cat_root.position.z)
+	var distance: float = flat_delta.length()
+	if distance <= 0.08:
+		camp_cat_roam_index = next_index
+		camp_cat_pause = 0.65 + float(camp_cat_roam_index % 4) * 0.28
+		camp_cat_root.position = target
+		return
+
+	var direction: Vector3 = flat_delta / distance
+	var step: float = minf(distance, 0.52 * delta)
+	camp_cat_root.position += direction * step
+	camp_cat_root.position.y = 0.16 + absf(sin(elapsed * 8.8)) * 0.018
+	camp_cat_root.look_at(Vector3(target.x, camp_cat_root.position.y, target.z), Vector3.UP, true)
+
+func apply_idle_animation(delta: float) -> void:
+	# Camp-only ambient life. Adventure/travel remains static between inputs so
+	# movement there always communicates player intent.
 	if entrance or showcase or str(state.data.mode) != "camp":
 		return
-	apply_camp_idle()
+	update_camp_actor_roam(delta)
+	update_camp_cat_roam(delta)
 
 func _process(delta: float) -> void:
 	if not is_instance_valid(actor) or not is_instance_valid(camera):
 		return
 	elapsed += delta
-	var target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
+	var target: Vector3
+	if str(state.data.mode) == "camp" and not entrance:
+		target = Vector3(0.0, 0.12, -4.80)
+	else:
+		target = Vector3(actor.position.x * 0.22, 0, actor.position.z)
 	camera_target = camera_target.lerp(target, 1.0 - exp(-delta * 5.0))
 	update_camera()
 	if showcase:
 		actor.rotation.y = sin(elapsed * 0.8) * 0.4
 	elif not hopping and str(state.data.mode) == "camp":
-		apply_idle_animation()
+		apply_idle_animation(delta)
