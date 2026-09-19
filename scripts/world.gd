@@ -1097,47 +1097,83 @@ func road_end_waypoint(finish_z: float) -> void:
 		box(scenery, Vector3(x, 0.08, z + 1.38), Vector3(1.55, 0.12, 1.55), active_theme.shoulder)
 	box(scenery, Vector3(0, 0.10, z + 0.72), Vector3(5.40, 0.08, 0.20), trim_color.darkened(0.12))
 
+func crossroads_direction_board(
+	parent: Node3D,
+	pos: Vector3,
+	route_id: String,
+	label_text: String,
+	route_color: Color,
+	direction: int
+) -> void:
+	# Clean RPG route marker: route name only. Difficulty/reward detail stays in
+	# the preview UI after selection instead of competing with the sign itself.
+	var board_size := Vector3(2.58, 0.46, 0.22)
+	var board_color: Color = route_color.darkened(0.28)
+	var trim: Color = route_color.lightened(0.10)
+	clickable_board(parent, pos, board_size, board_color, route_id)
+
+	# Slightly inset face keeps the low-poly carved-board language.
+	box(parent, pos + Vector3(0, 0, 0.055), Vector3(2.34, 0.34, 0.075), board_color.lightened(0.05))
+	box(parent, pos + Vector3(0, 0.18, 0.075), Vector3(2.16, 0.055, 0.055), trim.darkened(0.06))
+
+	# One small directional end marker replaces the old dense trim/rivets.
+	var tip_x: float = float(direction) * 1.34
+	var tip = box(parent, pos + Vector3(tip_x, 0, 0.04), Vector3(0.34, 0.34, 0.20), board_color)
+	tip.rotation_degrees.z = 45.0
+	var badge_x: float = float(direction) * 1.05
+	var badge = box(parent, pos + Vector3(badge_x, 0, 0.15), Vector3(0.13, 0.13, 0.045), trim, true)
+	badge.rotation_degrees.z = 45.0
+
+	floating_text(parent, label_text, pos + Vector3(0, 0.015, 0.17), Color("fff3cf"), 17)
+
+
 func crossroads(finish_z: float) -> void:
-	# Smaller route-selection counterpart to the road-end gateway. It reuses the
-	# same timber/stone/lantern language so players recognize navigation props
-	# everywhere in the world.
+	# Option A: clean RPG signpost. The structure communicates navigation while
+	# the route preview UI owns difficulty/reward details.
 	var current_route_id: String = str(state.data.get("route", "moss"))
 	var style_data: Dictionary = waypoint_style_for(current_route_id)
-	var post_color: Color = style_data.post_color
+	var post_color: Color = style_data.post_color.darkened(0.04)
 	var trim_color: Color = style_data.trim_color
+	var accent_color: Color = style_data.accent_color
 	var z: float = finish_z + 0.04
 
-	add_waypoint_post(scenery, Vector3(-2.12, 0, z), style_data, 1, 0.78, false)
-	add_waypoint_post(scenery, Vector3(2.12, 0, z), style_data, -1, 0.78, false)
-	box(scenery, Vector3(0, 2.43, z), Vector3(4.55, 0.30, 0.34), post_color)
-	box(scenery, Vector3(0, 2.60, z + 0.02), Vector3(4.15, 0.08, 0.14), trim_color)
-	add_waypoint_lantern(scenery, Vector3(-1.45, 2.10, z + 0.18), 0.55)
-	add_waypoint_lantern(scenery, Vector3(1.45, 2.10, z + 0.18), 0.55)
+	# Wider, quieter silhouette: two posts and one restrained header beam.
+	add_waypoint_post(scenery, Vector3(-3.20, 0, z), style_data, 0, 0.82, false)
+	add_waypoint_post(scenery, Vector3(3.20, 0, z), style_data, 0, 0.82, false)
+	box(scenery, Vector3(0, 2.56, z), Vector3(6.20, 0.24, 0.30), post_color)
+	box(scenery, Vector3(0, 2.70, z + 0.02), Vector3(5.72, 0.055, 0.10), trim_color.darkened(0.06))
+
+	# Compact header replaces the long floating instruction sentence.
+	var header_color: Color = Color("294542").lerp(post_color.darkened(0.18), 0.16)
+	box(scenery, Vector3(0, 2.25, z + 0.08), Vector3(2.32, 0.46, 0.20), header_color)
+	box(scenery, Vector3(0, 2.47, z + 0.12), Vector3(1.92, 0.055, 0.055), trim_color)
+	var header_badge = box(scenery, Vector3(0, 2.25, z + 0.18), Vector3(0.16, 0.16, 0.045), accent_color, true)
+	header_badge.rotation_degrees.z = 45.0
+	floating_text(scenery, "CROSSROADS", Vector3(0, 2.25, z + 0.18), Color("fff0c7"), 18)
 
 	var options: Array = route_options_for_stage()
 	var board_layout: Array = [
-		{"pos":Vector3(-0.90, 1.82, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)},
-		{"pos":Vector3(0.90, 1.22, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)},
-		{"pos":Vector3(-0.90, 0.62, z + 0.18), "size":Vector3(3.02, 0.50, 0.23)}
+		{"pos":Vector3(-2.05, 1.48, z + 0.18), "direction":-1},
+		{"pos":Vector3(0.00, 1.05, z + 0.20), "direction":1},
+		{"pos":Vector3(2.05, 1.48, z + 0.18), "direction":1}
 	]
 	for i in range(mini(options.size(), board_layout.size())):
 		var route_id: String = str(options[i])
 		var route: Dictionary = Catalog.ROUTES[route_id]
 		var board: Dictionary = board_layout[i]
 		var route_color: Color = Color(str(route.get("color", "c59b61")))
-		waypoint_destination_board(
+		crossroads_direction_board(
 			scenery,
 			board.pos,
-			board.size,
 			route_id,
-			"→  %s  •  %s" % [str(route.name).to_upper(), str(route.get("difficulty_label", "ROAD"))],
-			route_color.darkened(0.20),
-			route_color.lightened(0.14)
+			str(route.name).to_upper(),
+			route_color,
+			int(board.direction)
 		)
 
-	floating_text(scenery, "CROSSROADS  •  CHOOSE YOUR NEXT ROAD", Vector3(0, 3.02, z + 0.10), active_theme.text, 19)
-	for x in [-2.2, 0.0, 2.2]:
-		box(scenery, Vector3(x, 0.08, z + 1.35), Vector3(1.6, 0.12, 1.6), active_theme.shoulder)
+	# Three subtle ground markers echo the three choices without extra labels.
+	for x in [-2.05, 0.0, 2.05]:
+		box(scenery, Vector3(x, 0.07, z + 1.32), Vector3(1.22, 0.10, 1.22), active_theme.shoulder)
 
 func guardian() -> void:
 	var root = Node3D.new()
