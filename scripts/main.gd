@@ -150,6 +150,10 @@ func _ready() -> void:
 		if not at_title and not busy and game.data.mode in ["camp", "rest", "choice"]:
 			show_marketplace("skin")
 	)
+	world.cat_clicked.connect(func():
+		if not at_title and not busy and game.data.mode == "camp" and bool(game.data.get("cat_owned", false)):
+			show_cat_companion()
+	)
 	world.set_brightness(brightness_factor())
 	build_ui()
 	apply_side_panel_mode()
@@ -1387,7 +1391,7 @@ func cat_design_summary(design: Dictionary) -> String:
 func show_cat_market() -> void:
 	if at_title or busy or game.data.mode not in ["camp", "rest", "choice"]:
 		return
-	modal("MARKETPLACE / CAT COMPANION", "Adopt a camp companion.", "The market shows one randomly designed cat at a time. Refreshing the offer is free. Cats do not add combat stats; they turn fishing into a persistent care loop.")
+	modal("MARKETPLACE / CAT COMPANION", "Adopt a camp companion.", "The market shows one randomly designed cat at a time. Refreshing the offer is free. Caring for a cat builds Bond levels and a small Road Luck completion bonus; it never changes direct combat damage.")
 	stack.add_child(label("BANK  %d COINS   •   ADOPTION %d" % [int(game.data.coins), Catalog.CAT_PRICE], FONT_BODY, GOLD))
 	if bool(game.data.get("cat_owned", false)):
 		stack.add_child(label("ADOPTED  •  %s" % cat_design_summary(game.data.cat_design), FONT_BODY, MINT))
@@ -1420,22 +1424,72 @@ func show_cat_market() -> void:
 	action("Done", func(): show_mode(), true)
 	schedule_modal_fit()
 
+func companion_progress_bar(value: float, maximum: float, fill_color: Color) -> ProgressBar:
+	var bar := ProgressBar.new()
+	bar.min_value = 0.0
+	bar.max_value = maximum
+	bar.value = clampf(value, 0.0, maximum)
+	bar.show_percentage = false
+	bar.custom_minimum_size = Vector2(300, 12)
+	bar.add_theme_stylebox_override("background", style(Color("273c3b"), 6))
+	bar.add_theme_stylebox_override("fill", style(fill_color, 6))
+	return bar
+
 func show_cat_companion() -> void:
 	if at_title or busy or game.data.mode not in ["camp", "rest", "choice"]:
 		return
 	if not bool(game.data.get("cat_owned", false)):
 		show_cat_market()
 		return
+
 	var name: String = str(game.data.cat_design.get("name", "Cat"))
-	modal("CAT COMPANION / %s" % name.to_upper(), game.cat_mood(), game.cat_mood_text())
-	stack.add_child(label("SATIETY  %d / 100" % int(game.data.cat_satiety), FONT_BODY, GOLD))
-	stack.add_child(label("FISH PANTRY  ×%d   •   LIFETIME CATCHES ×%d" % [int(game.data.fish_stock), int(game.data.fish_caught)], FONT_BODY, MINT))
+	var bond: Dictionary = game.cat_bond_progress()
+	var cat_level: int = game.cat_level()
+	var rank_name: String = game.cat_rank_name()
+	var mood: String = game.cat_mood()
+	var satiety: int = int(game.data.cat_satiety)
+
+	modal(
+		"CAT COMPANION / %s" % name.to_upper(),
+		"LV %d  •  %s  •  %s" % [cat_level, rank_name, mood],
+		game.cat_mood_text()
+	)
+
+	stack.add_child(label("SATIETY  %d / 100" % satiety, FONT_CAPTION, GOLD))
+	stack.add_child(companion_progress_bar(float(satiety), 100.0, MINT if satiety >= 35 else Color("df8b72")))
+
+	var bond_label: String = "BOND XP  MAX"
+	if cat_level < Catalog.CAT_LEVEL_CAP:
+		bond_label = "BOND XP  %d / %d" % [int(bond.current), int(bond.needed)]
+	stack.add_child(label(bond_label, FONT_CAPTION, GOLD))
+	stack.add_child(companion_progress_bar(float(bond.current), float(bond.needed), Color("9fb8e8")))
+
+	stack.add_child(label("MOOD  %s   •   RANK  %s" % [mood, rank_name], FONT_BODY, MINT))
+	stack.add_child(label("ACTIVE BUFF", FONT_CAPTION, GOLD))
+	var buff_text: String = game.cat_buff_text()
+	stack.add_child(label(buff_text, FONT_BODY, MINT if game.cat_buff_coins() > 0 else MUTED))
+
+	stack.add_child(label(
+		"FISH PANTRY  ×%d   •   LIFETIME CATCHES ×%d" % [int(game.data.fish_stock), int(game.data.fish_caught)],
+		FONT_BODY,
+		MINT
+	))
 	stack.add_child(label(cat_design_summary(game.data.cat_design), FONT_CAPTION, MUTED))
-	var feed_text: String = "Feed 1 fish  •  +%d satiety" % Catalog.CAT_SATIETY_PER_FISH
+
+	var feed_text: String = "Feed 1 fish  •  +%d satiety  •  +%d Bond XP" % [Catalog.CAT_SATIETY_PER_FISH, Catalog.CAT_BOND_XP_PER_FEED]
 	var feed_btn = button(feed_text, func():
 		var before_mood: String = game.cat_mood()
+		var before_level: int = game.cat_level()
 		if game.feed_cat():
-			ai_telemetry.record("cat_fed", game, {"before_mood":before_mood, "after_mood":game.cat_mood(), "satiety":int(game.data.cat_satiety), "fish_stock":int(game.data.fish_stock)})
+			ai_telemetry.record("cat_fed", game, {
+				"before_mood":before_mood,
+				"after_mood":game.cat_mood(),
+				"before_level":before_level,
+				"after_level":game.cat_level(),
+				"rank":game.cat_rank_name(),
+				"satiety":int(game.data.cat_satiety),
+				"fish_stock":int(game.data.fish_stock)
+			})
 			play_chime([440.0, 587.33, 659.25], 0.12, 0.025)
 		game.save_game()
 		world.build()
@@ -1445,10 +1499,16 @@ func show_cat_companion() -> void:
 	, true)
 	feed_btn.disabled = int(game.data.fish_stock) <= 0 or int(game.data.cat_satiety) >= 100
 	stack.add_child(feed_btn)
+
 	if int(game.data.fish_stock) <= 0:
 		stack.add_child(label("Adventure motivation: find a fishing pool and bring a catch home.", FONT_CAPTION, GOLD))
 	else:
-		stack.add_child(label("Each completed road lowers satiety by %d. Feed at safe waypoints." % Catalog.CAT_SATIETY_ROAD_COST, FONT_CAPTION, MUTED))
+		stack.add_child(label(
+			"Completed roads cost %d satiety and grant +%d Bond XP while cared for." % [Catalog.CAT_SATIETY_ROAD_COST, Catalog.CAT_BOND_XP_PER_ROAD],
+			FONT_CAPTION,
+			MUTED
+		))
+
 	action("Marketplace", func(): show_cat_market())
 	action("Done", func(): show_mode(), true)
 	schedule_modal_fit()
