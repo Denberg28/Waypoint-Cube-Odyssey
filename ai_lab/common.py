@@ -21,6 +21,7 @@ DEFAULT_SAFE_OUTPUT_TOKENS = 8_192
 DEFAULT_SAFE_RPM = 1
 DEFAULT_MAX_RETRIES = 1
 DEFAULT_MAX_REQUESTS_PER_RUN = 16
+DEFAULT_MAX_REQUESTS_PER_DAY = 3
 
 
 class GeminiBudgetError(RuntimeError):
@@ -90,6 +91,46 @@ def _usage_path() -> Path:
     return base / "waypoint-gemini-run-usage.json"
 
 
+def _daily_usage_path() -> Path | None:
+    explicit = os.environ.get("GEMINI_DAILY_USAGE_FILE", "").strip()
+    return Path(explicit) if explicit else None
+
+
+def _utc_day() -> str:
+    return time.strftime("%Y-%m-%d", time.gmtime())
+
+
+def _load_daily_usage() -> dict[str, Any]:
+    path = _daily_usage_path()
+    if path is None:
+        return {"date": _utc_day(), "attempts": 0, "quota_blocked": False}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+    if data.get("date") != _utc_day():
+        data = {"date": _utc_day(), "attempts": 0, "quota_blocked": False}
+    return data
+
+
+def _save_daily_usage(data: dict[str, Any]) -> None:
+    path = _daily_usage_path()
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    temp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    temp.replace(path)
+
+
+def _mark_daily_quota_blocked(reason: str) -> None:
+    data = _load_daily_usage()
+    data["quota_blocked"] = True
+    data["blocked_reason"] = str(reason)[:160]
+    data["updated_epoch"] = time.time()
+    _save_daily_usage(data)
+
+
 def _run_key() -> str:
     return os.environ.get("GITHUB_RUN_ID", "").strip() or f"local-{os.getpid()}"
 
@@ -121,6 +162,28 @@ def _reserve_request_attempt() -> dict[str, Any]:
         1,
         10_000,
     )
+    daily_path = _daily_usage_path()
+    if daily_path is not None:
+        daily = _load_daily_usage()
+        max_daily = _env_int(
+            "GEMINI_MAX_REQUESTS_PER_DAY",
+            DEFAULT_MAX_REQUESTS_PER_DAY,
+            1,
+            1000,
+        )
+        if bool(daily.get("quota_blocked", False)):
+            raise GeminiBudgetError(
+                "Gemini daily budget is blocked after a quota/rate-limit event; "
+                "waiting for the next UTC day."
+            )
+        if int(daily.get("attempts", 0)) >= max_daily:
+            raise GeminiBudgetError(
+                f"Gemini shared daily request cap reached ({max_daily}); refusing additional API calls."
+            )
+        daily["attempts"] = int(daily.get("attempts", 0)) + 1
+        daily["updated_epoch"] = time.time()
+        _save_daily_usage(daily)
+
     usage = _load_usage()
     if int(usage.get("attempts", 0)) >= max_requests:
         raise GeminiBudgetError(
@@ -203,6 +266,8 @@ def call_gemini(
                 raw = json.loads(response.read().decode("utf-8"))
             return json.loads(extract_output_text(raw))
         except urllib.error.HTTPError as exc:
+            if exc.code == 429:
+                _mark_daily_quota_blocked("HTTP 429 quota/rate limit")
             if exc.code not in {429, 500, 502, 503, 504} or retry_index >= retries:
                 raise
             retry_after = exc.headers.get("Retry-After") if exc.headers else None
