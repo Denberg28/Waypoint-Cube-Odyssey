@@ -1157,6 +1157,8 @@ func valid_save(value: Variant) -> bool:
 	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_food_stock", "cat_satiety", "cat_bond_xp", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
 		if not (value[key] is int or value[key] is float):
 			return false
+	if int(value.hp) < 0 or int(value.mana) < 0 or int(value.coins) < 0 or int(value.bag) < 0 or int(value.wins) < 0 or int(value.runs) < 0 or int(value.kills) < 0:
+		return false
 	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_food_stock) < 0 or int(value.cat_food_stock) > Catalog.CAT_FOOD_STOCK_CAP or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.cat_bond_xp) < 0 or int(value.cat_bond_xp) > (Catalog.CAT_LEVEL_CAP - 1) * Catalog.CAT_BOND_XP_PER_LEVEL or int(value.gloomcaps) < 0 or int(value.prismatic_pearls) < 0 or int(value.ember_shards) < 0 or int(value.skyfeathers) < 0:
 		return false
 	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
@@ -1181,7 +1183,7 @@ func valid_save(value: Variant) -> bool:
 	else:
 		if not value.cat_design.is_empty():
 			return false
-		if int(value.cat_satiety) != 0 or int(value.cat_bond_xp) != 0:
+		if int(value.cat_satiety) != 0 or int(value.cat_bond_xp) != 0 or int(value.cat_food_stock) != 0:
 			return false
 	for slot in ["skin", "head", "back", "face"]:
 		if not value.cosmetics_equipped.has(slot):
@@ -1197,6 +1199,8 @@ func valid_save(value: Variant) -> bool:
 	if not value.potions.has("heal") or not value.potions.has("mana"):
 		return false
 	if not (value.potions.heal is int or value.potions.heal is float) or not (value.potions.mana is int or value.potions.mana is float):
+		return false
+	if int(value.potions.heal) < 0 or int(value.potions.mana) < 0:
 		return false
 	if value.mode not in ["camp", "road_end", "choice", "travel", "campfire", "fishing", "reward", "rest", "shrine", "traveler", "boss_intro", "boss", "victory", "defeat"]:
 		return false
@@ -1280,6 +1284,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.cat_design = {}
 		migrated.cat_satiety = 0
 		migrated.cat_bond_xp = 0
+		migrated.cat_food_stock = 0
 	if not migrated.has("gloomcaps"):
 		migrated.gloomcaps = 0
 	if not migrated.has("prismatic_pearls"):
