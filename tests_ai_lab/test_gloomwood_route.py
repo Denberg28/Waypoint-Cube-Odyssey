@@ -8,8 +8,11 @@ from streamlit_lab.core import ROUTES
 
 
 def test_gloomwood_is_promoted_and_playable_everywhere():
-    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    catalog = Path("scripts/modules/road/road_catalog.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + Path("scripts/modules/road/road_service.gd").read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
     bridge = Path("scripts/ai_gamemaster_bridge.gd").read_text(encoding="utf-8")
@@ -31,7 +34,10 @@ def test_gloomwood_is_promoted_and_playable_everywhere():
 
 
 def test_gloomwood_has_distinct_biome_hazard_landmark_and_collectible():
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + Path("scripts/modules/road/road_service.gd").read_text(encoding="utf-8")
+    )
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
     main = Path("scripts/main.gd").read_text(encoding="utf-8")
 
@@ -51,7 +57,10 @@ def test_gloomwood_has_distinct_biome_hazard_landmark_and_collectible():
 
 
 def test_gloomwood_save_schema_migrates_existing_players():
-    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + Path("scripts/modules/road/road_service.gd").read_text(encoding="utf-8")
+    )
     assert '"version":17' in state
     assert '"gloomcaps":0' in state
     assert 'if not migrated.has("gloomcaps"):' in state
