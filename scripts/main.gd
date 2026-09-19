@@ -1367,11 +1367,11 @@ func show_marketplace(slot: String = "skin") -> void:
 			text_value = "Buy %d  •  %s" % [int(item.price), str(item.name)]
 		var item_button = button(text_value, func():
 			var already_owned: bool = game.owns_cosmetic(cosmetic_id)
-			if already_owned:
-				game.equip_cosmetic(cosmetic_id)
+			var market_success: bool = game.equip_cosmetic(cosmetic_id) if already_owned else game.buy_cosmetic(cosmetic_id)
+			if market_success:
+				ai_telemetry.record("cosmetic_equipped" if already_owned else "cosmetic_purchased", game, {"cosmetic_id":cosmetic_id, "slot":slot, "price":int(item.price)})
 			else:
-				game.buy_cosmetic(cosmetic_id)
-			ai_telemetry.record("cosmetic_equipped" if already_owned else "cosmetic_purchased", game, {"cosmetic_id":cosmetic_id, "slot":slot, "price":int(item.price)})
+				ai_telemetry.record("cosmetic_action_failed", game, {"cosmetic_id":cosmetic_id, "slot":slot, "attempt":"equip" if already_owned else "purchase"})
 			game.save_game()
 			world.refresh_actor()
 			push_chat(str(game.data.last))
