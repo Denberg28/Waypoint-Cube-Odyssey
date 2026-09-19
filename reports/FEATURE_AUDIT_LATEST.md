@@ -1,101 +1,227 @@
-# Cube Odyssey — Feature Audit
+# Cube Odyssey — Full Code Review & Sanitization Audit
 
 Updated: 2026-09-19
+Branch: `ai-development`
 
-## Verification status
+## Final verification state
 
-- GitHub Python/contract suite: **59 passed**
-- Python compile check: **passed**
-- Godot 4.7.2 headless import: **passed**
-- Godot 4.7.2 Web export: **passed**
-- GitHub Pages Web tester deployment: **passed**
-- Latest gameplay code build verified at commit `f650009c8b17e7e3cbe41d216365fa4e585dd803`; commits after it in this audit only refresh tests/contracts.
+- Python / contract tests: **62 passed**
+- Repository sanitation gate: **SANITY_OK**
+- Python compile pass: **passed**
+- Godot 4.7.2 project import: **passed**
+- Full `main.tscn` startup smoke: **passed**
+- Crossroads world-build smoke: **passed**
+- Core gameplay feature invariant smoke: **passed**
+- Godot Web release export: **passed**
+- GitHub Pages deployment: **passed**
 
-## Market + cat companion
+The deployed gameplay build passed all Godot runtime gates before export.
 
-Status: **implemented and integrated**
+## Sanitization work completed
 
-Verified flow:
-1. Marketplace exposes a CAT tab.
-2. A procedural cat offer is generated from name/body/accent/eyes/pattern pools.
-3. Player can refresh the offer without cost before adoption.
-4. Adoption validates safe-waypoint state, prevents duplicate ownership, checks banked coins, deducts the configured price, persists the selected design, and starts satiety at 70.
-5. Fishing adds persistent fish portions to the pantry.
-6. Feeding consumes exactly one fish, raises satiety, and updates mood.
-7. Road completion reduces satiety by the configured progression cost; no wall-clock decay is used.
-8. Adopted cat is rendered at Lantern Camp.
-9. Save validation and v15 migration preserve pet/fish fields.
-10. Telemetry covers adoption, offer refresh, feeding, successful cosmetic actions, and failed cosmetic actions.
+### 1. Crossroads / UI reliability
 
-Optimization notes:
-- Cat appearance changes only before adoption; adopted appearance is stable.
-- Satiety is progression-based, avoiding background timers and punishing offline time.
-- Marketplace refresh remains explicit rather than changing the offer while the player is deciding.
+- Removed the temporary Crossroads fallback route panel completely.
+- Removed stale `route_panel`, `route_box`, `show_routes()`, and route-window API references.
+- Corrected malformed `show_mode()` indentation left by the UI removal.
+- Removed the obsolete UIRefinement route-panel styling hook.
+- Added a contract preventing the deleted fallback API from reappearing.
+- Added Streamlit Godot iframe cache-busting so refreshed sessions request the current build.
 
-## Battle presentation
+### 2. Full-scene runtime protection
 
-Status: **implemented**
+The Web deploy pipeline now blocks publication unless all of these succeed:
 
-Changes:
-- Combat card height increased for additional information.
-- Enemy rank/loadout text is visible during encounters.
-- Encounter/windup timings were lengthened.
-- A 0–100 tug-of-war balance meter begins at center.
-- Four suspense beats move the meter back and forth before settling toward the resolved outcome.
-- Final state explicitly shows YOU WIN or FOE WINS.
-- Existing combat resolution remains authoritative; the suspense meter is presentation only and cannot alter damage/rewards.
-- Existing encounter, attack, impact, victory, hurt, and music-ducking audio paths remain in use.
+1. Godot resource import
+2. Full main-scene startup
+3. Crossroads world construction
+4. Core feature invariants
+5. Web export
+6. Pages deployment
 
-## Enemy visual variety
+The full-scene smoke additionally exercises:
+- route preview modal
+- cat marketplace modal
+- cat adoption / companion modal
+- combat presentation controls
 
-Status: **implemented**
+### 3. Gameplay state invariants
 
-Each normal enemy type now has a distinct equipment identity:
-- Moss Slime — moss shell, leaf cap, thorn spike
-- Road Goblin — scrap vest, iron cap, short sword
-- Trail Kobold — scale coat, horn guard, spear
-- Waystone Ogre — plate harness, war helm, stone hammer
+A dedicated Godot feature smoke now verifies:
 
-Rank system:
-- COMMON
-- HARDENED
-- VETERAN
-- CHAMPION (elite)
+- fresh v15 state is save-valid
+- cat offer generation and refresh
+- cat purchase/adoption
+- fish feeding and satiety changes
+- cosmetic marketplace purchase
+- generation of every playable route
+- exact road cell count
+- save validity after route generation
+- invalid external route IDs safely fall back to Moss Trail
+- expansion collectible counters
+- ranked enemy visual variants
 
-Visual variation:
-- Multiple body/armor/helmet/weapon palettes per enemy type.
-- Palette selection is deterministic from route seed + row + lane + enemy type, so enemies vary between encounters but do not change color when the scene rebuilds.
-- Higher ranks add shoulder armor/trim.
-- Elites retain crown/telegraph treatment and use Champion rank.
+### 4. Route catalog drift eliminated
 
-## Waypoints, maps, progression and UI regression review
+Previously:
+- Godot had 10 playable routes
+- AI Game Master layers still whitelisted the original 7
 
-The automated contract suite currently covers:
-- level/star progression
-- Resolve
-- elite profiles
-- route generation and safe corridor
-- Gloomwood
+Now:
+- `game_data/routes.json` is the Python-side route source of truth
+- Godot AI validation uses `Catalog.ROUTES`
+- Streamlit already reads `game_data/routes.json`
+- Night Watch derives routes from the same JSON catalog
+- AI contracts derive routes from the same JSON catalog
+- regression coverage confirms all layers match
+
+This includes:
 - Sunken Grotto
 - Cinder Caldera
 - Galecrest Spire
-- standardized/RPG waypoint geometry
-- road posts
-- cat companion and feeding loop
-- save migrations
-- Development Review synchronization
-- beta tester simulation
-- market telemetry
-- combat suspense meter
-- enemy visual rank/loadout system
 
-## Remaining validation boundary
+### 5. Save / migration review
 
-The automated Godot build proves the project parses/imports and exports successfully. The contract suite verifies integration points and state rules. Subjective presentation still benefits from a human browser smoke test for:
-- battle pacing on desktop/mobile
-- readability of long enemy loadout labels
-- armor/weapon silhouette visibility at typical camera distance
-- tug-of-war meter clarity
-- cat and marketplace usability
+Current schema: **v15**
 
-No blocking implementation or build failure remains in this audit.
+Verified:
+- current reset state emits v15
+- validator requires v15
+- legacy saves through v14 migrate to v15
+- cat fields are validated
+- expansion collectible fields are validated
+- cosmetics and equipment references are catalog-validated
+- route IDs and mode values are validated
+- travel cell structure and uniqueness are validated
+
+### 6. Market + cat companion
+
+Verified flow:
+
+- random cat offer
+- free offer reroll before adoption
+- safe-waypoint-only adoption
+- banked-coin affordability check
+- stable adopted appearance
+- fishing pantry integration
+- feed consumes one fish
+- satiety capped at 100
+- progression-based hunger only
+- mood thresholds
+- camp rendering
+- save migration
+- telemetry for adoption / refresh / feeding
+
+Marketplace telemetry was sanitized so failed cosmetic purchases are not logged as successful transactions.
+
+### 7. Combat
+
+Verified implementation:
+
+- longer encounter presentation
+- rank/loadout description
+- tug-of-war suspense meter
+- multiple struggle beats
+- explicit win/loss visual outcome
+- underlying combat resolution remains authoritative
+- animation cannot alter the computed battle result
+
+Combat UI controls are now covered by the full main-scene startup smoke.
+
+### 8. Enemy visuals
+
+Verified:
+
+- type-specific armor
+- type-specific helmet
+- type-specific weapon
+- Common / Hardened / Veteran / Champion ranks
+- Elite = Champion presentation
+- deterministic palette variation using route seed + row + lane + enemy type
+- stable appearance across scene rebuilds
+
+### 9. Web visual performance
+
+Visual creation now routes through `VisualKit`.
+
+Optimizations:
+- shared BoxMesh
+- shared CylinderMesh families
+- shared SphereMesh
+- shared material cache
+- Web/light visual profile
+- lower roadside marker density
+- fewer decorative lanterns / banners / rope details
+- fewer foliage props
+- reduced precipitation geometry
+- reduced cloud count
+- reduced enemy micro-detail while preserving silhouette
+
+Remaining intentional direct mesh allocation:
+- the Lantern Camp tent PrismMesh, created only once per camp build
+
+### 10. Dead code removed
+
+Removed unused legacy UI implementations:
+
+- `scripts/ui_shell.gd`
+- `scripts/header_drawer.gd`
+- `scripts/ui_icon_fallback.gd`
+
+These were not referenced by `project.godot`, `main.tscn`, or active UI code.
+
+### 11. Telemetry privacy checks
+
+Verified by contract:
+
+- Web remote telemetry requires explicit `telemetry=1`
+- desktop remote debug is disabled
+- free-text fields named result/message/feedback/text are excluded from remote details
+- remote strings are length-limited
+- save files are not uploaded by telemetry code
+
+Note: database-side Supabase RLS / retention policy is external to this repository and was not independently audited in this code-only pass.
+
+### 12. Repository sanitation gate
+
+`tools/repo_sanity.py` now checks:
+
+- project resource references exist
+- main scene resource references exist
+- JSON catalogs parse
+- all game routes exist as active/playable world-map routes
+- AI layers derive routes from shared catalogs
+- deleted Crossroads fallback APIs stay deleted
+- retired UI scripts stay retired
+- save schema remains v15
+
+The gate runs in CI before Python compile completion.
+
+## Remaining non-blocking engineering debt
+
+No blocking runtime/build issue remains in this review.
+
+The main remaining maintainability item is structural rather than functional:
+- `scripts/main.gd` and `scripts/world.gd` are large programmatic files. They are currently covered by stronger smoke tests, but later refactoring into smaller feature modules would reduce change risk further.
+
+This is not required for the current playable Web build and should be done only as a controlled refactor with existing smoke tests kept intact.
+
+## Current conclusion
+
+The current `ai-development` branch is sanitized across:
+- startup
+- route selection
+- save state
+- map generation
+- marketplace
+- cat companion
+- fishing
+- combat
+- enemy visuals
+- expansion maps
+- AI Game Master route integration
+- telemetry client sanitization
+- Web rendering
+- CI / deployment
+
+No known blocking implementation, parse, startup, route-generation, or Web-export failure remains.
