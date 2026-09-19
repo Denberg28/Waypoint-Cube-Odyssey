@@ -61,12 +61,12 @@ def test_gloomwood_save_schema_migrates_existing_players():
         Path("scripts/state.gd").read_text(encoding="utf-8")
         + Path("scripts/modules/road/road_service.gd").read_text(encoding="utf-8")
     )
-    assert '"version":17' in state
+    assert '"version":18' in state
     assert '"gloomcaps":0' in state
     assert 'if not migrated.has("gloomcaps"):' in state
     assert "migrated.gloomcaps = 0" in state
     assert "12, 12.0" in state
-    assert "migrated.version = 17" in state
+    assert "migrated.version = 18" in state
 
 
 def test_all_playable_routes_share_one_catalog_across_ai_layers():
