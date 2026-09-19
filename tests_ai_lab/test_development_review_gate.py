@@ -504,7 +504,8 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
     assert "data.cat_satiety = maxi(0" in state
     assert "var cat_status: String = cat_adventure_tick()" in state
 
-    assert 'for category in ["skin", "head", "back", "face", "cat"]' in main
+    assert 'for category in ["skin", "head", "back", "face"]' in main
+    assert "Cat Companion  •  Browse / Adopt" in main
     assert 'func show_cat_market() -> void:' in main
     assert 'Refresh random cat design' in main
     assert 'func show_cat_companion() -> void:' in main
@@ -694,7 +695,8 @@ def test_cat_market_and_pet_care_loop_is_fully_wired():
     assert "CAT_SATIETY_ROAD_COST" in state
     assert "data.fish_stock += fish_portions" in state
 
-    assert 'for category in ["skin", "head", "back", "face", "cat"]' in main
+    assert 'for category in ["skin", "head", "back", "face"]' in main
+    assert "Cat Companion  •  Browse / Adopt" in main
     assert "func show_cat_market() -> void:" in main
     assert "Refresh random cat design" in main
     assert "func show_cat_companion() -> void:" in main
