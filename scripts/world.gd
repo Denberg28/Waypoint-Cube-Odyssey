@@ -44,6 +44,9 @@ func box(parent: Node3D, pos: Vector3, size: Vector3, color: Color, glow: bool =
 func cone(parent: Node3D, pos: Vector3, radius: float, height: float, color: Color, top: float = 0.0) -> MeshInstance3D:
 	return visuals.cone(parent, pos, radius, height, color, top)
 
+func sphere(parent: Node3D, pos: Vector3, diameter: float, color: Color, glow: bool = false) -> MeshInstance3D:
+	return visuals.sphere(parent, pos, diameter, color, glow)
+
 func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false, camp_return: bool = false, continue_adventure: bool = false) -> Area3D:
 	var area = Area3D.new()
 	area.position = pos
@@ -685,14 +688,7 @@ func add_waypoint_motif(parent: Node3D, route_id: String, pos: Vector3, style_da
 			cone(parent, pos + Vector3(0, 0.10, 0), 0.18, 0.42, accent, 0.03)
 			box(parent, pos + Vector3(0, 0.34, 0), Vector3(0.16, 0.16, 0.16), accent, true)
 		"moon":
-			var moon = SphereMesh.new()
-			moon.radius = 0.18
-			moon.height = 0.36
-			var moon_node = MeshInstance3D.new()
-			moon_node.mesh = moon
-			moon_node.material_override = material(accent, true)
-			moon_node.position = pos + Vector3(0, 0.25, 0)
-			parent.add_child(moon_node)
+			sphere(parent, pos + Vector3(0, 0.25, 0), 0.36, accent, true)
 		"lantern":
 			box(parent, pos + Vector3(0, 0.24, 0), Vector3(0.26, 0.34, 0.26), accent, true)
 			box(parent, pos + Vector3(0, 0.46, 0), Vector3(0.18, 0.08, 0.18), trim)
@@ -1153,14 +1149,7 @@ func refresh_props() -> void:
 				cone(props, pos + Vector3(0, 0.55, 0), 0.42, 0.26, Color("8f7aaa"), 0.08)
 				floating_text(props, "GLOOMCAP", pos + Vector3(0, 1.20, 0), Color("d8c6e8"), 23)
 			"prismatic_pearl":
-				var pearl = SphereMesh.new()
-				pearl.radius = 0.28
-				pearl.height = 0.56
-				var pearl_node = MeshInstance3D.new()
-				pearl_node.mesh = pearl
-				pearl_node.material_override = material(Color("9ce1d8"), true)
-				pearl_node.position = pos + Vector3(0, 0.42, 0)
-				props.add_child(pearl_node)
+				sphere(props, pos + Vector3(0, 0.42, 0), 0.56, Color("9ce1d8"), true)
 				floating_text(props, "PRISMATIC PEARL", pos + Vector3(0, 1.12, 0), Color("c9f4ed"), 20)
 			"ember_shard":
 				cone(props, pos + Vector3(0, 0.40, 0), 0.28, 0.82, Color("dd7651"), 0.03)
