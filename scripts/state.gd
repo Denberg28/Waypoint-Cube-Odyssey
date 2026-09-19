@@ -1095,7 +1095,10 @@ func boss_name() -> String:
 	return BossService.boss_name(str(data.route))
 
 func boss_max_hp() -> int:
-	return int(boss_profile().get("hp", 12))
+	return BossService.max_hp(self)
+
+func boss_damage() -> int:
+	return BossService.damage(self)
 
 func start_boss() -> void:
 	BossService.start(self)
