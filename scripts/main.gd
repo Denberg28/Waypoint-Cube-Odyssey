@@ -1061,8 +1061,8 @@ func update_hud() -> void:
 		title.text = "Crossroads"
 	else:
 		title.text = "Lantern Camp"
-	if game.data.mode in ["boss", "boss_intro"]:
-		title.text = "The Heartwood Keeper"
+	if game.data.mode in ["boss", "boss_intro", "victory"]:
+		title.text = game.boss_name()
 	subtitle.text = "MOSSWOOD   /   A LITTLE CUBE. A LONG WAY HOME."
 	var stage_step: int = clampi(int(game.data.row), 0, State.STAGE_STEPS)
 	var phase: String = "OPENING"
@@ -1076,14 +1076,23 @@ func update_hud() -> void:
 		progress.text = "%s  ·  TRAIL %d / 6  ·  %d / %d  ·  %s" % [str(game.class_info().name).to_upper(), mini(6, int(game.data.stage) + 1), stage_step, State.STAGE_STEPS, phase]
 	stage_bar.value = stage_step
 	stage_bar.visible = game.data.mode in ["travel", "campfire", "fishing"]
-	boss_label.text = "GUARDIAN  %d / 12  •  ORANGE = SLAM  /  MINT = STRIKE" % maxi(0, int(game.data.boss_hp)) if game.data.mode == "boss" else ""
+	if game.data.mode == "boss":
+		var boss_profile: Dictionary = game.boss_profile()
+		boss_label.text = "%s  %d / %d  •  ORANGE = %s  /  MINT = STRIKE" % [
+			game.boss_name().to_upper(),
+			maxi(0, int(game.data.boss_hp)),
+			game.boss_max_hp(),
+			str(boss_profile.get("telegraph", "SLAM"))
+		]
+	else:
+		boss_label.text = ""
 	message.text = str(game.data.last).replace("\n", "  ")
 	gear_button.disabled = busy or game.data.mode not in ["camp", "rest", "choice"]
 	for b in hop_buttons:
 		b.disabled = busy or game.data.mode not in ["travel", "boss"]
 	if is_instance_valid(side_panel):
 		side_panel.visible = not at_title
-		side_stats.text = "%s  •  LEVEL %d\n%s\nHP %d/%d   MP %d/%d\nAttack %d   Bank %d   Bag %d   Gems %d" % [game.class_info().name, int(game.data.level), game.star_rank_text() + "  •  " + game.level_progress_text(), maxi(0, int(game.data.hp)), game.max_hp(), int(game.data.mana), game.max_mana(), game.attack(), int(game.data.coins), int(game.data.bag), int(game.data.gems)]
+		side_stats.text = "%s  •  %s  •  LEVEL %d\n%s\nHP %d/%d   MP %d/%d\nAttack %d   Bank %d   Bag %d   Gems %d" % [game.class_info().name, game.player_rank_name(), int(game.data.level), game.star_rank_text() + "  •  " + game.level_progress_text(), maxi(0, int(game.data.hp)), game.max_hp(), int(game.data.mana), game.max_mana(), game.attack(), int(game.data.coins), int(game.data.bag), int(game.data.gems)]
 		game.repair_equipment_slots()
 		var eq: Array[String] = []
 		var equipped_slots: int = 0
