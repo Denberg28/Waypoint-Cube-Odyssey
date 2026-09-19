@@ -69,6 +69,25 @@ func _run() -> void:
 		_fail("cat status panel missing Bond XP or buff status", 12)
 		return
 
+	# Status rail must remain informative even when owned gear exists but the
+	# explicit equipped mapping starts empty.
+	game.data.mode = "camp"
+	game.data.inventory = ["ember", "bark", "clover"]
+	game.data.equipped = {"core":"", "shell":"", "charm":""}
+	scene.call("update_hud")
+	var side_equipment = scene.get("side_equipment")
+	if not is_instance_valid(side_equipment):
+		_fail("side equipment label missing", 13)
+		return
+	var equipment_text: String = str(side_equipment.text)
+	if "BEST OWNED" not in equipment_text or "Ember core" not in equipment_text or "Bark shell" not in equipment_text or "Clover charm" not in equipment_text:
+		_fail("status panel did not expose best-owned equipment fallback", 14)
+		return
+	scene.call("equip_best_quick")
+	if game.sanitized_equipped_id("core") == "" or game.sanitized_equipped_id("shell") == "" or game.sanitized_equipped_id("charm") == "":
+		_fail("status Equip Best did not fill all owned equipment slots", 15)
+		return
+
 	var fight_layer = scene.get("fight_layer")
 	var fight_balance = scene.get("fight_balance")
 	var fight_enemy_gear = scene.get("fight_enemy_gear")
