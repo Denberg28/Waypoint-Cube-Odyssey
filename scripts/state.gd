@@ -1,5 +1,9 @@
 extends RefCounted
 const Catalog = preload("res://scripts/catalog.gd")
+const PetService = preload("res://scripts/modules/pets/pet_service.gd")
+const MarketplaceService = preload("res://scripts/modules/marketplace/marketplace_service.gd")
+const EnemyService = preload("res://scripts/modules/enemy/enemy_service.gd")
+const RoadService = preload("res://scripts/modules/road/road_service.gd")
 const STAGE_STEPS: int = 18
 const GENERATED_ROWS: int = STAGE_STEPS - 1
 const CELL_COUNT: int = GENERATED_ROWS * 3
@@ -245,278 +249,70 @@ func equip_best() -> void:
 		data.last = "Best available equipment equipped in %d slot%s." % [equipped_count, "" if equipped_count == 1 else "s"]
 
 func random_cat_design() -> Dictionary:
-	return {
-		"name": str(Catalog.CAT_NAMES[rng.randi_range(0, Catalog.CAT_NAMES.size() - 1)]),
-		"body": str(Catalog.CAT_BODY_COLORS[rng.randi_range(0, Catalog.CAT_BODY_COLORS.size() - 1)]),
-		"accent": str(Catalog.CAT_ACCENT_COLORS[rng.randi_range(0, Catalog.CAT_ACCENT_COLORS.size() - 1)]),
-		"eyes": str(Catalog.CAT_EYE_COLORS[rng.randi_range(0, Catalog.CAT_EYE_COLORS.size() - 1)]),
-		"pattern": str(Catalog.CAT_PATTERNS[rng.randi_range(0, Catalog.CAT_PATTERNS.size() - 1)])
-	}
+	return PetService.random_cat_design(self)
 
 func cat_design_signature(design: Dictionary) -> String:
-	if design.is_empty():
-		return ""
-	return "%s|%s|%s|%s|%s" % [
-		str(design.get("name", "")),
-		str(design.get("body", "")),
-		str(design.get("accent", "")),
-		str(design.get("eyes", "")),
-		str(design.get("pattern", ""))
-	]
+	return PetService.cat_design_signature(design)
 
 func valid_cat_design(design: Dictionary) -> bool:
-	if design.is_empty():
-		return false
-	for key in ["name", "body", "accent", "eyes", "pattern"]:
-		if not design.has(key) or not design[key] is String:
-			return false
-	return (
-		str(design.name) in Catalog.CAT_NAMES
-		and str(design.body) in Catalog.CAT_BODY_COLORS
-		and str(design.accent) in Catalog.CAT_ACCENT_COLORS
-		and str(design.eyes) in Catalog.CAT_EYE_COLORS
-		and str(design.pattern) in Catalog.CAT_PATTERNS
-	)
+	return PetService.valid_cat_design(design)
 
 func refresh_cat_offer() -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Visit a safe waypoint to browse companion cats."
-		return false
-	if bool(data.cat_owned):
-		data.last = "Your adopted cat is already waiting at Lantern Camp."
-		return false
-	var previous: String = cat_design_signature(data.cat_offer)
-	var next_offer: Dictionary = random_cat_design()
-	for _attempt in range(6):
-		if cat_design_signature(next_offer) != previous:
-			break
-		next_offer = random_cat_design()
-	data.cat_offer = next_offer
-	data.last = "The market keeper introduces a different cat."
-	return true
+	return PetService.refresh_cat_offer(self)
 
 func cat_mood() -> String:
-	if not bool(data.cat_owned):
-		return "NO CAT"
-	var satiety: int = clampi(int(data.cat_satiety), 0, 100)
-	if satiety >= 85:
-		return "PURRING"
-	if satiety >= 60:
-		return "CONTENT"
-	if satiety >= 35:
-		return "CURIOUS"
-	if satiety >= 15:
-		return "HUNGRY"
-	return "GRUMPY"
+	return PetService.cat_mood(self)
 
 func cat_level() -> int:
-	if not bool(data.cat_owned):
-		return 0
-	return clampi(1 + floori(float(int(data.cat_bond_xp)) / float(Catalog.CAT_BOND_XP_PER_LEVEL)), 1, Catalog.CAT_LEVEL_CAP)
+	return PetService.cat_level(self)
 
 func cat_rank_info() -> Dictionary:
-	var info: Dictionary = Catalog.CAT_RANKS[0]
-	var level: int = maxi(1, cat_level())
-	for rank_data in Catalog.CAT_RANKS:
-		if level >= int(rank_data.min_level):
-			info = rank_data
-	return info
+	return PetService.cat_rank_info(self)
 
 func cat_rank_name() -> String:
-	return "NO RANK" if not bool(data.cat_owned) else str(cat_rank_info().name)
+	return PetService.cat_rank_name(self)
 
 func cat_bond_progress() -> Dictionary:
-	if not bool(data.cat_owned):
-		return {"level":0, "current":0, "needed":Catalog.CAT_BOND_XP_PER_LEVEL, "percent":0.0}
-	var level: int = cat_level()
-	if level >= Catalog.CAT_LEVEL_CAP:
-		return {"level":level, "current":Catalog.CAT_BOND_XP_PER_LEVEL, "needed":Catalog.CAT_BOND_XP_PER_LEVEL, "percent":100.0}
-	var current: int = int(data.cat_bond_xp) % Catalog.CAT_BOND_XP_PER_LEVEL
-	return {
-		"level":level,
-		"current":current,
-		"needed":Catalog.CAT_BOND_XP_PER_LEVEL,
-		"percent":float(current) / float(Catalog.CAT_BOND_XP_PER_LEVEL) * 100.0
-	}
+	return PetService.cat_bond_progress(self)
 
 func add_cat_bond_xp(amount: int) -> String:
-	if not bool(data.cat_owned) or amount <= 0:
-		return ""
-	var old_level: int = cat_level()
-	var max_xp: int = (Catalog.CAT_LEVEL_CAP - 1) * Catalog.CAT_BOND_XP_PER_LEVEL
-	data.cat_bond_xp = clampi(int(data.cat_bond_xp) + amount, 0, max_xp)
-	var new_level: int = cat_level()
-	var result: String = "+%d Bond XP" % amount
-	if new_level > old_level:
-		result += "  •  CAT LEVEL %d  •  %s" % [new_level, cat_rank_name()]
-	return result
+	return PetService.add_cat_bond_xp(self, amount)
 
 func cat_buff_coins() -> int:
-	if not bool(data.cat_owned) or int(data.cat_satiety) < 35:
-		return 0
-	var bonus: int = int(cat_rank_info().road_coin_bonus)
-	match cat_mood():
-		"PURRING":
-			bonus += 2
-		"CONTENT":
-			bonus += 1
-		_:
-			pass
-	return bonus
+	return PetService.cat_buff_coins(self)
 
 func cat_buff_text() -> String:
-	var bonus: int = cat_buff_coins()
-	if bonus <= 0:
-		return "ROAD LUCK inactive  •  Feed to CURIOUS or better."
-	return "ROAD LUCK  •  +%d expedition coin%s at each completed road." % [bonus, "" if bonus == 1 else "s"]
+	return PetService.cat_buff_text(self)
 
 func cat_mood_text() -> String:
-	match cat_mood():
-		"PURRING":
-			return "Purring beside the lantern."
-		"CONTENT":
-			return "Content and relaxed."
-		"CURIOUS":
-			return "Curious and watching the road."
-		"HUNGRY":
-			return "Hungry and waiting for a fish."
-		"GRUMPY":
-			return "Very hungry and distinctly unimpressed."
-		_:
-			return "No companion adopted yet."
+	return PetService.cat_mood_text(self)
 
 func adopt_cat() -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Visit a safe waypoint to adopt a companion."
-		return false
-	if bool(data.cat_owned):
-		data.last = "You already have a cat companion."
-		return false
-	if not valid_cat_design(data.cat_offer):
-		data.cat_offer = random_cat_design()
-	if int(data.coins) < Catalog.CAT_PRICE:
-		data.last = "You need %d more banked coins to adopt %s." % [Catalog.CAT_PRICE - int(data.coins), str(data.cat_offer.name)]
-		return false
-	data.coins -= Catalog.CAT_PRICE
-	data.cat_owned = true
-	data.cat_design = data.cat_offer.duplicate(true)
-	data.cat_satiety = 70
-	data.cat_bond_xp = 0
-	data.last = "Adopted %s! Your new cat is waiting at Lantern Camp." % str(data.cat_design.name)
-	return true
+	return PetService.adopt_cat(self)
 
 func feed_cat() -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Feed your cat at a safe waypoint."
-		return false
-	if not bool(data.cat_owned):
-		data.last = "You have not adopted a cat yet."
-		return false
-	if int(data.fish_stock) <= 0:
-		data.last = "%s is %s, but your fish pantry is empty. Look for fishing pools on adventures." % [str(data.cat_design.get("name", "Your cat")), cat_mood().to_lower()]
-		return false
-	if int(data.cat_satiety) >= 100:
-		data.last = "%s is already full and refuses another fish." % str(data.cat_design.get("name", "Your cat"))
-		return false
-	data.fish_stock -= 1
-	data.cat_satiety = mini(100, int(data.cat_satiety) + Catalog.CAT_SATIETY_PER_FISH)
-	var bond_note: String = add_cat_bond_xp(Catalog.CAT_BOND_XP_PER_FEED)
-	data.last = "Fed %s a trail fish. Satiety %d%%  •  %s. Fish feeding advances Bond rank." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
-	if bond_note != "":
-		data.last += "  •  " + bond_note
-	return true
+	return PetService.feed_cat(self)
 
 func buy_cat_food(quantity: int = 1) -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Visit a safe waypoint to buy cat food."
-		return false
-	if not bool(data.cat_owned):
-		data.last = "Adopt a cat before stocking companion food."
-		return false
-	var amount: int = clampi(quantity, 1, 5)
-	if int(data.cat_food_stock) >= Catalog.CAT_FOOD_STOCK_CAP:
-		data.last = "Cat food pantry is already full."
-		return false
-	amount = mini(amount, Catalog.CAT_FOOD_STOCK_CAP - int(data.cat_food_stock))
-	var total_price: int = Catalog.CAT_FOOD_PRICE * amount
-	if int(data.coins) < total_price:
-		data.last = "You need %d more banked coins for cat food." % (total_price - int(data.coins))
-		return false
-	data.coins -= total_price
-	data.cat_food_stock += amount
-	data.last = "Purchased %d cat food for %d coins. Pantry ×%d." % [amount, total_price, int(data.cat_food_stock)]
-	return true
+	return MarketplaceService.buy_cat_food(self, quantity)
 
 func feed_cat_food() -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Feed your cat at a safe waypoint."
-		return false
-	if not bool(data.cat_owned):
-		data.last = "You have not adopted a cat yet."
-		return false
-	if int(data.cat_food_stock) <= 0:
-		data.last = "Your cat food pantry is empty. Buy more at the marketplace."
-		return false
-	if int(data.cat_satiety) >= 100:
-		data.last = "%s is already full." % str(data.cat_design.get("name", "Your cat"))
-		return false
-	data.cat_food_stock -= 1
-	data.cat_satiety = mini(100, int(data.cat_satiety) + Catalog.CAT_SATIETY_PER_FOOD)
-	data.last = "Fed %s market cat food. Satiety %d%%  •  %s. No Bond XP gained." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
-	return true
+	return PetService.feed_cat_food(self)
 
 func cat_adventure_tick() -> String:
-	# Satiety changes only at authored progression beats, never from wall-clock
-	# time. Cat rank progression comes only from feeding caught fish.
-	if not bool(data.cat_owned):
-		return ""
-	data.cat_satiety = maxi(0, int(data.cat_satiety) - Catalog.CAT_SATIETY_ROAD_COST)
-	return "%s at camp: %s  •  satiety %d%%." % [str(data.cat_design.get("name", "Your cat")), cat_mood(), int(data.cat_satiety)]
+	return PetService.cat_adventure_tick(self)
 
 func owns_cosmetic(id: String) -> bool:
-	return id in data.cosmetics_owned
+	return MarketplaceService.owns_cosmetic(self, id)
 
 func buy_cosmetic(id: String) -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		data.last = "Visit a safe waypoint to use the marketplace."
-		return false
-	var item: Dictionary = Catalog.cosmetic(id)
-	if item.is_empty():
-		data.last = "That cosmetic is unavailable."
-		return false
-	if owns_cosmetic(id):
-		data.last = "%s is already in your wardrobe." % str(item.name)
-		return false
-	var price: int = int(item.get("price", 0))
-	if int(data.coins) < price:
-		data.last = "You need %d more banked coins." % (price - int(data.coins))
-		return false
-	data.coins -= price
-	data.cosmetics_owned.append(id)
-	data.cosmetics_equipped[str(item.slot)] = id
-	data.last = "Purchased and equipped: %s." % str(item.name)
-	return true
+	return MarketplaceService.buy_cosmetic(self, id)
 
 func equip_cosmetic(id: String) -> bool:
-	if data.mode not in ["camp", "rest", "choice"]:
-		return false
-	if id == "":
-		return false
-	if not owns_cosmetic(id):
-		return false
-	var item: Dictionary = Catalog.cosmetic(id)
-	if item.is_empty():
-		return false
-	data.cosmetics_equipped[str(item.slot)] = id
-	data.last = "Equipped: %s." % str(item.name)
-	return true
+	return MarketplaceService.equip_cosmetic(self, id)
 
 func clear_cosmetic(slot: String) -> bool:
-	if data.mode not in ["camp", "rest", "choice"] or slot not in ["skin", "head", "back", "face"]:
-		return false
-	data.cosmetics_equipped[slot] = ""
-	data.last = "%s cosmetic cleared." % slot.capitalize()
-	return true
+	return MarketplaceService.clear_cosmetic(self, slot)
 
 func use_potion(kind: String) -> bool:
 	if kind not in ["heal", "mana"] or not data.potions.has(kind) or int(data.potions[kind]) <= 0:
@@ -547,181 +343,28 @@ func environment_name() -> String:
 	return str(Catalog.ENVIRONMENTS.get(str(data.environment), {"name":"Sunny"}).get("name", "Sunny"))
 
 func roll_environment(route: String) -> String:
-	var roll: float = rng.randf()
-	if route == "frost":
-		return "winter" if roll < 0.76 else "cloudy"
-	if route == "fen":
-		if roll < 0.58:
-			return "rainy"
-		elif roll < 0.88:
-			return "cloudy"
-		return "sunny"
-	if route == "gloomwood":
-		return "cloudy" if roll < 0.72 else "rainy"
-	if route == "sunken_grotto":
-		return "rainy" if roll < 0.62 else "cloudy"
-	if route == "cinder_caldera":
-		if roll < 0.56:
-			return "sand"
-		elif roll < 0.84:
-			return "sunny"
-		return "cloudy"
-	if route == "galecrest_spire":
-		return "winter" if roll < 0.68 else "cloudy"
-	if route == "moss":
-		if roll < 0.34:
-			return "sunny"
-		elif roll < 0.58:
-			return "cloudy"
-		elif roll < 0.76:
-			return "rainy"
-		elif roll < 0.90:
-			return "winter"
-		return "sand"
-	if route == "forge":
-		if roll < 0.38:
-			return "sand"
-		elif roll < 0.62:
-			return "sunny"
-		elif roll < 0.82:
-			return "cloudy"
-		elif roll < 0.92:
-			return "rainy"
-		return "winter"
-	if route == "shrine":
-		if roll < 0.26:
-			return "winter"
-		elif roll < 0.50:
-			return "cloudy"
-		elif roll < 0.72:
-			return "rainy"
-		elif roll < 0.90:
-			return "sunny"
-		return "sand"
-	if roll < 0.24:
-		return "sunny"
-	elif roll < 0.44:
-		return "cloudy"
-	elif roll < 0.64:
-		return "rainy"
-	elif roll < 0.82:
-		return "sand"
-	return "winter"
+	return RoadService.roll_environment(self, route)
 
 func enemy_profile(kind: String) -> Dictionary:
-	return Catalog.ENEMIES.get(kind, Catalog.ENEMIES.get("slime", {}))
+	return EnemyService.enemy_profile(kind)
 
 func enemy_rank(kind: String, elite: bool = false) -> int:
-	if elite:
-		return 4
-	var base: int = 1 + floori(float(int(data.stage)) / 2.0)
-	if kind == "ogre":
-		base += 1
-	elif kind in ["goblin", "kobold"] and danger_level() >= 4:
-		base += 1
-	return clampi(base, 1, 3)
+	return EnemyService.enemy_rank(self, kind, elite)
 
 func enemy_rank_name(kind: String, elite: bool = false) -> String:
-	var rank: int = enemy_rank(kind, elite)
-	return str(Catalog.ENEMY_RANKS.get(rank, {"name":"COMMON"}).get("name", "COMMON"))
+	return EnemyService.enemy_rank_name(self, kind, elite)
 
 func enemy_visual_variant(kind: String, row: int = -1, lane: int = 0, elite: bool = false) -> Dictionary:
-	var visual: Dictionary = Catalog.ENEMY_VISUALS.get(kind, Catalog.ENEMY_VISUALS.get("slime", {}))
-	var palettes: Array = visual.get("palettes", [])
-	var variant: Dictionary = {}
-	if not palettes.is_empty():
-		var row_value: int = int(data.row) if row < 0 else row
-		var signature: int = absi(int(data.seed) + row_value * 31 + lane * 17 + kind.hash() + (97 if elite else 0))
-		variant = palettes[signature % palettes.size()].duplicate(true)
-	variant["armor_style"] = str(visual.get("armor", "none"))
-	variant["helmet_style"] = str(visual.get("helmet", "none"))
-	variant["weapon_style"] = str(visual.get("weapon", "none"))
-	var rank: int = enemy_rank(kind, elite)
-	variant["rank"] = rank
-	variant["rank_name"] = enemy_rank_name(kind, elite)
-	variant["rank_trim"] = str(Catalog.ENEMY_RANKS.get(rank, {"trim":"8aa49a"}).get("trim", "8aa49a"))
-	return variant
+	return EnemyService.enemy_visual_variant(self, kind, row, lane, elite)
 
 func elite_behavior(kind: String) -> Dictionary:
-	return Catalog.ELITE_BEHAVIORS.get(kind, Catalog.ELITE_BEHAVIORS.get("slime", {}))
+	return EnemyService.elite_behavior(kind)
 
 func enemy_kind_for_route(route: String, local_rng: RandomNumberGenerator) -> String:
-	var stage_bonus: float = min(0.12, float(int(data.stage)) * 0.02)
-	var roll: float = local_rng.randf()
-	match route:
-		"frost":
-			if roll < 0.30 + stage_bonus:
-				return "ogre"
-			elif roll < 0.68:
-				return "kobold"
-			return "goblin"
-		"fen":
-			if roll < 0.16 + stage_bonus:
-				return "ogre"
-			elif roll < 0.44:
-				return "goblin"
-			elif roll < 0.70:
-				return "kobold"
-			return "slime"
-		"forge":
-			if roll < 0.08 + stage_bonus:
-				return "ogre"
-			elif roll < 0.34:
-				return "kobold"
-			return "goblin"
-		"gloomwood":
-			if roll < 0.08 + stage_bonus:
-				return "ogre"
-			elif roll < 0.38:
-				return "kobold"
-			elif roll < 0.70:
-				return "goblin"
-			return "slime"
-		"sunken_grotto":
-			if roll < 0.10 + stage_bonus:
-				return "ogre"
-			elif roll < 0.46:
-				return "kobold"
-			elif roll < 0.70:
-				return "slime"
-			return "goblin"
-		"cinder_caldera":
-			if roll < 0.34 + stage_bonus:
-				return "ogre"
-			elif roll < 0.68:
-				return "goblin"
-			return "kobold"
-		"galecrest_spire":
-			if roll < 0.30 + stage_bonus:
-				return "ogre"
-			elif roll < 0.72:
-				return "kobold"
-			return "goblin"
-		"shrine":
-			if roll < 0.16 + stage_bonus:
-				return "kobold"
-			return "slime"
-		"treasure":
-			if roll < 0.10 + stage_bonus:
-				return "ogre"
-			elif roll < 0.28:
-				return "goblin"
-			return "slime"
-		_:
-			if roll < 0.08 + stage_bonus:
-				return "goblin"
-			return "slime"
+	return EnemyService.enemy_kind_for_route(self, route, local_rng)
 
 static func route_options_for_stage_index(stage_index: int) -> Array:
-	var sets: Array = [
-		["moss", "forge", "gloomwood"],
-		["treasure", "shrine", "sunken_grotto"],
-		["moss", "fen", "cinder_caldera"],
-		["forge", "frost", "galecrest_spire"],
-		["shrine", "sunken_grotto", "fen"],
-		["frost", "cinder_caldera", "galecrest_spire"]
-	]
-	return sets[stage_index % sets.size()].duplicate()
+	return RoadService.route_options_for_stage_index(stage_index)
 
 func prepare_new_expedition() -> void:
 	data.popup = {}
