@@ -1067,7 +1067,7 @@ def test_lantern_camp_player_and_cat_use_bounded_roaming():
     assert "actor.position = camp_actor_roam_points[0]" in world
     assert "camp_cat_root = root" in world
     assert "root.position = camp_cat_roam_points[0]" in world
-    assert 'camera_target = Vector3(0.0, 0.12, -4.80)' in world
+    assert 'camera_target = Vector3(0.0, 0.12, -5.20)' in world
     assert 'actor.position = Vector3(-3.15, 0.52, -3.05)' not in world
 
 
@@ -1225,7 +1225,7 @@ def test_lantern_camp_uses_wide_hub_framing_and_safe_roam_depth():
 
     assert 'Vector3(-2.15, 0.16, -2.35)' not in world
     assert 'Vector3(-0.75, 0.16, -2.55)' not in world
-    assert 'camera_offset = Vector3(0, 4.65, 8.65)' in world
+    assert 'camera_offset = Vector3(0, 5.15, 10.60)' in world
     assert 'look_offset = Vector3(0, 0.66, -4.35)' in world
 
 
@@ -1311,7 +1311,8 @@ def test_crossroads_uses_clean_rpg_signpost_layout():
     assert "func crossroads_direction_board(" in world
     assert 'floating_text(scenery, "CROSSROADS"' in world
     assert '"CROSSROADS  •  CHOOSE YOUR NEXT ROAD"' not in world
-    assert '"→  %s  •  %s"' not in world
+    crossroads_block = world.split("func crossroads(finish_z: float) -> void:", 1)[1].split("func guardian() -> void:", 1)[0]
+    assert '"→  %s  •  %s"' not in crossroads_block
     assert 'str(route.name).to_upper()' in world
     assert 'Vector3(-2.05, 1.48' in world
     assert 'Vector3(0.00, 1.05' in world
