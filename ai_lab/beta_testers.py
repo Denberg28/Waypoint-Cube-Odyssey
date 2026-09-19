@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 from collections import Counter
 from pathlib import Path
 
@@ -138,6 +139,11 @@ def main():
     args = ap.parse_args()
 
     persona_ids = args.persona or list(PERSONAS)
+    economy_mode = os.environ.get("GEMINI_ECONOMY_MODE", "true").lower() in {"1", "true", "yes", "on"}
+    live_persona = ""
+    if economy_mode and not args.offline and persona_ids:
+        day_index = int(dt.datetime.now(dt.timezone.utc).strftime("%j"))
+        live_persona = persona_ids[day_index % len(persona_ids)]
     routes = load(ROOT / "game_data/routes.json", {})
     cosmetics = load(ROOT / "game_data/cosmetics.json", [])
     world = load(ROOT / "runtime/ai_world_state.json", {})
@@ -156,7 +162,7 @@ def main():
             "recent_shared_telemetry": recent_telemetry[-40:] if isinstance(recent_telemetry, list) else [],
         }
         system = BASE_SYSTEM + f"\nYour assigned role is {PERSONAS[persona_id]['name']}. Focus on {PERSONAS[persona_id]['focus']}."
-        if args.offline:
+        if args.offline or (economy_mode and persona_id != live_persona):
             report = offline_report(persona_id, trace)
         else:
             report = validate_beta_report(call_gemini(json.dumps(payload, ensure_ascii=False), BETA_REPORT_SCHEMA, system))
