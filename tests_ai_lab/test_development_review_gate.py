@@ -929,3 +929,17 @@ def test_camp_roaming_uses_only_valid_save_fields():
     assert 'state.data.get("seed", 1)' in world
     assert 'state.data.get("wins", 0)' in world
     assert 'state.data.get("camp_level", 0)' in world
+
+
+def test_character_boots_are_grounded_and_do_not_rotate_during_walk():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert 'const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.21, -0.08, 0.04)' in world
+    assert 'const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.21, -0.08, 0.04)' in world
+    assert 'const ACTOR_FOOT_SIZE := Vector3(0.24, 0.16, 0.34)' in world
+    assert "left_foot.rotation.x = gait" not in world
+    assert "right_foot.rotation.x = -gait" not in world
+    assert "left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL" in world
+    assert "right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL" in world
