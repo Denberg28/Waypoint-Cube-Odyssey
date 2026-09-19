@@ -1036,6 +1036,74 @@ func enemy_colors(kind: String, active: bool) -> Color:
 		_:
 			return Color("84ccbd")
 
+func build_enemy_loadout(parent: Node3D, pos: Vector3, kind: String, size: Vector3, cell: Dictionary, active: bool, elite: bool) -> Dictionary:
+	var variant: Dictionary = state.enemy_visual_variant(kind, int(cell.row), int(cell.lane), elite)
+	var body_color := Color(str(variant.get("body", "84ccbd")))
+	if active:
+		body_color = body_color.darkened(0.08)
+	var armor_color := Color(str(variant.get("armor", "66706c")))
+	var helmet_color := Color(str(variant.get("helmet", "545b60")))
+	var weapon_color := Color(str(variant.get("weapon", "8b7658")))
+	var rank_trim := Color(str(variant.get("rank_trim", "8aa49a")))
+	var rank: int = int(variant.get("rank", 1))
+
+	box(parent, pos + Vector3(0, size.y / 2, 0), size, body_color)
+	for x in [-0.22, 0.22]:
+		box(parent, pos + Vector3(x, min(0.72, size.y * 0.62), size.z / 2 + 0.02), Vector3(0.09, 0.1, 0.03), Color("233e3d"))
+
+	# Armor silhouette scales by rank: common foes receive a chest piece,
+	# veteran/champion variants add shoulder plating and brighter trim.
+	var chest_y: float = maxf(0.36, size.y * 0.48)
+	box(parent, pos + Vector3(0, chest_y, size.z * 0.43), Vector3(size.x * 0.72, size.y * 0.34, 0.10), armor_color)
+	box(parent, pos + Vector3(0, chest_y + size.y * 0.12, size.z * 0.49), Vector3(size.x * 0.58, 0.06, 0.05), rank_trim, rank >= 3)
+	if rank >= 2:
+		for shoulder_x in [-size.x * 0.46, size.x * 0.46]:
+			box(parent, pos + Vector3(shoulder_x, chest_y + 0.12, 0), Vector3(size.x * 0.20, 0.18, size.z * 0.72), armor_color.darkened(0.05))
+
+	# Every enemy type now has a helmet/cap identity.
+	match kind:
+		"slime":
+			cone(parent, pos + Vector3(0, size.y + 0.15, 0), size.x * 0.34, 0.28, helmet_color, 0.06)
+		"goblin":
+			box(parent, pos + Vector3(0, size.y + 0.12, 0), Vector3(size.x * 0.60, 0.22, size.z * 0.64), helmet_color)
+			for ear_x in [-size.x * 0.42, size.x * 0.42]:
+				cone(parent, pos + Vector3(ear_x, size.y + 0.06, 0), 0.11, 0.26, body_color.darkened(0.12), 0.02)
+		"kobold":
+			box(parent, pos + Vector3(0, size.y + 0.08, 0), Vector3(size.x * 0.60, 0.20, size.z * 0.62), helmet_color)
+			for horn_x in [-0.24, 0.24]:
+				cone(parent, pos + Vector3(horn_x, size.y + 0.27, 0), 0.08, 0.30, rank_trim, 0.01)
+		"ogre":
+			box(parent, pos + Vector3(0, size.y + 0.14, 0), Vector3(size.x * 0.62, 0.30, size.z * 0.70), helmet_color)
+			box(parent, pos + Vector3(0, size.y + 0.04, size.z * 0.39), Vector3(size.x * 0.42, 0.12, 0.08), rank_trim)
+		_:
+			pass
+
+	# Weapon silhouettes are distinct at a glance.
+	match kind:
+		"slime":
+			var spike = cone(parent, pos + Vector3(size.x * 0.58, 0.45, 0), 0.09, 0.62, weapon_color, 0.015)
+			spike.rotation_degrees.z = -26
+		"goblin":
+			var sword = box(parent, pos + Vector3(size.x * 0.72, 0.60, 0), Vector3(0.10, 0.86, 0.10), weapon_color)
+			sword.rotation_degrees.z = -18
+			box(parent, pos + Vector3(size.x * 0.66, 0.34, 0), Vector3(0.34, 0.08, 0.12), rank_trim)
+		"kobold":
+			var spear = box(parent, pos + Vector3(size.x * 0.72, 0.70, 0), Vector3(0.08, 1.42, 0.08), weapon_color)
+			spear.rotation_degrees.z = -12
+			cone(parent, pos + Vector3(size.x * 0.86, 1.30, 0), 0.10, 0.32, rank_trim, 0.01)
+		"ogre":
+			box(parent, pos + Vector3(size.x * 0.72, 0.76, 0), Vector3(0.14, 1.30, 0.14), weapon_color)
+			box(parent, pos + Vector3(size.x * 0.72, 1.32, 0), Vector3(0.56, 0.34, 0.42), armor_color.lightened(0.05))
+		_:
+			pass
+
+	if elite:
+		box(parent, pos + Vector3(0, size.y + 0.40, 0), Vector3(0.68, 0.12, 0.56), rank_trim, true)
+		for crown_x in [-0.24, 0.0, 0.24]:
+			cone(parent, pos + Vector3(crown_x, size.y + 0.58, 0), 0.08, 0.24, rank_trim.lightened(0.12), 0.01)
+
+	return {"color":body_color, "rank_name":str(variant.get("rank_name", "COMMON")), "rank_trim":rank_trim}
+
 func update_camera() -> void:
 	if showcase:
 		camera.position = Vector3(0, 1.9, 4.4)
@@ -1156,47 +1224,29 @@ func refresh_props() -> void:
 			"slime", "goblin", "kobold", "ogre":
 				var active: bool = state.enemy_active(cell)
 				var elite: bool = state.enemy_elite(cell)
-				var color: Color = enemy_colors(str(cell.kind), active)
+				var kind: String = str(cell.kind)
 				var size = Vector3(1.0, 0.65, 0.8)
-				match str(cell.kind):
+				match kind:
 					"goblin":
 						size = Vector3(0.92, 1.02, 0.82)
 					"kobold":
 						size = Vector3(0.96, 0.86, 1.05)
 					"ogre":
 						size = Vector3(1.38, 1.28, 1.08)
-				box(props, pos + Vector3(0, size.y / 2, 0), size, color)
-				for x in [-0.22, 0.22]:
-					box(props, pos + Vector3(x, min(0.72, size.y * 0.62), size.z / 2 + 0.02), Vector3(0.09, 0.1, 0.03), Color("233e3d"))
-				match str(cell.kind):
-					"goblin":
-						box(props, pos + Vector3(0, 1.18, 0), Vector3(0.52, 0.22, 0.52), color.darkened(0.12))
-						cone(props, pos + Vector3(0.38, 1.02, 0), 0.12, 0.26, color.darkened(0.18), 0.02)
-						cone(props, pos + Vector3(-0.38, 1.02, 0), 0.12, 0.26, color.darkened(0.18), 0.02)
-						box(props, pos + Vector3(0.58, 0.58, 0), Vector3(0.12, 0.72, 0.12), Color("8c6742"))
-						box(props, pos + Vector3(0.72, 0.42, 0), Vector3(0.22, 0.18, 0.52), Color("8c6742"))
-					"kobold":
-						cone(props, pos + Vector3(0.0, 0.86, 0.64), 0.18, 0.34, color.lightened(0.08), 0.02)
-						cone(props, pos + Vector3(0.22, 0.98, 0.14), 0.08, 0.24, color.darkened(0.15), 0.01)
-						cone(props, pos + Vector3(-0.22, 0.98, 0.14), 0.08, 0.24, color.darkened(0.15), 0.01)
-						box(props, pos + Vector3(0, 0.38, -0.58), Vector3(0.14, 0.14, 0.56), color.darkened(0.10))
-					"ogre":
-						box(props, pos + Vector3(0, 1.48, 0), Vector3(0.74, 0.28, 0.68), color.darkened(0.15))
-						box(props, pos + Vector3(-0.62, 0.64, 0), Vector3(0.26, 0.88, 0.26), color.darkened(0.12))
-						box(props, pos + Vector3(0.62, 0.64, 0), Vector3(0.26, 0.88, 0.26), color.darkened(0.12))
-						box(props, pos + Vector3(0.98, 0.82, 0), Vector3(0.16, 1.18, 0.16), Color("7f6648"))
-						box(props, pos + Vector3(0.98, 1.28, 0), Vector3(0.44, 0.28, 0.44), Color("93806a"))
-					_:
-						box(props, pos + Vector3(0, 0.68, 0), Vector3(1.12, 0.16, 0.92), color.lightened(0.08))
-				if elite:
-					box(props, pos + Vector3(0, size.y + 0.28, 0), Vector3(0.62, 0.12, 0.52), Color("d8b85f"), true)
-					for crown_x in [-0.22, 0.0, 0.22]:
-						cone(props, pos + Vector3(crown_x, size.y + 0.46, 0), 0.08, 0.24, Color("efd887"), 0.01)
+				var loadout: Dictionary = build_enemy_loadout(props, pos, kind, size, cell, active, elite)
 				var telegraph: String = "!" if active else "STOMP"
 				if elite:
-					var behavior: Dictionary = state.elite_behavior(str(cell.kind))
-					telegraph = "%s  •  ELITE" % str(behavior.get("telegraph", "ELITE"))
-				floating_text(props, telegraph, pos + Vector3(0, size.y + (0.88 if elite else 0.6), 0), Color("efd887") if elite else color, 30)
+					var behavior: Dictionary = state.elite_behavior(kind)
+					telegraph = "%s  •  %s ELITE" % [str(behavior.get("telegraph", "ELITE")), str(loadout.get("rank_name", "CHAMPION"))]
+				else:
+					telegraph = "%s  •  %s" % [telegraph, str(loadout.get("rank_name", "COMMON"))]
+				floating_text(
+					props,
+					telegraph,
+					pos + Vector3(0, size.y + (1.02 if elite else 0.74), 0),
+					Color("efd887") if elite else Color(loadout.get("rank_trim", Color("8aa49a"))),
+					25
+				)
 	if current_row < State.STAGE_STEPS:
 		for lane in range(-1, 2):
 			if absi(lane - int(state.data.lane)) <= 1:
