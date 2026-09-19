@@ -1,6 +1,7 @@
 from __future__ import annotations
 import html
 import json
+import time
 from pathlib import Path
 import streamlit as st
 import streamlit.components.v1 as components
@@ -10,6 +11,8 @@ from streamlit_lab.review_gate import ReviewGateError, fetch_remote_json, persis
 
 ROOT = Path(__file__).resolve().parent
 GODOT_WEB_URL = "https://denberg28.github.io/Waypoint-Cube-Odyssey/"
+if "godot_build_nonce" not in st.session_state:
+    st.session_state.godot_build_nonce = str(time.time_ns())
 
 def load_json(path: Path, default):
     try:
@@ -124,7 +127,8 @@ with play:
         st.success("Anonymous gameplay telemetry is ON for this embedded session. You can switch it off above at any time.")
     else:
         st.info("Anonymous gameplay telemetry is OFF. You can still play normally.")
-    game_url = GODOT_WEB_URL + ("?telemetry=1" if consent and telemetry_ready else "?telemetry=0")
+    telemetry_flag = "1" if consent and telemetry_ready else "0"
+    game_url = f"{GODOT_WEB_URL}?telemetry={telemetry_flag}&build={st.session_state.godot_build_nonce}"
     components.iframe(game_url, height=830, scrolling=False)
     st.link_button("Open Godot tester in a new tab", game_url, use_container_width=True)
 
