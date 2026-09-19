@@ -154,7 +154,7 @@ def verify_save_schema() -> None:
         fail("current save schema is not v18")
     if "migrated.version = 18" not in state:
         fail("legacy save migration does not target v18")
-    if 'value.get("version") not in [17, 17.0]' not in state:
+    if 'value.get("version") not in [18, 18.0]' not in state:
         fail("save validator does not require v18")
 
 
