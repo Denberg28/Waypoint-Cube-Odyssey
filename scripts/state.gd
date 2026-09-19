@@ -1563,6 +1563,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 	if not bool(migrated.cat_owned):
 		migrated.cat_design = {}
 		migrated.cat_satiety = 0
+		migrated.cat_bond_xp = 0
 	if not migrated.has("gloomcaps"):
 		migrated.gloomcaps = 0
 	if not migrated.has("prismatic_pearls"):
