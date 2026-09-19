@@ -133,6 +133,39 @@ func enemy_xp_value(kind: String, elite: bool = false) -> int:
 		value += int(elite_behavior(kind).get("xp_bonus", 0))
 	return maxi(0, value)
 
+func enemy_combat_stats(kind: String, elite: bool = false) -> Dictionary:
+	var profile: Dictionary = enemy_profile(kind)
+	var behavior: Dictionary = elite_behavior(kind) if elite else {}
+	var rank: int = enemy_rank(kind, elite)
+	var danger: int = danger_level()
+	var level_value: int = int(data.get("level", 1))
+	var toughness: int = (
+		int(profile.get("toughness", 1))
+		+ int(behavior.get("toughness_bonus", 0))
+		+ BalanceService.enemy_rank_modifier(rank, "toughness")
+		+ BalanceService.enemy_progression_toughness(level_value, danger)
+	)
+	var damage_value: int = (
+		int(profile.get("damage", 1))
+		+ int(behavior.get("damage_bonus", 0))
+		+ BalanceService.enemy_rank_modifier(rank, "damage")
+		+ BalanceService.enemy_progression_damage(level_value, danger, elite)
+	)
+	return {
+		"rank":rank,
+		"rank_name":enemy_rank_name(kind, elite),
+		"toughness":maxi(1, toughness),
+		"damage":maxi(1, damage_value),
+		"effective_damage":enemy_damage(maxi(1, damage_value))
+	}
+
+func encounter_balance_percent(kind: String, elite: bool = false) -> float:
+	var stats: Dictionary = enemy_combat_stats(kind, elite)
+	var player_power: float = float(maxi(1, attack()))
+	var enemy_power: float = float(maxi(1, int(stats.get("toughness", 1))))
+	var ratio: float = player_power / (player_power + enemy_power)
+	return clampf(ratio * 100.0, 12.0, 88.0)
+
 func add_resolve(amount: int) -> String:
 	# Positive-only motivation meter. Resolve never decreases on defeat.
 	# At 100%, useful supplies are granted and overflow carries forward.
@@ -596,9 +629,9 @@ func add_relic_charge(amount: int) -> void:
 func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 	var profile: Dictionary = enemy_profile(kind)
 	var behavior: Dictionary = elite_behavior(kind) if elite else {}
-	var rank: int = enemy_rank(kind, elite)
-	var toughness: int = int(profile.toughness) + int(behavior.get("toughness_bonus", 0)) + BalanceService.enemy_rank_modifier(rank, "toughness")
-	var damage_value: int = int(profile.damage) + int(behavior.get("damage_bonus", 0)) + BalanceService.enemy_rank_modifier(rank, "damage")
+	var combat: Dictionary = enemy_combat_stats(kind, elite)
+	var toughness: int = int(combat.toughness)
+	var damage_value: int = int(combat.damage)
 	var reward: int = int(profile.reward) + int(behavior.get("reward_bonus", 0))
 	var consolation: int = int(profile.consolation) + int(behavior.get("consolation_bonus", 0))
 	var enemy_name: String = str(profile.name)
