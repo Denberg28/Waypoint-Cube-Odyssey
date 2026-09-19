@@ -857,3 +857,24 @@ def test_cat_click_status_progression_rank_and_buff_are_wired():
     assert "BOND XP" in main
     assert "ACTIVE BUFF" in main
     assert "Manage / Feed" in main
+
+
+def test_status_panel_equipment_is_informative_and_sanitized():
+    from pathlib import Path
+
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "func best_owned_gear_id(slot: String) -> String:" in state
+    assert "func sanitized_equipped_id(slot: String) -> String:" in state
+    assert "func repair_equipment_slots() -> bool:" in state
+    assert "No equippable gear is owned yet." in state
+
+    assert "BEST OWNED" in main
+    assert "NO OWNED GEAR" in main
+    assert "Equipped %d / 3" in main
+    assert 'button("Equipment"' in main
+    assert "side_best_button.disabled" in main
+    assert "side_heal_button.disabled" in main
+    assert "side_mana_button.disabled" in main
+    assert "EXPEDITION  •  THREAT" in main
