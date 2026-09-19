@@ -870,6 +870,7 @@ func preview_route(route_key: String) -> void:
 		if reason != "":
 			body += "\n" + reason
 	ai_telemetry.record("route_preview", game, {"route":route_key, "featured":str(ai_world_state.get("featured_route", "")) == route_key})
+	body += "\n\nODYSSEY HUNT  •  One hidden Waypoint Shard is off the safe corridor. Find 3 in one expedition to crack a Rare+ Odyssey Cache."
 	modal("ROUTE PREVIEW  /  %s" % str(route.get("tag", "TRAIL")), str(route.get("name", "Unknown Road")), body)
 	action("Start Adventure   →", func(): choose_route(route_key), true)
 	action("Back to Crossroads", func(): show_mode())
@@ -956,7 +957,7 @@ func update_hud() -> void:
 		side_equipment.text = "\n".join(eq) + "\nOwned gear: %d / %d" % [game.data.inventory.size(), Catalog.GEAR.size()]
 		side_potions.text = "Healing ×%d    Mana ×%d" % [int(game.data.potions.heal), int(game.data.potions.mana)]
 		var relic_text: String = "READY — NEXT GEAR RARE+" if int(game.data.relic_charge) >= 100 else "%d%%" % int(game.data.relic_charge)
-		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   FISH %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.fish_caught)]
+		side_challenge.text = "THREAT %d / 5   •   STREAK ×%d\nRELIC %s   •   SHARDS %d / 3   •   FISH %d" % [game.danger_level(), int(game.data.streak), relic_text, int(game.data.odyssey_shards), int(game.data.fish_caught)]
 		if is_instance_valid(compact_message):
 			compact_message.text = str(game.data.last).replace("\n", " ")
 
@@ -1331,6 +1332,8 @@ func do_move(direction: int, jump_move: bool = false) -> void:
 		play_splash(false)
 	elif landing_kind == "gear_cache":
 		play_chime([440.0, 659.25, 880.0], 0.20, 0.035)
+	elif landing_kind == "waypoint_shard":
+		play_chime([523.25, 659.25, 783.99, 1046.5], 0.24, 0.03)
 	elif int(game.data.gems) > old_gems:
 		play_chime([659.25, 830.61, 1046.5], 0.22, 0.03)
 	elif int(game.data.hp) < old_hp:
