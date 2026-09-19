@@ -489,10 +489,7 @@ func build() -> void:
 				environment_side_prop(row, side, local_rng)
 	if is_trail:
 		var finish_z: float = -State.STAGE_STEPS * ROW_SPACING
-		for lane in [-1, 1]:
-			box(scenery, Vector3(lane * 4.15, 1.2, finish_z), Vector3(0.22, 2.7, 0.22), active_theme.post)
-		box(scenery, Vector3(0, 2.6, finish_z), Vector3(8.5, 0.3, 0.35), active_theme.post)
-		floating_text(scenery, "WAYPOINT", Vector3(0, 3.3, finish_z), active_theme.text, 42)
+		trail_finish_waypoint(finish_z)
 		match str(state.data.route):
 			"gloomwood":
 				gloomwood_landmark(finish_z)
@@ -949,6 +946,61 @@ func waypoint_destination_board(
 			var rivet = box(parent, pos + Vector3(x, 0, 0.12), Vector3(0.09, 0.09, 0.04), accent)
 			rivet.rotation_degrees.z = 45.0
 	floating_text(parent, label_text, pos + Vector3(0, 0.03, 0.18), Color("fff4d2"), 19)
+
+func trail_finish_waypoint(finish_z: float) -> void:
+	# Standard trail finish gate. This replaces the old thin rectangular frame
+	# with the current low-poly waypoint language used by posts and route boards.
+	var route_id: String = str(state.data.get("route", "moss"))
+	var route: Dictionary = Catalog.ROUTES.get(route_id, Catalog.ROUTES["moss"])
+	var style_data: Dictionary = waypoint_style_for(route_id)
+	var wood: Color = style_data.post_color
+	var trim: Color = style_data.trim_color
+	var accent: Color = style_data.accent_color
+	var board_color: Color = Color("294542").lerp(wood.darkened(0.28), 0.18)
+	var z: float = finish_z + 0.02
+
+	# Sturdy stone-footed posts with route-colored caps/crests.
+	add_waypoint_post(scenery, Vector3(-3.20, 0, z), style_data, 0, 1.0, false)
+	add_waypoint_post(scenery, Vector3(3.20, 0, z), style_data, 0, 1.0, false)
+
+	# Short support rails keep the gate readable without recreating the old
+	# full-width plain beam.
+	for side in [-1, 1]:
+		var sx: float = float(side)
+		box(scenery, Vector3(sx * 2.67, 2.08, z), Vector3(1.12, 0.18, 0.26), wood.darkened(0.04))
+		var rail_badge = box(scenery, Vector3(sx * 2.18, 2.08, z + 0.16), Vector3(0.24, 0.24, 0.07), accent, true)
+		rail_badge.rotation_degrees.z = 45.0
+
+	# Main beveled sign: dark teal center, route trim, diamond end caps.
+	box(scenery, Vector3(0, 2.48, z + 0.03), Vector3(4.72, 0.70, 0.24), board_color)
+	box(scenery, Vector3(0, 2.80, z + 0.08), Vector3(4.34, 0.07, 0.08), trim)
+	box(scenery, Vector3(0, 2.16, z + 0.08), Vector3(4.34, 0.07, 0.08), trim.darkened(0.10))
+	for side in [-1, 1]:
+		var end_cap = box(scenery, Vector3(float(side) * 2.35, 2.48, z + 0.04), Vector3(0.48, 0.48, 0.22), board_color)
+		end_cap.rotation_degrees.z = 45.0
+		var sign_badge = box(scenery, Vector3(float(side) * 1.88, 2.48, z + 0.17), Vector3(0.20, 0.20, 0.06), accent, true)
+		sign_badge.rotation_degrees.z = 45.0
+
+	floating_text(scenery, "WAYPOINT", Vector3(0, 2.50, z + 0.18), Color("fff0c7"), 31)
+
+	# Secondary bar matches the current board system and carries only a route
+	# crest/divider so it stays readable on narrow Web builds.
+	box(scenery, Vector3(0, 1.72, z + 0.04), Vector3(3.30, 0.34, 0.20), board_color.darkened(0.04))
+	box(scenery, Vector3(-0.72, 1.72, z + 0.16), Vector3(0.82, 0.055, 0.055), accent.darkened(0.06))
+	box(scenery, Vector3(0.72, 1.72, z + 0.16), Vector3(0.82, 0.055, 0.055), accent.darkened(0.06))
+	var lower_badge = box(scenery, Vector3(0, 1.72, z + 0.17), Vector3(0.24, 0.24, 0.06), accent, true)
+	lower_badge.rotation_degrees.z = 45.0
+
+	if not visuals.simple_mode:
+		# Route identity is kept subtle; the gate remains a universal waypoint.
+		add_waypoint_motif(scenery, route_id, Vector3(0, 3.14, z + 0.08), style_data)
+		floating_text(
+			scenery,
+			str(route.get("name", "ROAD")).to_upper(),
+			Vector3(0, 1.30, z + 0.15),
+			accent,
+			13
+		)
 
 func road_end_waypoint(finish_z: float) -> void:
 	# Hero checkpoint inspired by classic RPG hubs: stone-footed timber gateway,
