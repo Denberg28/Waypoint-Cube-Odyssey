@@ -12,7 +12,7 @@ func _init() -> void:
 func _run() -> void:
 	var game = State.new()
 	if not game.valid_save(game.data):
-		_fail("fresh reset state is not a valid v17 save", 2)
+		_fail("fresh reset state is not a valid v18 save", 2)
 		return
 
 	# Marketplace + cat companion.
@@ -88,9 +88,51 @@ func _run() -> void:
 		if game.data.cells.size() != State.CELL_COUNT:
 			_fail("cell count mismatch for " + str(route_id), 8)
 			return
+		if game.data.road_objective.is_empty():
+			_fail("road objective missing for " + str(route_id), 22)
+			return
+		if "No active road objective" in game.objective_text():
+			_fail("road objective text invalid for " + str(route_id), 23)
+			return
 		if not game.valid_save(game.data):
 			_fail("generated route is not save-valid: " + str(route_id), 9)
 			return
+
+	# Retention progression: completed road objectives grant permanent Camp Renown.
+	game.data.mode = "travel"
+	game.data.road_objective = {
+		"id":"smoke_coin",
+		"type":"coin",
+		"label":"SMOKE OBJECTIVE",
+		"description":"Collect 1 coin",
+		"target":1,
+		"progress":0,
+		"complete":false,
+		"claimed":false
+	}
+	var objective_note: String = game.progression_record_cell("coin", "+2 expedition coins")
+	if "Objective complete" not in objective_note or not bool(game.data.road_objective.complete):
+		_fail("objective progress/complete invariant failed", 24)
+		return
+	game.data.camp_renown = 1
+	game.data.camp_level = 0
+	var claim_text: String = game.claim_road_objective()
+	if int(game.data.camp_renown) != 2 or int(game.data.camp_level) != 1:
+		_fail("Camp Renown level-up invariant failed", 25)
+		return
+	if "OBJECTIVE COMPLETE" not in claim_text or "LANTERN CAMP LEVEL 1" not in claim_text:
+		_fail("objective reward text missing progression feedback", 26)
+		return
+
+	# Rare road events remain bounded and save-safe.
+	var seen_before: int = int(game.data.rare_events_seen)
+	var rare_text: String = game.resolve_rare_event()
+	if int(game.data.rare_events_seen) != seen_before + 1 or "Rare encounter" not in rare_text:
+		_fail("rare road event resolution failed", 27)
+		return
+	if not game.valid_save(game.data):
+		_fail("progression feature state is not save-valid", 28)
+		return
 
 	# Invalid external route input must degrade safely.
 	game.make_room("__invalid_route__")
