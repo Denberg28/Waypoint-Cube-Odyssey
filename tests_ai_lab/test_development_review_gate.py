@@ -124,7 +124,10 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert '"★"' in state and '"☆"' in state
     assert 'award_xp(enemy_xp_value(kind, elite))' in state
     assert 'award_xp(20)' in state
-    assert 'award_xp(60)' in state
+    boss_service = Path("scripts/modules/boss/boss_service.gd").read_text(encoding="utf-8")
+    boss_catalog = Path("scripts/modules/boss/boss_catalog.gd").read_text(encoding="utf-8")
+    assert 'host.award_xp(int(boss.xp))' in boss_service
+    assert '"xp":60' in boss_catalog
 
     assert "rank_label.text" in main
     assert "game.star_rank_text()" in main
@@ -456,7 +459,10 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     assert "data.potions.mana += rewards" in resolve_fn
     assert "add_resolve(12)" in state
     assert "add_resolve(4) if elite else" in state
-    assert "add_resolve(28)" in state
+    boss_service = Path("scripts/modules/boss/boss_service.gd").read_text(encoding="utf-8")
+    boss_catalog = Path("scripts/modules/boss/boss_catalog.gd").read_text(encoding="utf-8")
+    assert "host.add_resolve(int(boss.resolve))" in boss_service
+    assert '"resolve":28' in boss_catalog
     assert "data.resolve =" not in defeat
     assert "Your XP, Resolve" in defeat
     assert "RESOLVE %d%%" in main
