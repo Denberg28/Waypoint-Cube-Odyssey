@@ -5,7 +5,7 @@ on:
   schedule:
     # Twice daily. Scheduled execution is activated by the mirrored workflow on
     # the repository default branch; this copy remains the development source.
-    - cron: "37 2,14 * * *"
+    - cron: "37 18 * * *"
 
 permissions:
   contents: write
@@ -15,8 +15,11 @@ env:
   GEMINI_SAFE_INPUT_TOKENS: "24000"
   GEMINI_SAFE_OUTPUT_TOKENS: "3072"
   GEMINI_SAFE_RPM: "1"
-  GEMINI_MAX_RETRIES: "1"
+  GEMINI_MAX_RETRIES: "0"
   GEMINI_MAX_REQUESTS_PER_RUN: "1"
+  GEMINI_MAX_REQUESTS_PER_DAY: "3"
+  GEMINI_DAILY_USAGE_FILE: "runtime/gemini_daily_usage.json"
+  GEMINI_ECONOMY_MODE: "true"
 
 jobs:
   music-director:
@@ -45,7 +48,7 @@ jobs:
         run: |
           git config user.name "waypoint-music-director[bot]"
           git config user.email "waypoint-music-director[bot]@users.noreply.github.com"
-          git add runtime/music_profile.json runtime/telemetry_snapshot.json reports/MUSIC_DIRECTOR_LATEST.md
+          git add runtime/music_profile.json runtime/telemetry_snapshot.json runtime/gemini_daily_usage.json reports/MUSIC_DIRECTOR_LATEST.md
           git diff --cached --quiet && exit 0
           git commit -m "ai: update bounded procedural music profile"
           git push origin ai-development
