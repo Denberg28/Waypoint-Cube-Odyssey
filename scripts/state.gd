@@ -472,7 +472,7 @@ func enemy_profile(kind: String) -> Dictionary:
 func enemy_rank(kind: String, elite: bool = false) -> int:
 	if elite:
 		return 4
-	var base: int = 1 + int(data.stage) / 2
+	var base: int = 1 + floori(float(int(data.stage)) / 2.0)
 	if kind == "ogre":
 		base += 1
 	elif kind in ["goblin", "kobold"] and danger_level() >= 4:
