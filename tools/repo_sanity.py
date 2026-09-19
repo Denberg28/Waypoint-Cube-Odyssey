@@ -83,12 +83,12 @@ def verify_deleted_ui_stays_deleted() -> None:
 
 def verify_save_schema() -> None:
     state = read("scripts/state.gd")
-    if '"version":16' not in state:
-        fail("current save schema is not v16")
-    if "migrated.version = 16" not in state:
-        fail("legacy save migration does not target v16")
-    if 'value.get("version") not in [16, 16.0]' not in state:
-        fail("save validator does not require v16")
+    if '"version":17' not in state:
+        fail("current save schema is not v17")
+    if "migrated.version = 17" not in state:
+        fail("legacy save migration does not target v17")
+    if 'value.get("version") not in [17, 17.0]' not in state:
+        fail("save validator does not require v17")
 
 
 def main() -> None:
