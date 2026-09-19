@@ -47,14 +47,14 @@ def test_gloomwood_has_distinct_biome_hazard_landmark_and_collectible():
     assert "WHISPERING HOLLOW ROOT" in world
     assert "JUMP  •  BRIARS" in world
     assert "GLOOMCAP" in world
-    assert "CAPS %d" in main
+    assert "PEARLS %d   •   EMBERS %d   •   SKYFEATHERS %d" in main
 
 
 def test_gloomwood_save_schema_migrates_existing_players():
     state = Path("scripts/state.gd").read_text(encoding="utf-8")
-    assert '"version":13' in state
+    assert '"version":15' in state
     assert '"gloomcaps":0' in state
     assert 'if not migrated.has("gloomcaps"):' in state
     assert "migrated.gloomcaps = 0" in state
     assert "12, 12.0" in state
-    assert "migrated.version = 13" in state
+    assert "migrated.version = 15" in state
