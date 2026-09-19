@@ -40,6 +40,10 @@ This keeps old callers stable while preventing unrelated features from sharing o
 - **pets**
   - `scripts/modules/pets/pet_catalog.gd`
   - `scripts/modules/pets/pet_service.gd`
+- **progression**
+  - `scripts/modules/progression/progression_catalog.gd`
+  - `scripts/modules/progression/progression_service.gd`
+  - road objectives, Camp Renown, camp upgrade thresholds, and rare road events
 - **music**
   - `scripts/music_director.gd`
   - `ai_lab/music_agent.py`
@@ -90,3 +94,7 @@ Examples:
 
 > Fix Music Director  
 > Update **music** only unless another dependency genuinely requires a change.
+
+
+> Retention/progression updates  
+> Update **progression** first; touch **road**, **ui**, or **visuals** only when the progression feature requires presentation or road placement changes.
