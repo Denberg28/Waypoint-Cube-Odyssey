@@ -29,8 +29,45 @@ func _run() -> void:
 	if not is_instance_valid(world):
 		_fail("world was not created", 6)
 		return
+
+	# Exercise recently changed UI paths, not only construction.
+	var game = scene.get("game")
+	if game == null:
+		_fail("game state object missing", 7)
+		return
+	scene.set("at_title", false)
+	game.data.mode = "choice"
+	scene.call("show_mode")
+	scene.call("preview_route", "moss")
+	var overlay = scene.get("overlay")
+	var stack = scene.get("stack")
+	if not is_instance_valid(overlay) or not bool(overlay.visible) or not is_instance_valid(stack):
+		_fail("route preview modal did not render", 8)
+		return
+
+	game.data.mode = "camp"
+	game.data.coins = 999
+	scene.call("show_cat_market")
+	if not bool(overlay.visible):
+		_fail("cat marketplace modal did not render", 9)
+		return
+	if not game.adopt_cat():
+		_fail("cat adoption failed during UI smoke", 10)
+		return
+	scene.call("show_cat_companion")
+	if not bool(overlay.visible):
+		_fail("cat companion modal did not render", 11)
+		return
+
+	var fight_layer = scene.get("fight_layer")
+	var fight_balance = scene.get("fight_balance")
+	var fight_enemy_gear = scene.get("fight_enemy_gear")
+	if not is_instance_valid(fight_layer) or not is_instance_valid(fight_balance) or not is_instance_valid(fight_enemy_gear):
+		_fail("combat presentation controls missing", 12)
+		return
+
 	finished = true
-	print("MAIN_SCENE_SMOKE_OK children=", scene.get_child_count())
+	print("MAIN_SCENE_SMOKE_OK children=", scene.get_child_count(), " critical_ui=route+cat+combat")
 	quit(0)
 
 func _fail(message: String, code: int) -> void:
