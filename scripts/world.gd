@@ -82,6 +82,9 @@ var camp_cat_fire_rest_points: Array[Vector3] = [
 ]
 var adventure_idle_objects: Array[Dictionary] = []
 var adventure_idle_enemies: Array[Dictionary] = []
+var boss_root: Node3D
+var boss_idle_position: Vector3 = Vector3.ZERO
+var boss_idle_scale: Vector3 = Vector3.ONE
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
 	return visuals.material(color, glow)
@@ -1202,17 +1205,67 @@ func crossroads(finish_z: float) -> void:
 		box(scenery, Vector3(x, 0.07, z + 1.32), Vector3(1.22, 0.10, 1.22), active_theme.shoulder)
 
 func guardian() -> void:
-	var root = Node3D.new()
+	var boss: Dictionary = state.boss_profile()
+	var root := Node3D.new()
 	root.position = Vector3(0, 0.1, -7)
 	scenery.add_child(root)
-	box(root, Vector3(0, 1.4, 0), Vector3(2.7, 2.8, 1.8), Color("857957"))
-	box(root, Vector3(0, 2.7, 0), Vector3(3.0, 0.6, 2.0), Color("73996c"))
+	boss_root = root
+	boss_idle_position = root.position
+	boss_idle_scale = root.scale
+
+	var body := Color(str(boss.get("body", "857957")))
+	var trim := Color(str(boss.get("trim", "73996c")))
+	var accent := Color(str(boss.get("accent", "f3d881")))
+	var idle_style: String = str(boss.get("idle", "breathe"))
+
+	# Shared readable boss silhouette.
+	box(root, Vector3(0, 1.4, 0), Vector3(2.7, 2.8, 1.8), body)
+	box(root, Vector3(0, 2.7, 0), Vector3(3.0, 0.6, 2.0), trim)
 	for side in [-1, 1]:
-		box(root, Vector3(side * 1.8, 0.8, 0), Vector3(0.75, 1.5, 0.9), Color("998460"))
-		box(root, Vector3(side * 0.6, 1.7, 0.93), Vector3(0.28, 0.25, 0.08), Color("f3d881"), true)
-		cone(root, Vector3(side * 0.85, 3.3, 0), 0.45, 1.4, Color("578764"))
-	box(root, Vector3(0, 1.0, 0.95), Vector3(0.7, 0.15, 0.1), Color("354b3d"))
-	floating_text(scenery, "THE HEARTWOOD KEEPER", Vector3(0, 4.5, -7), active_theme.text, 40)
+		box(root, Vector3(side * 1.8, 0.8, 0), Vector3(0.75, 1.5, 0.9), body.lightened(0.08))
+		box(root, Vector3(side * 0.6, 1.7, 0.93), Vector3(0.28, 0.25, 0.08), accent, true)
+
+	# One small silhouette variation per boss keeps the system cheap and clear.
+	match idle_style:
+		"pulse":
+			for side in [-1, 1]:
+				cone(root, Vector3(side * 0.95, 3.25, 0), 0.48, 1.30, accent.darkened(0.12), 0.06)
+			box(root, Vector3(0, 1.0, 0.95), Vector3(0.82, 0.18, 0.10), accent, true)
+		"float":
+			for side in [-1, 1]:
+				sphere(root, Vector3(side * 1.15, 3.20, 0), 0.72, trim.lightened(0.10), true)
+			box(root, Vector3(0, 1.0, 0.95), Vector3(0.76, 0.14, 0.10), accent, true)
+		"sway":
+			for side in [-1, 1]:
+				var fin = box(root, Vector3(side * 1.30, 3.15, 0), Vector3(0.34, 1.30, 0.50), trim.lightened(0.08))
+				fin.rotation_degrees.z = side * 18.0
+			box(root, Vector3(0, 1.0, 0.95), Vector3(0.68, 0.14, 0.10), accent, true)
+		_:
+			for side in [-1, 1]:
+				cone(root, Vector3(side * 0.85, 3.3, 0), 0.45, 1.4, trim.darkened(0.10))
+			box(root, Vector3(0, 1.0, 0.95), Vector3(0.7, 0.15, 0.1), body.darkened(0.35))
+
+	floating_text(scenery, state.boss_name().to_upper(), Vector3(0, 4.5, -7), active_theme.text, 36)
+
+func update_boss_idle() -> void:
+	if not is_instance_valid(boss_root):
+		return
+	var boss: Dictionary = state.boss_profile()
+	var wave: float = sin(elapsed * 1.55)
+	boss_root.position = boss_idle_position
+	boss_root.rotation = Vector3.ZERO
+	boss_root.scale = boss_idle_scale
+	match str(boss.get("idle", "breathe")):
+		"pulse":
+			boss_root.scale = boss_idle_scale * Vector3(1.0 + wave * 0.018, 1.0 + wave * 0.035, 1.0 + wave * 0.018)
+		"float":
+			boss_root.position = boss_idle_position + Vector3(0, wave * 0.07, 0)
+			boss_root.rotation.y = wave * 0.025
+		"sway":
+			boss_root.rotation.z = wave * 0.035
+			boss_root.position = boss_idle_position + Vector3(wave * 0.035, 0, 0)
+		_:
+			boss_root.scale = boss_idle_scale * Vector3(1.0 - wave * 0.008, 1.0 + wave * 0.018, 1.0 - wave * 0.008)
 
 func floating_text(parent: Node3D, text: String, pos: Vector3, color: Color, size: int = 32) -> void:
 	visuals.text(parent, text, pos, color, size)
@@ -1852,3 +1905,5 @@ func _process(delta: float) -> void:
 	if not entrance and str(state.data.mode) in ["travel", "campfire", "fishing"]:
 		update_adventure_object_idle()
 		update_adventure_enemy_idle()
+	if not entrance and str(state.data.mode) in ["boss", "boss_intro", "victory"]:
+		update_boss_idle()
