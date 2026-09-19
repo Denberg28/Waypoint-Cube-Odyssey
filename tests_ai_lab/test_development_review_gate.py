@@ -975,3 +975,30 @@ def test_character_shell_is_surface_armor_not_solid_lower_torso_cube():
     assert 'const ACTOR_ARM_SIZE := Vector3(0.16, 0.34, 0.18)' in world
     assert 'left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL' in world
     assert 'right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL' in world
+
+
+def test_cat_food_satiates_but_only_fish_advances_rank():
+    from pathlib import Path
+
+    catalog = Path("scripts/catalog.gd").read_text(encoding="utf-8")
+    state = Path("scripts/state.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert "const CAT_FOOD_PRICE: int = 12" in catalog
+    assert "const CAT_SATIETY_PER_FOOD: int = 20" in catalog
+    assert "const CAT_FOOD_STOCK_CAP: int = 99" in catalog
+    assert "CAT_BOND_XP_PER_ROAD" not in catalog
+
+    assert '"cat_food_stock":0' in state
+    assert "func buy_cat_food(quantity: int = 1) -> bool:" in state
+    assert "func feed_cat_food() -> bool:" in state
+    assert "No Bond XP gained." in state
+    assert "add_cat_bond_xp(Catalog.CAT_BOND_XP_PER_FEED)" in state
+
+    tick = state.split("func cat_adventure_tick() -> String:", 1)[1].split("func owns_cosmetic", 1)[0]
+    assert "add_cat_bond_xp" not in tick
+
+    assert "Buy 1 Cat Food" in main
+    assert "Buy 5 Cat Food" in main
+    assert "Feed Cat Food" in main
+    assert "Only caught fish advances Bond XP, level, and rank." in main
