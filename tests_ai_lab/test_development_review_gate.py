@@ -769,3 +769,14 @@ def test_market_telemetry_distinguishes_success_from_failed_purchase():
     assert "var market_success: bool" in main
     assert "if market_success:" in main
     assert '"cosmetic_action_failed"' in main
+
+
+def test_deleted_crossroads_fallback_has_no_stale_references():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+    refinement = Path("scripts/ui_refinement.gd").read_text(encoding="utf-8")
+
+    for stale in ["route_panel", "route_box", "show_routes()", "WINDOW_ROUTE_WIDTH"]:
+        assert stale not in main
+        assert stale not in refinement
