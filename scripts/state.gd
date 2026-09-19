@@ -469,6 +469,37 @@ func roll_environment(route: String) -> String:
 func enemy_profile(kind: String) -> Dictionary:
 	return Catalog.ENEMIES.get(kind, Catalog.ENEMIES.get("slime", {}))
 
+func enemy_rank(kind: String, elite: bool = false) -> int:
+	if elite:
+		return 4
+	var base: int = 1 + int(data.stage) / 2
+	if kind == "ogre":
+		base += 1
+	elif kind in ["goblin", "kobold"] and danger_level() >= 4:
+		base += 1
+	return clampi(base, 1, 3)
+
+func enemy_rank_name(kind: String, elite: bool = false) -> String:
+	var rank: int = enemy_rank(kind, elite)
+	return str(Catalog.ENEMY_RANKS.get(rank, {"name":"COMMON"}).get("name", "COMMON"))
+
+func enemy_visual_variant(kind: String, row: int = -1, lane: int = 0, elite: bool = false) -> Dictionary:
+	var visual: Dictionary = Catalog.ENEMY_VISUALS.get(kind, Catalog.ENEMY_VISUALS.get("slime", {}))
+	var palettes: Array = visual.get("palettes", [])
+	var variant: Dictionary = {}
+	if not palettes.is_empty():
+		var row_value: int = int(data.row) if row < 0 else row
+		var signature: int = absi(int(data.seed) + row_value * 31 + lane * 17 + kind.hash() + (97 if elite else 0))
+		variant = palettes[signature % palettes.size()].duplicate(true)
+	variant["armor_style"] = str(visual.get("armor", "none"))
+	variant["helmet_style"] = str(visual.get("helmet", "none"))
+	variant["weapon_style"] = str(visual.get("weapon", "none"))
+	var rank: int = enemy_rank(kind, elite)
+	variant["rank"] = rank
+	variant["rank_name"] = enemy_rank_name(kind, elite)
+	variant["rank_trim"] = str(Catalog.ENEMY_RANKS.get(rank, {"trim":"8aa49a"}).get("trim", "8aa49a"))
+	return variant
+
 func elite_behavior(kind: String) -> Dictionary:
 	return Catalog.ELITE_BEHAVIORS.get(kind, Catalog.ELITE_BEHAVIORS.get("slime", {}))
 
