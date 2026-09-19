@@ -18,6 +18,29 @@ static func profile_for_route(route_id: String) -> Dictionary:
 static func boss_name(route_id: String) -> String:
 	return str(profile_for_route(route_id).name)
 
+static func progression_tier(host) -> int:
+	var level_value: int = int(host.data.get("level", 1))
+	if level_value >= 17:
+		return 4
+	if level_value >= 13:
+		return 3
+	if level_value >= 9:
+		return 2
+	if level_value >= 5:
+		return 1
+	return 0
+
+static func max_hp(host) -> int:
+	var boss: Dictionary = profile_for_route(str(host.data.route))
+	# Each rank band adds one additional meaningful strike. This keeps the first
+	# guardian approachable while preventing endgame cores from two-shotting it.
+	return int(boss.hp) + progression_tier(host) * 3
+
+static func damage(host) -> int:
+	var boss: Dictionary = profile_for_route(str(host.data.route))
+	var tier: int = progression_tier(host)
+	return int(boss.damage) + (1 if tier >= 2 else 0) + (1 if tier >= 4 else 0)
+
 static func _pick_target(host, danger_lane: int) -> int:
 	var choices: Array[int] = []
 	for lane in range(-1, 2):
@@ -42,7 +65,7 @@ static func start(host) -> void:
 	host.data.row = 0
 	host.data.lane = 0
 	host.data.turn = 0
-	host.data.boss_hp = int(boss.hp)
+	host.data.boss_hp = max_hp(host)
 	host.data.danger = int(boss.pattern[0])
 	host.data.target = _pick_target(host, int(host.data.danger))
 	host.data.last = "%s awakens. Avoid %s and land on the mint rune." % [str(boss.name), str(boss.telegraph)]
@@ -53,7 +76,7 @@ static func resolve_hop(host, direction: int) -> String:
 	var boss: Dictionary = profile_for_route(str(host.data.route))
 	host.data.lane = clampi(int(host.data.lane) + direction, -1, 1)
 	if int(host.data.lane) == int(host.data.danger):
-		var damage: int = host.enemy_damage(int(boss.damage))
+		var damage: int = host.enemy_damage(damage(host))
 		host.data.hp -= damage
 		host.data.streak = 0
 		host.data.last = "%s! Lost %d heart%s." % [str(boss.telegraph), damage, "" if damage == 1 else "s"]
