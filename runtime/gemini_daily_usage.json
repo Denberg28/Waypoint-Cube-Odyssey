@@ -1,0 +1,7 @@
+{
+  "date": "2026-09-19",
+  "attempts": 3,
+  "quota_blocked": true,
+  "blocked_reason": "User reported Gemini API limit reached; economy-mode cooldown until next UTC day.",
+  "updated_epoch": 0
+}
