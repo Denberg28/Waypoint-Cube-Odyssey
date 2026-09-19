@@ -12,7 +12,7 @@ func _init() -> void:
 func _run() -> void:
 	var game = State.new()
 	if not game.valid_save(game.data):
-		_fail("fresh reset state is not a valid v16 save", 2)
+		_fail("fresh reset state is not a valid v17 save", 2)
 		return
 
 	# Marketplace + cat companion.
@@ -36,6 +36,27 @@ func _run() -> void:
 	if int(game.data.cat_bond_xp) != Catalog.CAT_BOND_XP_PER_FEED:
 		_fail("cat feed did not award Bond XP", 7)
 		return
+
+	# Marketplace cat food restores satiety only; it must never advance level/rank.
+	game.data.cat_satiety = 40
+	game.data.coins = 100
+	var bond_before_food: int = int(game.data.cat_bond_xp)
+	if not game.buy_cat_food(1):
+		_fail("cat food purchase failed", 17)
+		return
+	if int(game.data.cat_food_stock) != 1:
+		_fail("cat food pantry did not increment", 18)
+		return
+	if not game.feed_cat_food():
+		_fail("cat food feeding failed", 19)
+		return
+	if int(game.data.cat_satiety) != 60:
+		_fail("cat food satiety gain incorrect", 20)
+		return
+	if int(game.data.cat_bond_xp) != bond_before_food:
+		_fail("cat food incorrectly awarded Bond XP", 21)
+		return
+
 	if game.cat_buff_coins() <= 0 or "ROAD LUCK" not in game.cat_buff_text():
 		_fail("cat Road Luck buff did not activate", 8)
 		return
