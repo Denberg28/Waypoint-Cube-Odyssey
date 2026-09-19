@@ -645,3 +645,29 @@ def test_v14_cat_save_migrates_to_expansion_schema_v15():
     assert "migrated.ember_shards = 0" in state
     assert "migrated.skyfeathers = 0" in state
     assert "migrated.version = 15" in state
+
+
+def test_rpg_waypoint_gateway_and_roadpost_design_is_present():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "func add_waypoint_lantern(" in world
+    assert "func add_rope_wrap(" in world
+    assert "func add_waypoint_banner(" in world
+    assert "func add_waypoint_post(" in world
+    assert "func roadside_waymarker(" in world
+    assert "func add_gateway_brace(" in world
+    assert "func add_gateway_title_board(" in world
+
+    assert "Hero checkpoint inspired by classic RPG hubs" in world
+    assert "stone-footed timber gateway" in world
+    assert "add_waypoint_post(scenery" in world
+    assert "add_waypoint_lantern(scenery" in world
+    assert "add_gateway_title_board(" in world
+
+    assert "roadside_waymarker(" in world
+    assert "row % 4 == 0" in world
+
+    assert "procedural geometry the carved-sign silhouette from the RPG concept" in world
+    assert "CROSSROADS  •  CHOOSE YOUR NEXT ROAD" in world
