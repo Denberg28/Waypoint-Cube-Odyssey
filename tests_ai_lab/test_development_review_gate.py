@@ -1317,3 +1317,17 @@ def test_crossroads_uses_clean_rpg_signpost_layout():
     assert 'Vector3(0.00, 1.05' in world
     assert 'Vector3(2.05, 1.48' in world
     assert "Three subtle ground markers" in world
+
+
+def test_lantern_camp_keeps_player_deep_in_wide_hub_shot():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert 'camera.fov = 61.0' in world
+    assert 'camera_offset = Vector3(0, 5.15, 10.60)' in world
+    assert 'look_offset = Vector3(0, 0.58, -4.55)' in world
+    assert 'Vector3(-2.10, 0.16, -4.55)' in world
+    assert 'Vector3(-0.72, 0.16, -4.72)' in world
+    assert 'Vector3(1.42, 0.16, -4.86)' in world
+    assert 'camera_target = Vector3(0.0, 0.12, -5.20)' in world
