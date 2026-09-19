@@ -1911,6 +1911,22 @@ func update_ambient() -> void:
 	ambient_player.stream = build_environment_ambience(key)
 	ambient_player.play()
 
+func music_profile_context(context: String) -> Dictionary:
+	var director = get_node_or_null("/root/MusicDirector")
+	if director != null and director.has_method("context_config"):
+		var cfg = director.call("context_config", context)
+		if cfg is Dictionary:
+			return cfg
+	return {}
+
+func ambience_profile_context(context: String) -> Dictionary:
+	var director = get_node_or_null("/root/MusicDirector")
+	if director != null and director.has_method("ambience_config"):
+		var cfg = director.call("ambience_config", context)
+		if cfg is Dictionary:
+			return cfg
+	return {}
+
 func note_frequency(note: int) -> float:
 	return 440.0 * pow(2.0, (float(note) - 69.0) / 12.0)
 
@@ -1952,6 +1968,13 @@ func build_bard_track(context: String, variant: int) -> AudioStreamWAV:
 			root = 48
 			patterns = [[0,4,7,9,7,4,2,4], [0,2,4,7,9,7,4,2], [0,4,5,9,7,5,4,2], [0,5,7,9,7,4,5,2], [0,2,5,4,7,9,7,5]]
 			bass = [0,0,5,5,7,7,5,5]
+	var cfg: Dictionary = music_profile_context(context)
+	bpm *= clampf(float(cfg.get("tempo_scale", 1.0)), 0.92, 1.08)
+	root += clampi(int(cfg.get("root_shift", 0)), -2, 2)
+	var melody_gain: float = clampf(float(cfg.get("melody_gain", 1.0)), 0.80, 1.20)
+	var bass_gain: float = clampf(float(cfg.get("bass_gain", 1.0)), 0.80, 1.20)
+	var air_gain: float = clampf(float(cfg.get("air_gain", 1.0)), 0.75, 1.25)
+	var melody_density: float = clampf(float(cfg.get("melody_density", 1.0)), 0.75, 1.00)
 	var melody: Array = patterns[variant % patterns.size()]
 	var beat: float = 60.0 / bpm
 	var bars: int = 4
@@ -1967,14 +1990,15 @@ func build_bard_track(context: String, variant: int) -> AudioStreamWAV:
 		var note_len: float = beat * 0.46
 		var pluck_env: float = exp(-5.0 * local_t / max(note_len, 0.01)) if local_t <= note_len else 0.0
 		var mf: float = note_frequency(root + 12 + int(melody[step]))
-		var lute: float = (sin(TAU * mf * local_t) + 0.34 * sin(TAU * mf * 2.0 * local_t) + 0.12 * sin(TAU * mf * 3.0 * local_t)) * pluck_env
+		var density_gate: float = 1.0 if (float((step * 37 + variant * 19) % 100) / 100.0) <= melody_density else 0.0
+		var lute: float = (sin(TAU * mf * local_t) + 0.34 * sin(TAU * mf * 2.0 * local_t) + 0.12 * sin(TAU * mf * 3.0 * local_t)) * pluck_env * density_gate * melody_gain
 		var bass_step: int = int(t / beat) % bass.size()
 		var bass_local: float = fmod(t, beat)
 		var bf: float = note_frequency(root - 12 + int(bass[bass_step]))
 		var bass_env: float = exp(-2.8 * bass_local / beat)
-		var drone: float = sin(TAU * bf * bass_local) * bass_env * 0.40
+		var drone: float = sin(TAU * bf * bass_local) * bass_env * 0.40 * bass_gain
 		var air_note: int = root + 24 + int(melody[(step + 2) % melody.size()])
-		var air: float = sin(TAU * note_frequency(air_note) * t) * 0.065 * (0.5 + 0.5 * sin(TAU * 0.10 * t))
+		var air: float = sin(TAU * note_frequency(air_note) * t) * 0.065 * (0.5 + 0.5 * sin(TAU * 0.10 * t)) * air_gain
 		var sample_value: float = lute * 0.60 + drone + air
 		var value: int = int(clampf(sample_value * 5000.0, -27000.0, 27000.0))
 		bytes.encode_s16(i * 2, value)
@@ -1995,6 +2019,8 @@ func build_environment_ambience(kind: String) -> AudioStreamWAV:
 	var samples: int = int(duration * rate)
 	var bytes = PackedByteArray()
 	bytes.resize(samples * 2)
+	var ambience_cfg: Dictionary = ambience_profile_context(kind)
+	var ambience_intensity: float = clampf(float(ambience_cfg.get("intensity", 1.0)), 0.75, 1.25)
 	var noise = RandomNumberGenerator.new()
 	noise.seed = 731947 + absi(kind.hash())
 	var low: float = 0.0
@@ -2020,7 +2046,7 @@ func build_environment_ambience(kind: String) -> AudioStreamWAV:
 				var cricket: float = sin(TAU * 2850.0 * t + sin(TAU * 13.0 * t) * 0.35) * pow(cricket_gate, 8.0) * 0.045
 				var birds: float = sin(TAU * 1320.0 * t) * 0.025 if fmod(t, 5.3) < 0.10 else 0.0
 				sample_value = low * 0.95 + cricket + birds
-		var value: int = int(clampf(sample_value * 9000.0, -24000.0, 24000.0))
+		var value: int = int(clampf(sample_value * ambience_intensity * 9000.0, -24000.0, 24000.0))
 		bytes.encode_s16(i * 2, value)
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
@@ -2038,6 +2064,8 @@ func build_campfire_ambience() -> AudioStreamWAV:
 	var samples: int = int(duration * rate)
 	var bytes = PackedByteArray()
 	bytes.resize(samples * 2)
+	var ambience_cfg: Dictionary = ambience_profile_context("campfire")
+	var ambience_intensity: float = clampf(float(ambience_cfg.get("intensity", 1.0)), 0.75, 1.25)
 	var noise = RandomNumberGenerator.new()
 	noise.seed = 731947
 	var filtered: float = 0.0
@@ -2055,7 +2083,7 @@ func build_campfire_ambience() -> AudioStreamWAV:
 			cricket_gate = sin(PI * clampf((cricket_phase - 0.15) / 0.17, 0.0, 1.0))
 		var cricket: float = sin(TAU * 3100.0 * t + sin(TAU * 18.0 * t) * 0.5) * cricket_gate * 0.18
 		var low_fire: float = sin(TAU * 62.0 * t) * 0.025 + sin(TAU * 91.0 * t) * 0.018
-		var value: int = int(clampf((crackle + cricket + low_fire) * 7200.0, -25000.0, 25000.0))
+		var value: int = int(clampf((crackle + cricket + low_fire) * ambience_intensity * 7200.0, -25000.0, 25000.0))
 		bytes.encode_s16(i * 2, value)
 	var stream = AudioStreamWAV.new()
 	stream.format = AudioStreamWAV.FORMAT_16_BITS
