@@ -184,28 +184,64 @@ func attack() -> int:
 func max_mana() -> int:
 	return 5 if str(data.class_id) == "magician" else 3
 
+func best_owned_gear_id(slot: String) -> String:
+	if slot not in ["core", "shell", "charm"]:
+		return ""
+	var best_id: String = ""
+	var best_score: int = -999
+	for raw_id in data.inventory:
+		var gear_id: String = str(raw_id)
+		var gear: Dictionary = Catalog.item(gear_id)
+		if gear.is_empty() or str(gear.get("slot", "")) != slot:
+			continue
+		var score: int = int(gear.get("attack", 0)) * 5 + int(gear.get("health", 0)) * 4 + int(gear.get("coins", 0)) * 2 + int(gear.get("heal", 0)) * 3
+		if str(gear.get("rarity", "")) == "LEGENDARY":
+			score += 2
+		elif str(gear.get("rarity", "")) == "UNIQUE":
+			score += 4
+		if score > best_score:
+			best_score = score
+			best_id = gear_id
+	return best_id
+
+func sanitized_equipped_id(slot: String) -> String:
+	if slot not in ["core", "shell", "charm"]:
+		return ""
+	var gear_id: String = str(data.equipped.get(slot, ""))
+	if gear_id == "":
+		return ""
+	if gear_id not in data.inventory:
+		return ""
+	var gear: Dictionary = Catalog.item(gear_id)
+	if gear.is_empty() or str(gear.get("slot", "")) != slot:
+		return ""
+	return gear_id
+
+func repair_equipment_slots() -> bool:
+	var changed: bool = false
+	for slot in ["core", "shell", "charm"]:
+		var safe_id: String = sanitized_equipped_id(slot)
+		if str(data.equipped.get(slot, "")) != safe_id:
+			data.equipped[slot] = safe_id
+			changed = true
+	return changed
+
 func equip_best() -> void:
 	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Equipment can only be changed at a safe waypoint."
 		return
+	repair_equipment_slots()
+	var equipped_count: int = 0
 	for slot in ["core", "shell", "charm"]:
-		var best_id: String = ""
-		var best_score: int = -999
-		for id in data.inventory:
-			var gear: Dictionary = Catalog.item(str(id))
-			if gear.get("slot", "") != slot:
-				continue
-			var score: int = int(gear.get("attack", 0)) * 5 + int(gear.get("health", 0)) * 4 + int(gear.get("coins", 0)) * 2 + int(gear.get("heal", 0)) * 3
-			if str(gear.get("rarity", "")) == "LEGENDARY":
-				score += 2
-			elif str(gear.get("rarity", "")) == "UNIQUE":
-				score += 4
-			if score > best_score:
-				best_score = score
-				best_id = str(id)
+		var best_id: String = best_owned_gear_id(slot)
 		if best_id != "":
 			data.equipped[slot] = best_id
+			equipped_count += 1
 	data.hp = mini(int(data.hp), max_hp())
-	data.last = "Best available equipment equipped."
+	if equipped_count == 0:
+		data.last = "No equippable gear is owned yet."
+	else:
+		data.last = "Best available equipment equipped in %d slot%s." % [equipped_count, "" if equipped_count == 1 else "s"]
 
 func random_cat_design() -> Dictionary:
 	return {
