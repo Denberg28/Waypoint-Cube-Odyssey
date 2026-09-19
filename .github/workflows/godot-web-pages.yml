@@ -61,6 +61,9 @@ jobs:
       - name: Import project resources
         run: godot --headless --path . --import
 
+      - name: Smoke test Crossroads world build
+        run: godot --headless --path . --script res://scripts/ci_world_smoke.gd
+
       - name: Export actual Godot game for Web
         run: |
           set -euo pipefail
