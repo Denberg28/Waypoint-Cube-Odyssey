@@ -509,7 +509,7 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
     assert 'func show_cat_market() -> void:' in main
     assert 'Refresh random cat design' in main
     assert 'func show_cat_companion() -> void:' in main
-    assert 'Feed 1 fish' in main
+    assert 'Feed Fish' in main
     assert '"cat_adopted"' in main
     assert '"cat_fed"' in main
 
@@ -836,7 +836,7 @@ def test_cat_click_status_progression_rank_and_buff_are_wired():
 
     assert "const CAT_LEVEL_CAP: int = 10" in catalog
     assert "const CAT_BOND_XP_PER_FEED: int = 10" in catalog
-    assert "const CAT_BOND_XP_PER_ROAD: int = 6" in catalog
+    assert "CAT_BOND_XP_PER_ROAD" not in catalog
     assert "const CAT_RANKS" in catalog
 
     assert '"cat_bond_xp":0' in state
@@ -909,7 +909,8 @@ def test_camp_character_idle_is_calm_and_cat_rests_by_bonfire():
     # Lower-body stability: camp gait uses foot position offsets, not large rotations.
     assert "left_foot.rotation = Vector3.ZERO" in world
     assert "right_foot.rotation = Vector3.ZERO" in world
-    assert "left_lift" in world and "right_lift" in world
+    assert "left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL" in world
+    assert "right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL" in world
     assert "actor.rotation.z = 0.0" in world
 
     # Cat remains the more active companion and can rest near either side of the fire.
