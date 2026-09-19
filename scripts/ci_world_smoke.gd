@@ -50,7 +50,22 @@ func _run_smoke() -> void:
 		_fail("Lantern Camp continue board missing", 6)
 		return
 
-	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present camera=", world.camera.position)
+	if world.actor.position.y > 0.30:
+		_fail("Lantern Camp actor is still positioned above bench height", 7)
+		return
+	var actor_start: Vector3 = world.actor.position
+	var cat_root = world.scenery.get_node_or_null("CampCatCompanion")
+	var cat_start: Vector3 = cat_root.position if is_instance_valid(cat_root) else Vector3.ZERO
+	for _i in range(180):
+		world._process(1.0 / 60.0)
+	if world.actor.position.distance_to(actor_start) < 0.15:
+		_fail("Lantern Camp actor did not roam from spawn", 8)
+		return
+	if is_instance_valid(cat_root) and cat_root.position.distance_to(cat_start) < 0.10:
+		_fail("Lantern Camp cat did not roam from spawn", 9)
+		return
+
+	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present camp_roam=active camera=", world.camera.position)
 	quit(0)
 
 func _fail(message: String, code: int) -> void:
