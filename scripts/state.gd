@@ -20,7 +20,7 @@ func _init() -> void:
 
 func reset() -> void:
 	data = {
-		"version":16,
+		"version":17,
 		"mode":"camp",
 		"hp":6,
 		"mana":3,
@@ -58,6 +58,7 @@ func reset() -> void:
 		"gems":0,
 		"fish_caught":0,
 		"fish_stock":0,
+		"cat_food_stock":0,
 		"cat_owned":false,
 		"cat_design":{},
 		"cat_offer":{},
@@ -420,23 +421,57 @@ func feed_cat() -> bool:
 	data.fish_stock -= 1
 	data.cat_satiety = mini(100, int(data.cat_satiety) + Catalog.CAT_SATIETY_PER_FISH)
 	var bond_note: String = add_cat_bond_xp(Catalog.CAT_BOND_XP_PER_FEED)
-	data.last = "Fed %s a trail fish. Satiety %d%%  •  %s." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
+	data.last = "Fed %s a trail fish. Satiety %d%%  •  %s. Fish feeding advances Bond rank." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
 	if bond_note != "":
 		data.last += "  •  " + bond_note
 	return true
 
+func buy_cat_food(quantity: int = 1) -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Visit a safe waypoint to buy cat food."
+		return false
+	if not bool(data.cat_owned):
+		data.last = "Adopt a cat before stocking companion food."
+		return false
+	var amount: int = clampi(quantity, 1, 5)
+	if int(data.cat_food_stock) >= Catalog.CAT_FOOD_STOCK_CAP:
+		data.last = "Cat food pantry is already full."
+		return false
+	amount = mini(amount, Catalog.CAT_FOOD_STOCK_CAP - int(data.cat_food_stock))
+	var total_price: int = Catalog.CAT_FOOD_PRICE * amount
+	if int(data.coins) < total_price:
+		data.last = "You need %d more banked coins for cat food." % (total_price - int(data.coins))
+		return false
+	data.coins -= total_price
+	data.cat_food_stock += amount
+	data.last = "Purchased %d cat food for %d coins. Pantry ×%d." % [amount, total_price, int(data.cat_food_stock)]
+	return true
+
+func feed_cat_food() -> bool:
+	if data.mode not in ["camp", "rest", "choice"]:
+		data.last = "Feed your cat at a safe waypoint."
+		return false
+	if not bool(data.cat_owned):
+		data.last = "You have not adopted a cat yet."
+		return false
+	if int(data.cat_food_stock) <= 0:
+		data.last = "Your cat food pantry is empty. Buy more at the marketplace."
+		return false
+	if int(data.cat_satiety) >= 100:
+		data.last = "%s is already full." % str(data.cat_design.get("name", "Your cat"))
+		return false
+	data.cat_food_stock -= 1
+	data.cat_satiety = mini(100, int(data.cat_satiety) + Catalog.CAT_SATIETY_PER_FOOD)
+	data.last = "Fed %s market cat food. Satiety %d%%  •  %s. No Bond XP gained." % [str(data.cat_design.get("name", "Your cat")), int(data.cat_satiety), cat_mood()]
+	return true
+
 func cat_adventure_tick() -> String:
 	# Satiety changes only at authored progression beats, never from wall-clock
-	# time. Caring for the cat earns Bond XP; neglect never removes Bond XP.
+	# time. Cat rank progression comes only from feeding caught fish.
 	if not bool(data.cat_owned):
 		return ""
-	var cared_for: bool = int(data.cat_satiety) >= 35
 	data.cat_satiety = maxi(0, int(data.cat_satiety) - Catalog.CAT_SATIETY_ROAD_COST)
-	var bond_note: String = add_cat_bond_xp(Catalog.CAT_BOND_XP_PER_ROAD) if cared_for else ""
-	var result: String = "%s at camp: %s  •  satiety %d%%." % [str(data.cat_design.get("name", "Your cat")), cat_mood(), int(data.cat_satiety)]
-	if bond_note != "":
-		result += "  •  " + bond_note
-	return result
+	return "%s at camp: %s  •  satiety %d%%." % [str(data.cat_design.get("name", "Your cat")), cat_mood(), int(data.cat_satiety)]
 
 func owns_cosmetic(id: String) -> bool:
 	return id in data.cosmetics_owned
@@ -1463,7 +1498,7 @@ func save_game() -> bool:
 func valid_save(value: Variant) -> bool:
 	if not value is Dictionary:
 		return false
-	if value.get("version") not in [16, 16.0]:
+	if value.get("version") not in [17, 17.0]:
 		return false
 	if value.get("class_id") not in Catalog.CLASSES or not value.get("popup") is Dictionary:
 		return false
@@ -1476,10 +1511,10 @@ func valid_save(value: Variant) -> bool:
 	for key in data:
 		if not value.has(key):
 			return false
-	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_satiety", "cat_bond_xp", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
+	for key in ["hp", "mana", "coins", "bag", "stage", "row", "lane", "seed", "wins", "runs", "skin", "camp_level", "kills", "level", "xp", "resolve", "turn", "boss_hp", "danger", "target", "blessing", "streak", "relic_charge", "gems", "fish_caught", "fish_stock", "cat_food_stock", "cat_satiety", "cat_bond_xp", "gloomcaps", "prismatic_pearls", "ember_shards", "skyfeathers"]:
 		if not (value[key] is int or value[key] is float):
 			return false
-	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.cat_bond_xp) < 0 or int(value.cat_bond_xp) > (Catalog.CAT_LEVEL_CAP - 1) * Catalog.CAT_BOND_XP_PER_LEVEL or int(value.gloomcaps) < 0 or int(value.prismatic_pearls) < 0 or int(value.ember_shards) < 0 or int(value.skyfeathers) < 0:
+	if int(value.streak) < 0 or int(value.relic_charge) < 0 or int(value.relic_charge) > 100 or int(value.gems) < 0 or int(value.fish_caught) < 0 or int(value.fish_stock) < 0 or int(value.cat_food_stock) < 0 or int(value.cat_food_stock) > Catalog.CAT_FOOD_STOCK_CAP or int(value.cat_satiety) < 0 or int(value.cat_satiety) > 100 or int(value.cat_bond_xp) < 0 or int(value.cat_bond_xp) > (Catalog.CAT_LEVEL_CAP - 1) * Catalog.CAT_BOND_XP_PER_LEVEL or int(value.gloomcaps) < 0 or int(value.prismatic_pearls) < 0 or int(value.ember_shards) < 0 or int(value.skyfeathers) < 0:
 		return false
 	if int(value.level) < 1 or int(value.level) > LEVEL_CAP or int(value.xp) < 0:
 		return false
@@ -1585,6 +1620,8 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 		migrated.fish_caught = 0
 	if not migrated.has("fish_stock"):
 		migrated.fish_stock = 0
+	if not migrated.has("cat_food_stock"):
+		migrated.cat_food_stock = 0
 	if not migrated.has("cat_owned") or not migrated.cat_owned is bool:
 		migrated.cat_owned = false
 	if not migrated.has("cat_design") or not migrated.cat_design is Dictionary:
@@ -1653,7 +1690,7 @@ func migrate_legacy_save(parsed: Dictionary) -> Dictionary:
 				elif lane != int(migrated.get("lane", 0)) and (row + lane) % 4 == 0:
 					kind = "coin"
 				migrated.cells.append({"row":row, "lane":lane, "kind":kind, "cleared":false})
-	migrated.version = 16
+	migrated.version = 17
 	return migrated
 
 func load_game() -> bool:
@@ -1664,7 +1701,7 @@ func load_game() -> bool:
 		if parser.parse(FileAccess.get_file_as_string(path)) != OK:
 			continue
 		var parsed = parser.data
-		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0, 14, 14.0, 15, 15.0]:
+		if parsed is Dictionary and parsed.get("version") in [1, 1.0, 2, 2.0, 3, 3.0, 4, 4.0, 5, 5.0, 6, 6.0, 7, 7.0, 8, 8.0, 9, 9.0, 10, 10.0, 11, 11.0, 12, 12.0, 13, 13.0, 14, 14.0, 15, 15.0, 16, 16.0]:
 			parsed = migrate_legacy_save(parsed)
 		if valid_save(parsed):
 			data = parsed
