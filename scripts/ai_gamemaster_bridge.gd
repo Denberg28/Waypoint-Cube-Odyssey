@@ -2,10 +2,10 @@ extends RefCounted
 ## Safe bridge between the external Night Watch runner and the locked game baseline.
 ## AI output is validated twice: in Python, then again here before anything reaches gameplay.
 
+const Catalog = preload("res://scripts/catalog.gd")
 const INBOX_PATH: String = "user://waypoint_ai_gm_inbox.json"
 const APPLIED_PATH: String = "user://waypoint_ai_gm_applied.json"
 const WORLD_STATE_PATH: String = "user://waypoint_ai_gm_world_state.json"
-const ROUTES: Array[String] = ["moss", "forge", "shrine", "treasure", "frost", "fen", "gloomwood"]
 const CHALLENGE_TYPES: Array[String] = ["route_complete", "featured_route_complete", "fishing_catch", "elite_defeat", "obstacle_jump"]
 
 func clamp_int(value: Variant, low: int, high: int) -> int:
@@ -35,7 +35,7 @@ func load_world_state() -> Dictionary:
 func sanitized_directives(inbox: Dictionary) -> Dictionary:
 	var source: Dictionary = inbox.get("adaptive_directives", {}) if inbox.get("adaptive_directives", {}) is Dictionary else {}
 	var route: String = str(source.get("featured_route", "moss"))
-	if route not in ROUTES:
+	if route not in Catalog.ROUTES:
 		route = "moss"
 	return {
 		"featured_route": route,
@@ -151,7 +151,7 @@ func apply_directives_to_game(game) -> Dictionary:
 		save_json(WORLD_STATE_PATH, state)
 		return state
 	game.ai_difficulty_offset = clamp_int(state.get("difficulty_offset", 0), -1, 1)
-	game.ai_featured_route = str(state.get("featured_route", "")) if str(state.get("featured_route", "")) in ROUTES else ""
+	game.ai_featured_route = str(state.get("featured_route", "")) if str(state.get("featured_route", "")) in Catalog.ROUTES else ""
 	state.sessions_seen = seen + 1
 	save_json(WORLD_STATE_PATH, state)
 	return state
