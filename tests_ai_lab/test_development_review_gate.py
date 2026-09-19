@@ -1227,3 +1227,36 @@ def test_lantern_camp_uses_wide_hub_framing_and_safe_roam_depth():
     assert 'Vector3(-0.75, 0.16, -2.55)' not in world
     assert 'camera_offset = Vector3(0, 4.65, 8.65)' in world
     assert 'look_offset = Vector3(0, 0.66, -4.35)' in world
+
+
+def test_save_validator_rejects_negative_economy_and_orphan_pet_supplies():
+    from pathlib import Path
+
+    state = (
+        Path("scripts/state.gd").read_text(encoding="utf-8")
+        + PET_SERVICE_PATH.read_text(encoding="utf-8")
+        + MARKETPLACE_SERVICE_PATH.read_text(encoding="utf-8")
+    )
+
+    assert "int(value.coins) < 0" in state
+    assert "int(value.bag) < 0" in state
+    assert "int(value.wins) < 0" in state
+    assert "int(value.runs) < 0" in state
+    assert "int(value.kills) < 0" in state
+    assert "int(value.potions.heal) < 0" in state
+    assert "int(value.potions.mana) < 0" in state
+    assert "int(value.cat_food_stock) != 0" in state
+    assert "migrated.cat_food_stock = 0" in state
+
+
+def test_repo_sanity_covers_recursive_resources_and_modular_catalogs():
+    from pathlib import Path
+
+    sanity = Path("tools/repo_sanity.py").read_text(encoding="utf-8")
+
+    assert "def verify_all_runtime_resource_refs()" in sanity
+    assert "scripts/**/*.gd" in sanity
+    assert "def verify_modular_catalogs()" in sanity
+    assert "duplicate cosmetic id" in sanity
+    assert "pet rank thresholds" in sanity
+    assert "route name drift between JSON and Godot catalog" in sanity
