@@ -2,11 +2,8 @@ name: Waypoint Gemini Beta Tester Council
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - ".github/beta-manual-trigger"
   schedule:
-    - cron: "5 * * * *"
+    - cron: "5 12 * * *"
 
 permissions:
   contents: write
@@ -16,8 +13,11 @@ env:
   GEMINI_SAFE_INPUT_TOKENS: "32000"
   GEMINI_SAFE_OUTPUT_TOKENS: "4096"
   GEMINI_SAFE_RPM: "1"
-  GEMINI_MAX_RETRIES: "1"
-  GEMINI_MAX_REQUESTS_PER_RUN: "8"
+  GEMINI_MAX_RETRIES: "0"
+  GEMINI_MAX_REQUESTS_PER_RUN: "1"
+  GEMINI_MAX_REQUESTS_PER_DAY: "3"
+  GEMINI_DAILY_USAGE_FILE: "runtime/gemini_daily_usage.json"
+  GEMINI_ECONOMY_MODE: "true"
   FREE_TIER_ONLY: "true"
   AUTONOMY_STOP_THRESHOLD: "3"
 
@@ -57,7 +57,7 @@ jobs:
         if: steps.autonomy.outputs.basic_gemini_allowed == 'true'
         env:
           BETA_TESTER_ENABLED: ${{ vars.BETA_TESTER_ENABLED || 'true' }}
-          BETA_MAX_DAILY_COUNCILS: "24"
+          BETA_MAX_DAILY_COUNCILS: "1"
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
       - name: Sync aggregate public playtest telemetry
@@ -126,7 +126,7 @@ jobs:
         run: |
           git config user.name "waypoint-beta-council[bot]"
           git config user.email "waypoint-beta-council[bot]@users.noreply.github.com"
-          git add beta_feedback runtime/beta_council.json runtime/telemetry_snapshot.json runtime/world_map.json runtime/development_governance.json runtime/autonomy_guard.json runtime/development_review.json reports/BETA_COUNCIL_LATEST.md reports/WORLD_ARCHITECT_LATEST.md reports/DEVELOPMENT_GOVERNANCE.md codex_backlog
+          git add beta_feedback runtime/beta_council.json runtime/telemetry_snapshot.json runtime/world_map.json runtime/development_governance.json runtime/autonomy_guard.json runtime/development_review.json runtime/gemini_daily_usage.json reports/BETA_COUNCIL_LATEST.md reports/WORLD_ARCHITECT_LATEST.md reports/DEVELOPMENT_GOVERNANCE.md codex_backlog
           git diff --cached --quiet && exit 0
           git commit -m "ai: governed beta council and milestone handoff"
           git push origin ai-development
