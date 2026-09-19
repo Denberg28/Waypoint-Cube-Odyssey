@@ -6,6 +6,7 @@ signal camp_clicked
 signal continue_clicked
 const Catalog = preload("res://scripts/catalog.gd")
 const State = preload("res://scripts/state.gd")
+const VisualKit = preload("res://scripts/visual_kit.gd")
 const LANE_SPACING: float = 2.8
 const ROW_SPACING: float = 2.55
 const VISIBLE_ROWS_AHEAD: int = 5
@@ -22,7 +23,7 @@ var state
 var hopping: bool = false
 var elapsed: float = 0.0
 var camera_target = Vector3.ZERO
-var mat_cache: Dictionary = {}
+var visuals = VisualKit.new()
 var showcase: bool = false
 var entrance: bool = false
 var left_foot: MeshInstance3D
@@ -35,41 +36,13 @@ var idle_anchor_position: Vector3 = Vector3.ZERO
 var idle_base_yaw: float = PI
 
 func material(color: Color, glow: bool = false) -> StandardMaterial3D:
-	var key: String = color.to_html() + str(glow)
-	if mat_cache.has(key):
-		return mat_cache[key]
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.roughness = 0.92
-	if glow:
-		mat.emission_enabled = true
-		mat.emission = color
-		mat.emission_energy_multiplier = 0.14
-	mat_cache[key] = mat
-	return mat
+	return visuals.material(color, glow)
 
 func box(parent: Node3D, pos: Vector3, size: Vector3, color: Color, glow: bool = false) -> MeshInstance3D:
-	var node = MeshInstance3D.new()
-	var mesh = BoxMesh.new()
-	mesh.size = size
-	node.mesh = mesh
-	node.material_override = material(color, glow)
-	node.position = pos
-	parent.add_child(node)
-	return node
+	return visuals.box(parent, pos, size, color, glow)
 
 func cone(parent: Node3D, pos: Vector3, radius: float, height: float, color: Color, top: float = 0.0) -> MeshInstance3D:
-	var node = MeshInstance3D.new()
-	var mesh = CylinderMesh.new()
-	mesh.top_radius = top
-	mesh.bottom_radius = radius
-	mesh.height = height
-	mesh.radial_segments = 6
-	node.mesh = mesh
-	node.material_override = material(color)
-	node.position = pos
-	parent.add_child(node)
-	return node
+	return visuals.cone(parent, pos, radius, height, color, top)
 
 func clickable_board(parent: Node3D, pos: Vector3, size: Vector3, color: Color, route_id: String = "", marketplace: bool = false, camp_return: bool = false, continue_adventure: bool = false) -> Area3D:
 	var area = Area3D.new()
@@ -234,6 +207,7 @@ func theme_for_route(route_id: String, base_theme: Dictionary) -> Dictionary:
 
 func setup(game_state) -> void:
 	state = game_state
+	print("VISUAL_PROFILE=", visuals.profile_name())
 	world_env = WorldEnvironment.new()
 	env_settings = Environment.new()
 	env_settings.background_mode = Environment.BG_COLOR
@@ -391,14 +365,18 @@ func apply_environment() -> void:
 
 func add_cloud_strip(y: float, color: Color = Color("d9e0e4")) -> void:
 	# Keep the forward lane visually open: cloud masses live on the shoulders only.
-	for point in [[-9.5, -13.0], [-7.2, -24.0], [7.4, -16.0], [10.2, -29.0]]:
+	var points: Array = [[-9.5, -13.0], [-7.2, -24.0], [7.4, -16.0], [10.2, -29.0]]
+	if visuals.simple_mode:
+		points = [[-8.5, -16.0], [8.5, -25.0]]
+	for point in points:
 		var x: float = float(point[0])
 		var z: float = float(point[1])
 		box(weather_fx, Vector3(x, y + absf(x) * 0.02, z), Vector3(2.8, 0.55, 1.15), color)
 		box(weather_fx, Vector3(x + (0.8 if x < 0.0 else -0.8), y + 0.22, z - 0.2), Vector3(1.5, 0.48, 0.95), color.lightened(0.05))
 
 func add_precipitation(color: Color, amount: int, speed_scale: float, size_y: float) -> void:
-	for i in range(amount):
+	var draw_amount: int = visuals.precipitation_budget(amount)
+	for i in range(draw_amount):
 		var x: float = randf_range(-7.0, 7.0)
 		var z: float = randf_range(-42.0, 6.0)
 		var y: float = randf_range(2.5, 9.5)
@@ -431,7 +409,8 @@ func build() -> void:
 				tint = active_theme.road_finish
 			box(scenery, pos, Vector3(2.62, 0.36, 2.42), tint)
 			box(scenery, pos + Vector3(0, -0.27, 0), Vector3(2.48, 0.18, 2.28), active_theme.road_base)
-		if row % 2 == 0:
+		var marker_stride: int = 4 if visuals.simple_mode else 2
+		if row % marker_stride == 0:
 			for side in [-1, 1]:
 				var edge_x: float = side * 4.55
 				var road_style: Dictionary = waypoint_style_for(str(state.data.get("route", "moss")))
@@ -440,17 +419,17 @@ func build() -> void:
 					Vector3(edge_x, 0.0, -row * ROW_SPACING),
 					road_style,
 					side,
-					row % 4 == 0
+					(not visuals.simple_mode) and row % 4 == 0
 				)
-		if row % 3 == 0:
+		if row % (5 if visuals.simple_mode else 3) == 0:
 			for side in [-1, 1]:
 				var x: float = side * local_rng.randf_range(6.2, 7.7)
 				var z: float = -row * ROW_SPACING + local_rng.randf_range(-0.6, 0.6)
 				tree(Vector3(x, 0, z), local_rng.randf_range(0.82, 1.14))
-		elif row % 3 == 1:
+		elif (not visuals.simple_mode) and row % 3 == 1:
 			var shrub_side: int = -1 if row % 2 == 0 else 1
 			cone(scenery, Vector3(shrub_side * 6.4, 0.35, -row * ROW_SPACING), 0.58, 0.75, active_theme.shrub, 0.3)
-		if row % 4 == 2:
+		if (not visuals.simple_mode or row % 8 == 2) and row % 4 == 2:
 			for side in [-1, 1]:
 				environment_side_prop(row, side, local_rng)
 	if is_trail:
@@ -784,19 +763,20 @@ func add_waypoint_post(
 	box(parent, base_pos + Vector3(0, 2.38 * scale, 0), Vector3(0.66, 0.18, 0.62) * scale, wood.lightened(0.08))
 	cone(parent, base_pos + Vector3(0, 2.62 * scale, 0), 0.38 * scale, 0.34 * scale, accent.darkened(0.06), 0.08 * scale)
 
-	# Metal crest plate and rope wraps match the main gateway.
+	# Web/light mode keeps one crest and skips rope micro-geometry.
 	box(parent, base_pos + Vector3(0, 1.92 * scale, 0.29 * scale), Vector3(0.46, 0.46, 0.07) * scale, metal)
 	var crest = box(parent, base_pos + Vector3(0, 1.92 * scale, 0.335 * scale), Vector3(0.18, 0.18, 0.035) * scale, accent)
 	crest.rotation_degrees.z = 45.0
-	add_rope_wrap(parent, base_pos + Vector3(0, 0.83 * scale, 0), 0.60, scale)
+	if not visuals.simple_mode:
+		add_rope_wrap(parent, base_pos + Vector3(0, 0.83 * scale, 0), 0.60, scale)
 
-	if lantern_side != 0:
+	if lantern_side != 0 and not visuals.simple_mode:
 		var direction: float = float(lantern_side)
 		box(parent, base_pos + Vector3(direction * 0.55 * scale, 2.18 * scale, 0), Vector3(0.95, 0.12, 0.14) * scale, wood.darkened(0.05))
 		box(parent, base_pos + Vector3(direction * 0.95 * scale, 1.98 * scale, 0), Vector3(0.06, 0.42, 0.06) * scale, metal)
 		add_waypoint_lantern(parent, base_pos + Vector3(direction * 0.95 * scale, 1.58 * scale, 0.02), 0.72 * scale)
 
-	if with_banner:
+	if with_banner and not visuals.simple_mode:
 		var banner_side: float = -float(lantern_side) if lantern_side != 0 else 1.0
 		add_waypoint_banner(parent, base_pos + Vector3(banner_side * 0.72 * scale, 1.45 * scale, 0.28 * scale), style_data, 0.72 * scale)
 
@@ -839,11 +819,13 @@ func add_gateway_title_board(
 	var accent: Color = style_data.accent_color
 	box(parent, pos, Vector3(3.15, 0.76, 0.24), wood)
 	box(parent, pos + Vector3(0, 0.32, 0.05), Vector3(2.72, 0.08, 0.08), trim)
-	box(parent, pos + Vector3(0, -0.32, 0.05), Vector3(2.72, 0.08, 0.08), trim.darkened(0.08))
-	for x in [-1.48, 1.48]:
-		box(parent, pos + Vector3(x, 0, 0.02), Vector3(0.18, 0.58, 0.28), wood.lightened(0.06))
+	if not visuals.simple_mode:
+		box(parent, pos + Vector3(0, -0.32, 0.05), Vector3(2.72, 0.08, 0.08), trim.darkened(0.08))
+		for x in [-1.48, 1.48]:
+			box(parent, pos + Vector3(x, 0, 0.02), Vector3(0.18, 0.58, 0.28), wood.lightened(0.06))
 	floating_text(parent, "WAYPOINT", pos + Vector3(0, 0.02, 0.16), Color("fff0c7"), 31)
-	floating_text(parent, location_name, pos + Vector3(0, -0.48, 0.14), accent, 14)
+	if not visuals.simple_mode:
+		floating_text(parent, location_name, pos + Vector3(0, -0.48, 0.14), accent, 14)
 
 func waypoint_destination_board(
 	parent: Node3D,
@@ -861,9 +843,10 @@ func waypoint_destination_board(
 	box(parent, pos + Vector3(0, 0, 0.055), Vector3(size.x * 0.92, size.y * 0.76, 0.075), primary_color)
 	box(parent, pos + Vector3(0, size.y * 0.42, 0.075), Vector3(size.x * 0.90, 0.07, 0.08), accent)
 	box(parent, pos + Vector3(0, -size.y * 0.42, 0.075), Vector3(size.x * 0.90, 0.07, 0.08), accent.darkened(0.14))
-	for x in [-size.x * 0.44, size.x * 0.44]:
-		var rivet = box(parent, pos + Vector3(x, 0, 0.12), Vector3(0.09, 0.09, 0.04), accent)
-		rivet.rotation_degrees.z = 45.0
+	if not visuals.simple_mode:
+		for x in [-size.x * 0.44, size.x * 0.44]:
+			var rivet = box(parent, pos + Vector3(x, 0, 0.12), Vector3(0.09, 0.09, 0.04), accent)
+			rivet.rotation_degrees.z = 45.0
 	floating_text(parent, label_text, pos + Vector3(0, 0.03, 0.18), Color("fff4d2"), 19)
 
 func road_end_waypoint(finish_z: float) -> void:
@@ -885,10 +868,11 @@ func road_end_waypoint(finish_z: float) -> void:
 	# Heavy crossbeam and diagonal braces create a recognizable silhouette.
 	box(scenery, Vector3(0, 3.18, z), Vector3(5.55, 0.38, 0.46), post_color)
 	box(scenery, Vector3(0, 3.39, z + 0.02), Vector3(5.12, 0.09, 0.18), trim_color)
-	for x in [-1.82, 1.82]:
-		box(scenery, Vector3(x, 3.18, z + 0.24), Vector3(0.16, 0.54, 0.08), Color("45484b"))
-	add_gateway_brace(scenery, Vector3(-1.95, 2.72, z), -1, post_color)
-	add_gateway_brace(scenery, Vector3(1.95, 2.72, z), 1, post_color)
+	if not visuals.simple_mode:
+		for x in [-1.82, 1.82]:
+			box(scenery, Vector3(x, 3.18, z + 0.24), Vector3(0.16, 0.54, 0.08), Color("45484b"))
+		add_gateway_brace(scenery, Vector3(-1.95, 2.72, z), -1, post_color)
+		add_gateway_brace(scenery, Vector3(1.95, 2.72, z), 1, post_color)
 
 	add_gateway_title_board(
 		scenery,
@@ -902,8 +886,9 @@ func road_end_waypoint(finish_z: float) -> void:
 	var crest_back = box(scenery, Vector3(0, 3.72, z + 0.06), Vector3(0.92, 0.62, 0.22), trim_color.darkened(0.28))
 	crest_back.rotation_degrees.z = 0.0
 	add_waypoint_motif(scenery, current_route_id, Vector3(0, 3.55, z + 0.22), style_data)
-	add_waypoint_lantern(scenery, Vector3(-1.42, 2.70, z + 0.24), 0.74)
-	add_waypoint_lantern(scenery, Vector3(1.42, 2.70, z + 0.24), 0.74)
+	if not visuals.simple_mode:
+		add_waypoint_lantern(scenery, Vector3(-1.42, 2.70, z + 0.24), 0.74)
+		add_waypoint_lantern(scenery, Vector3(1.42, 2.70, z + 0.24), 0.74)
 
 	floating_text(
 		scenery,
@@ -1013,15 +998,7 @@ func guardian() -> void:
 	floating_text(scenery, "THE HEARTWOOD KEEPER", Vector3(0, 4.5, -7), active_theme.text, 40)
 
 func floating_text(parent: Node3D, text: String, pos: Vector3, color: Color, size: int = 32) -> void:
-	var label = Label3D.new()
-	label.text = text
-	label.position = pos
-	label.font_size = size
-	label.pixel_size = 0.009
-	label.modulate = color
-	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
-	parent.add_child(label)
+	visuals.text(parent, text, pos, color, size)
 
 func enemy_colors(kind: String, active: bool) -> Color:
 	if active:
@@ -1048,15 +1025,16 @@ func build_enemy_loadout(parent: Node3D, pos: Vector3, kind: String, size: Vecto
 	var rank: int = int(variant.get("rank", 1))
 
 	box(parent, pos + Vector3(0, size.y / 2, 0), size, body_color)
-	for x in [-0.22, 0.22]:
-		box(parent, pos + Vector3(x, min(0.72, size.y * 0.62), size.z / 2 + 0.02), Vector3(0.09, 0.1, 0.03), Color("233e3d"))
+	if not visuals.simple_mode:
+		for x in [-0.22, 0.22]:
+			box(parent, pos + Vector3(x, min(0.72, size.y * 0.62), size.z / 2 + 0.02), Vector3(0.09, 0.1, 0.03), Color("233e3d"))
 
 	# Armor silhouette scales by rank: common foes receive a chest piece,
 	# veteran/champion variants add shoulder plating and brighter trim.
 	var chest_y: float = maxf(0.36, size.y * 0.48)
 	box(parent, pos + Vector3(0, chest_y, size.z * 0.43), Vector3(size.x * 0.72, size.y * 0.34, 0.10), armor_color)
 	box(parent, pos + Vector3(0, chest_y + size.y * 0.12, size.z * 0.49), Vector3(size.x * 0.58, 0.06, 0.05), rank_trim, rank >= 3)
-	if rank >= 2:
+	if rank >= (3 if visuals.simple_mode else 2):
 		for shoulder_x in [-size.x * 0.46, size.x * 0.46]:
 			box(parent, pos + Vector3(shoulder_x, chest_y + 0.12, 0), Vector3(size.x * 0.20, 0.18, size.z * 0.72), armor_color.darkened(0.05))
 
