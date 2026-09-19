@@ -1,0 +1,54 @@
+name: Waypoint AI Music Director
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Scheduled workflows are discovered from the default branch.
+    # The job itself checks out and updates ai-development.
+    - cron: "37 2,14 * * *"
+
+permissions:
+  contents: write
+
+env:
+  GEMINI_MODEL: gemini-3.5-flash-lite
+  GEMINI_SAFE_INPUT_TOKENS: "24000"
+  GEMINI_SAFE_OUTPUT_TOKENS: "3072"
+  GEMINI_SAFE_RPM: "1"
+  GEMINI_MAX_RETRIES: "1"
+  GEMINI_MAX_REQUESTS_PER_RUN: "1"
+
+jobs:
+  music-director:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: waypoint-gemini-api
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ai-development
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Sync aggregate public playtest telemetry
+        continue-on-error: true
+        run: python -m ai_lab.sync_public_telemetry
+      - name: Run Gemini Flash-Lite Music Director
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m ai_lab.music_agent
+      - name: Validate music profile and modules
+        run: |
+          python -m ai_lab.music_agent --offline
+          python -m py_compile ai_lab/music_agent.py ai_lab/sync_public_telemetry.py ai_lab/common.py
+          git checkout -- runtime/music_profile.json reports/MUSIC_DIRECTOR_LATEST.md
+      - name: Commit bounded audio profile
+        run: |
+          git config user.name "waypoint-music-director[bot]"
+          git config user.email "waypoint-music-director[bot]@users.noreply.github.com"
+          git add runtime/music_profile.json runtime/telemetry_snapshot.json reports/MUSIC_DIRECTOR_LATEST.md
+          git diff --cached --quiet && exit 0
+          git commit -m "ai: update bounded Audio Profile v2"
+          git push origin ai-development
