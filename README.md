@@ -146,3 +146,10 @@ Offline validation: `python -m ai_lab.beta_testers --offline` followed by `pytho
 ## v0.22.1 setup hotfix
 
 Fixed `Setup-GitHub-AI-Lab.ps1` so a fresh local repository with no `origin` remote is detected without triggering a Windows PowerShell NativeCommandError. Existing repositories with an `origin` continue to push normally.
+
+## v0.23 — Odyssey Hunt retention hook
+- Every trail now hides one optional **Waypoint Shard** away from the guaranteed safe corridor.
+- Collect **3 shards in one expedition** to crack an **Odyssey Cache** with a guaranteed Rare-or-better permanent gear roll.
+- The shard counter is visible in the status rail, route previews explain the hunt, and shards have a distinct gold world marker and pickup chime.
+- Existing saves migrate to gameplay schema **version 10** without resetting permanent progression.
+- Extra shards after opening the cache convert into Relic charge so later detours remain useful.
