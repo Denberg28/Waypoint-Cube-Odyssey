@@ -282,8 +282,8 @@ def test_character_idle_animation_is_camp_only():
     assert "update_camp_actor_roam(delta)" in world
     assert "left_arm.rotation.x" in world
     assert "right_arm.rotation.x" in world
-    assert "left_foot.rotation.x" in world
-    assert "right_foot.rotation.x" in world
+    assert "left_foot.rotation = Vector3.ZERO" in world
+    assert "right_foot.rotation = Vector3.ZERO" in world
     assert 'elif not hopping and str(state.data.mode) == "camp":' in world
     assert "apply_idle_animation(delta)" in world
 
@@ -943,3 +943,22 @@ def test_character_boots_are_grounded_and_do_not_rotate_during_walk():
     assert "right_foot.rotation.x = -gait" not in world
     assert "left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL" in world
     assert "right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL" in world
+
+
+def test_player_has_independent_bonfire_rest_sequence():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "var camp_actor_moves_since_rest: int = 0" in world
+    assert "var camp_actor_heading_to_fire: bool = false" in world
+    assert "var camp_actor_resting_by_fire: bool = false" in world
+    assert "var camp_actor_fire_rest_points" in world
+    assert "func select_actor_fire_rest_target() -> void:" in world
+    assert "func apply_camp_fire_rest() -> void:" in world
+    assert "camp_actor_resting_by_fire = true" in world
+    assert "camp_roam_rng.randf_range(8.0, 14.0)" in world
+    assert "camp_actor_moves_since_rest >= 2" in world
+    assert 'actor.look_at(Vector3(0.0, actor.position.y, -5.15)' in world
+    assert "left_arm.position = Vector3(-0.46, 0.24, 0.15)" in world
+    assert "right_arm.position = Vector3(0.46, 0.24, 0.15)" in world
