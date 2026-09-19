@@ -1134,18 +1134,18 @@ func show_mode() -> void:
 			show_fishing_game()
 		"road_end":
 			overlay.hide()
-					push_chat("Road complete. Choose the next adventure, or visit LANTERN CAMP for supplies. Hearts carry over.")
+			push_chat("Road complete. Choose the next adventure, or visit LANTERN CAMP for supplies. Hearts carry over.")
 		"camp":
 			# Returning to Lantern Camp is a true scene transition. Keep the UI clear
 			# so the side bench, seated character, and bonfire are visible immediately.
 			overlay.hide()
-					if is_instance_valid(fishing_layer):
+			if is_instance_valid(fishing_layer):
 				fishing_layer.hide()
 		"choice":
 			# Crossroads is now fully represented by the clickable 3D signposts.
 			# Keep the scene clean and do not duplicate route choices in UI.
 			overlay.hide()
-					push_chat("Crossroads ahead. Choose one of the route signs.")
+			push_chat("Crossroads ahead. Choose one of the route signs.")
 		"reward":
 			modal("03 / TRAIL COMPLETE", "Something worth keeping.", str(game.data.last))
 			action("Continue   →", func(): game.after_reward(); commit(), true)
