@@ -118,6 +118,17 @@ func _initialize() -> void:
 	var loot_text: String = challenge.award_gear()
 	check(challenge.data.inventory.size() == before_gear + 1 or loot_text.contains("duplicate"), "charged gear reward resolves")
 	check(int(challenge.data.relic_charge) < 100, "charged reward consumes relic meter")
+	# Waypoint Shard hook: three optional route shards crack a Rare+ Odyssey Cache.
+	var hunt = State.new()
+	hunt.begin()
+	var hunt_gear_before: int = hunt.data.inventory.size()
+	var hunt_text_1: String = hunt.collect_waypoint_shard()
+	var hunt_text_2: String = hunt.collect_waypoint_shard()
+	var hunt_text_3: String = hunt.collect_waypoint_shard()
+	check(int(hunt.data.odyssey_shards) == 3, "odyssey shard progress caps at three")
+	check(int(hunt.data.odyssey_caches) == 1, "three shards crack one odyssey cache")
+	check(hunt_text_1.contains("1 / 3") and hunt_text_2.contains("2 / 3") and hunt_text_3.contains("Odyssey Cache"), "odyssey hunt feedback")
+	check(hunt.data.inventory.size() == hunt_gear_before + 1 or hunt_text_3.contains("duplicate"), "odyssey cache resolves rare gear")
 	# Cosmetic marketplace: banked coins purchase permanent visual customization only.
 	var market = State.new()
 	market.data.mode = "camp"
