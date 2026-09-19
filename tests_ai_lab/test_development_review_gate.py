@@ -878,3 +878,20 @@ def test_status_panel_equipment_is_informative_and_sanitized():
     assert "side_heal_button.disabled" in main
     assert "side_mana_button.disabled" in main
     assert "EXPEDITION  •  THREAT" in main
+
+
+def test_lantern_camp_player_and_cat_use_bounded_roaming():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "var camp_actor_roam_points: Array[Vector3]" in world
+    assert "var camp_cat_roam_points: Array[Vector3]" in world
+    assert "func update_camp_actor_roam(delta: float) -> void:" in world
+    assert "func update_camp_cat_roam(delta: float) -> void:" in world
+    assert "apply_idle_animation(delta)" in world
+    assert "actor.position = camp_actor_roam_points[0]" in world
+    assert "camp_cat_root = root" in world
+    assert "root.position = camp_cat_roam_points[0]" in world
+    assert 'camera_target = Vector3(0.0, 0.12, -4.80)' in world
+    assert 'actor.position = Vector3(-3.15, 0.52, -3.05)' not in world
