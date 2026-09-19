@@ -32,7 +32,8 @@ HISTORY_NAME = "waypoint_ai_gm_history.jsonl"
 BACKLOG_NAME = "waypoint_ai_gm_backlog.json"
 LOG_NAME = "waypoint_ai_gm_nightwatch.log"
 
-ROUTES = {"moss", "forge", "shrine", "treasure", "frost", "fen", "gloomwood"}
+ROUTE_CATALOG_PATH = pathlib.Path(__file__).resolve().parents[1] / "game_data" / "routes.json"
+ROUTES = set(json.loads(ROUTE_CATALOG_PATH.read_text(encoding="utf-8")))
 CHALLENGE_TYPES = {"route_complete", "featured_route_complete", "fishing_catch", "elite_defeat", "obstacle_jump"}
 
 RESPONSE_SCHEMA: dict[str, Any] = {
