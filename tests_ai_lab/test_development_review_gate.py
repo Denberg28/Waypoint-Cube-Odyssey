@@ -811,3 +811,16 @@ def test_cat_companion_is_visible_from_marketplace_and_equipment():
     assert 'for category in ["skin", "head", "back", "face"]' in main
     assert "func show_cat_market() -> void:" in main
     assert "func show_cat_companion() -> void:" in main
+
+
+def test_lantern_camp_exposes_physical_marketplace_entry():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert 'market_board.name = "CampMarketplace"' in world
+    assert "MARKETPLACE  •  CAT COMPANION" in world
+    assert 'clickable_board(scenery, market_pos' in world
+    assert 'world.marketplace_clicked.connect' in main
+    assert 'show_marketplace("skin")' in main
