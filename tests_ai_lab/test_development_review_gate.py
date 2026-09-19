@@ -936,9 +936,9 @@ def test_character_boots_are_grounded_and_do_not_rotate_during_walk():
 
     world = Path("scripts/world.gd").read_text(encoding="utf-8")
 
-    assert 'const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.21, -0.08, 0.04)' in world
-    assert 'const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.21, -0.08, 0.04)' in world
-    assert 'const ACTOR_FOOT_SIZE := Vector3(0.24, 0.16, 0.34)' in world
+    assert 'const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.20, -0.07, 0.00)' in world
+    assert 'const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.20, -0.07, 0.00)' in world
+    assert 'const ACTOR_FOOT_SIZE := Vector3(0.22, 0.14, 0.24)' in world
     assert "left_foot.rotation.x = gait" not in world
     assert "right_foot.rotation.x = -gait" not in world
     assert "left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL" in world
@@ -960,5 +960,18 @@ def test_player_has_independent_bonfire_rest_sequence():
     assert "camp_roam_rng.randf_range(8.0, 14.0)" in world
     assert "camp_actor_moves_since_rest >= 2" in world
     assert 'actor.look_at(Vector3(0.0, actor.position.y, -5.15)' in world
-    assert "left_arm.position = Vector3(-0.46, 0.24, 0.15)" in world
-    assert "right_arm.position = Vector3(0.46, 0.24, 0.15)" in world
+    assert "left_arm.position = Vector3(-0.46, 0.32, 0.10)" in world
+    assert "right_arm.position = Vector3(0.46, 0.32, 0.10)" in world
+
+
+def test_character_shell_is_surface_armor_not_solid_lower_torso_cube():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert 'Vector3(0.96, 0.23, 0.96)' not in world
+    assert 'Vector3(0.72, 0.42, 0.055)' in world
+    assert 'Vector3(0.055, 0.36, 0.62)' in world
+    assert 'const ACTOR_ARM_SIZE := Vector3(0.16, 0.34, 0.18)' in world
+    assert 'left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL' in world
+    assert 'right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL' in world
