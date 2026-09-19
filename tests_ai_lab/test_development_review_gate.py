@@ -669,7 +669,7 @@ def test_waypoint_posts_are_standardized_and_location_specific():
     assert "ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD OR CAMP" in world
     assert "REST / SUPPLIES" in world
     assert '"difficulty_label"' in world
-    assert "Smaller route-selection counterpart to the road-end gateway" in world
+    assert "Option A: clean RPG signpost." in world
 
 
 def test_three_planned_regions_are_promoted_to_playable_routes():
@@ -806,7 +806,7 @@ def test_rpg_waypoint_gateway_and_roadpost_design_is_present():
     assert "row % 4 == 0" in world
 
     assert "procedural geometry the carved-sign silhouette from the RPG concept" in world
-    assert "CROSSROADS  •  CHOOSE YOUR NEXT ROAD" in world
+    assert 'floating_text(scenery, "CROSSROADS"' in world
 
 
 def test_cat_market_and_pet_care_loop_is_fully_wired():
@@ -1226,7 +1226,7 @@ def test_lantern_camp_uses_wide_hub_framing_and_safe_roam_depth():
     assert 'Vector3(-2.15, 0.16, -2.35)' not in world
     assert 'Vector3(-0.75, 0.16, -2.55)' not in world
     assert 'camera_offset = Vector3(0, 5.15, 10.60)' in world
-    assert 'look_offset = Vector3(0, 0.66, -4.35)' in world
+    assert 'look_offset = Vector3(0, 0.58, -4.55)' in world
 
 
 def test_save_validator_rejects_negative_economy_and_orphan_pet_supplies():
