@@ -82,7 +82,7 @@ def test_elite_behavior_profiles_are_danger_gated_and_distinct():
     assert "func elite_behavior" in state
     assert "place_elite_encounter" in state
     assert '"elite_behavior":elite_behavior_id' in Path("scripts/main.gd").read_text(encoding="utf-8")
-    assert 'telegraph = "%s  •  ELITE"' in world
+    assert '"%s  •  %s ELITE"' in world
 
 
 def test_level_star_progression_and_rpg_encounter_sequence_present():
@@ -108,7 +108,7 @@ def test_level_star_progression_and_rpg_encounter_sequence_present():
     assert 'func build_environment_ambience' in main
     assert '"road_danger"' in main
     assert 'fight_status.text = "ENCOUNTER!"' in main
-    assert 'fight_status.text = "CLASH!"' in main
+    assert 'fight_status.text = "CLASH!  HOLDING..."' in main
     assert '"HARD-WON VICTORY"' in main
     assert '"RUNE STRIKE"' in main
 
@@ -558,11 +558,11 @@ def test_waypoint_posts_are_standardized_and_location_specific():
     assert "func waypoint_style_for(route_id: String) -> Dictionary:" in world
     assert "func add_waypoint_motif(" in world
     assert "func waypoint_destination_board(" in world
-    assert "Twin-post gateway" in world
-    assert "ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD" in world
+    assert "Hero checkpoint inspired by classic RPG hubs" in world
+    assert "ROAD COMPLETE  •  CHOOSE YOUR NEXT ROAD OR CAMP" in world
     assert "REST / SUPPLIES" in world
     assert '"difficulty_label"' in world
-    assert "Crossroads reuses the destination-board grammar" in world
+    assert "Smaller route-selection counterpart to the road-end gateway" in world
 
 
 def test_three_planned_regions_are_promoted_to_playable_routes():
