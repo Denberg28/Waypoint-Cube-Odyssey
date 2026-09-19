@@ -3,7 +3,9 @@ name: Waypoint AI Music Director
 on:
   workflow_dispatch:
   schedule:
-    - cron: "37 2,8,14,20 * * *"
+    # Twice daily. Scheduled execution is activated by the mirrored workflow on
+    # the repository default branch; this copy remains the development source.
+    - cron: "37 2,14 * * *"
 
 permissions:
   contents: write
@@ -14,7 +16,7 @@ env:
   GEMINI_SAFE_OUTPUT_TOKENS: "3072"
   GEMINI_SAFE_RPM: "1"
   GEMINI_MAX_RETRIES: "1"
-  GEMINI_MAX_REQUESTS_PER_RUN: "2"
+  GEMINI_MAX_REQUESTS_PER_RUN: "1"
 
 jobs:
   music-director:
