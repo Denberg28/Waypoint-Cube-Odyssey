@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from ai_lab.development_review import recommendation_similarity, update_recommendation_tally
 from streamlit_lab.review_gate import pin_matches
 
+PET_CATALOG_PATH = Path("scripts/modules/pets/pet_catalog.gd")
+PET_SERVICE_PATH = Path("scripts/modules/pets/pet_service.gd")
+MARKETPLACE_CATALOG_PATH = Path("scripts/modules/marketplace/marketplace_catalog.gd")
+MARKETPLACE_SERVICE_PATH = Path("scripts/modules/marketplace/marketplace_service.gd")
+ROAD_CATALOG_PATH = Path("scripts/modules/road/road_catalog.gd")
+ROAD_SERVICE_PATH = Path("scripts/modules/road/road_service.gd")
+ENEMY_CATALOG_PATH = Path("scripts/modules/enemy/enemy_catalog.gd")
+ENEMY_SERVICE_PATH = Path("scripts/modules/enemy/enemy_service.gd")
 
 def test_review_pin_requires_exact_nonempty_match():
     assert pin_matches("owner-secret", "owner-secret")
@@ -69,17 +79,6 @@ def test_tally_counts_distinct_councils_only():
 
 
 def test_elite_behavior_profiles_are_danger_gated_and_distinct():
-    from pathlib import Path
-
-PET_CATALOG_PATH = Path("scripts/modules/pets/pet_catalog.gd")
-PET_SERVICE_PATH = Path("scripts/modules/pets/pet_service.gd")
-MARKETPLACE_CATALOG_PATH = Path("scripts/modules/marketplace/marketplace_catalog.gd")
-MARKETPLACE_SERVICE_PATH = Path("scripts/modules/marketplace/marketplace_service.gd")
-ROAD_CATALOG_PATH = Path("scripts/modules/road/road_catalog.gd")
-ROAD_SERVICE_PATH = Path("scripts/modules/road/road_service.gd")
-ENEMY_CATALOG_PATH = Path("scripts/modules/enemy/enemy_catalog.gd")
-ENEMY_SERVICE_PATH = Path("scripts/modules/enemy/enemy_service.gd")
-
     catalog = (
         PET_CATALOG_PATH.read_text(encoding="utf-8")
         + MARKETPLACE_CATALOG_PATH.read_text(encoding="utf-8")
