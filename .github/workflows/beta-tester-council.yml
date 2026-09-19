@@ -3,7 +3,8 @@ name: Waypoint Gemini Beta Tester Council
 on:
   workflow_dispatch:
   schedule:
-    - cron: "5 * * * *"
+    # Twice daily: 00:05 and 12:05 UTC (08:05 and 20:05 Philippine time).
+    - cron: "5 0,12 * * *"
 
 permissions:
   contents: write
@@ -54,7 +55,7 @@ jobs:
         if: steps.autonomy.outputs.basic_gemini_allowed == 'true'
         env:
           BETA_TESTER_ENABLED: ${{ vars.BETA_TESTER_ENABLED || 'true' }}
-          BETA_MAX_DAILY_COUNCILS: "24"
+          BETA_MAX_DAILY_COUNCILS: "2"
         run: |
           python ai_lab/should_run_beta.py && echo "run_council=true" >> "$GITHUB_OUTPUT" || echo "run_council=false" >> "$GITHUB_OUTPUT"
       - name: Sync aggregate public playtest telemetry
