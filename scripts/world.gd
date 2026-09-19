@@ -31,6 +31,9 @@ var left_foot: MeshInstance3D
 var right_foot: MeshInstance3D
 var left_arm: MeshInstance3D
 var right_arm: MeshInstance3D
+const ACTOR_LEFT_FOOT_NEUTRAL := Vector3(-0.21, -0.08, 0.04)
+const ACTOR_RIGHT_FOOT_NEUTRAL := Vector3(0.21, -0.08, 0.04)
+const ACTOR_FOOT_SIZE := Vector3(0.24, 0.16, 0.34)
 var active_theme: Dictionary = {}
 var brightness_scale: float = 1.0
 var idle_anchor_position: Vector3 = Vector3.ZERO
@@ -281,8 +284,8 @@ func refresh_actor(preview_class: String = "", preview_skin: int = -1) -> void:
 	box(actor, Vector3(0, 0.62, 0), Vector3(0.92, 0.92, 0.92), skin)
 	box(actor, Vector3(0, 1.09, 0), Vector3(0.78, 0.05, 0.78), skin.lightened(0.18))
 	box(actor, Vector3(0, 0.08, 0), Vector3(0.62, 0.34, 0.52), skin.darkened(0.08))
-	left_foot = box(actor, Vector3(-0.24, -0.13, 0.08), Vector3(0.26, 0.16, 0.38), Color("355c58"))
-	right_foot = box(actor, Vector3(0.24, -0.13, 0.08), Vector3(0.26, 0.16, 0.38), Color("355c58"))
+	left_foot = box(actor, ACTOR_LEFT_FOOT_NEUTRAL, ACTOR_FOOT_SIZE, Color("355c58"))
+	right_foot = box(actor, ACTOR_RIGHT_FOOT_NEUTRAL, ACTOR_FOOT_SIZE, Color("355c58"))
 	left_arm = box(actor, Vector3(-0.55, 0.20, 0), Vector3(0.18, 0.46, 0.22), skin.darkened(0.12))
 	right_arm = box(actor, Vector3(0.55, 0.20, 0), Vector3(0.18, 0.46, 0.22), skin.darkened(0.12))
 	for x in [-0.19, 0.19]:
@@ -1304,10 +1307,10 @@ func reset_walk_pose() -> void:
 	actor.rotation.x = 0.0
 	actor.rotation.z = 0.0
 	if is_instance_valid(left_foot):
-		left_foot.position = Vector3(-0.24, -0.13, 0.08)
+		left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL
 		left_foot.rotation = Vector3.ZERO
 	if is_instance_valid(right_foot):
-		right_foot.position = Vector3(0.24, -0.13, 0.08)
+		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL
 		right_foot.rotation = Vector3.ZERO
 	if is_instance_valid(left_arm):
 		left_arm.position = Vector3(-0.55, 0.20, 0)
@@ -1330,10 +1333,14 @@ func walk_to(pos: Vector3) -> void:
 		actor.position = start.lerp(pos, t) + Vector3(0, absf(gait) * 0.075, 0)
 		actor.rotation.y = PI + clampf(travel.x * 0.05, -0.12, 0.12)
 		actor.rotation.z = -gait * 0.025
+		var left_lift: float = maxf(0.0, gait) * 0.045
+		var right_lift: float = maxf(0.0, -gait) * 0.045
 		if is_instance_valid(left_foot):
-			left_foot.rotation.x = gait * 0.55
+			left_foot.rotation = Vector3.ZERO
+			left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL + Vector3(0, left_lift, 0)
 		if is_instance_valid(right_foot):
-			right_foot.rotation.x = -gait * 0.55
+			right_foot.rotation = Vector3.ZERO
+			right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL + Vector3(0, right_lift, 0)
 		if is_instance_valid(left_arm):
 			left_arm.rotation.x = -gait * 0.42
 		if is_instance_valid(right_arm):
@@ -1419,7 +1426,7 @@ func update_camp_actor_roam(delta: float) -> void:
 	var direction: Vector3 = flat_delta / distance
 	var step: float = minf(distance, 0.42 * delta)
 	actor.position += direction * step
-	actor.position.y = 0.16 + absf(sin(elapsed * 5.2)) * 0.012
+	actor.position.y = 0.16 + absf(sin(elapsed * 5.2)) * 0.006
 	actor.scale = Vector3.ONE
 	actor.rotation.z = 0.0
 	actor.look_at(Vector3(target.x, actor.position.y, target.z), Vector3.UP, true)
@@ -1432,10 +1439,10 @@ func update_camp_actor_roam(delta: float) -> void:
 	var right_lift: float = maxf(0.0, -gait) * 0.045
 	if is_instance_valid(left_foot):
 		left_foot.rotation = Vector3.ZERO
-		left_foot.position = Vector3(-0.24, -0.13 + left_lift, 0.08 + gait * 0.025)
+		left_foot.position = ACTOR_LEFT_FOOT_NEUTRAL + Vector3(0, left_lift, 0)
 	if is_instance_valid(right_foot):
 		right_foot.rotation = Vector3.ZERO
-		right_foot.position = Vector3(0.24, -0.13 + right_lift, 0.08 - gait * 0.025)
+		right_foot.position = ACTOR_RIGHT_FOOT_NEUTRAL + Vector3(0, right_lift, 0)
 	if is_instance_valid(left_arm):
 		left_arm.rotation = Vector3(-gait * 0.12, 0, 0)
 	if is_instance_valid(right_arm):
