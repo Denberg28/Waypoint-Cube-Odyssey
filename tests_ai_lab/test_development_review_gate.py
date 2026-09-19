@@ -780,3 +780,17 @@ def test_deleted_crossroads_fallback_has_no_stale_references():
     for stale in ["route_panel", "route_box", "show_routes()", "WINDOW_ROUTE_WIDTH"]:
         assert stale not in main
         assert stale not in refinement
+
+
+def test_web_telemetry_requires_opt_in_and_drops_free_text():
+    from pathlib import Path
+
+    telemetry = Path("scripts/ai_telemetry.gd").read_text(encoding="utf-8")
+    config = json.loads(Path("runtime/public_telemetry.json").read_text(encoding="utf-8"))
+
+    assert config["require_opt_in"] is True
+    assert config["allow_desktop_debug"] is False
+    assert '"telemetry=1"' in telemetry
+    assert "sanitize_details(details)" in telemetry
+    assert '["result", "message", "feedback", "text"]' in telemetry
+    assert "MAX_REMOTE_STRING" in telemetry
