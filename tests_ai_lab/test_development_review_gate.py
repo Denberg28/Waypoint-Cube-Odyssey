@@ -795,3 +795,17 @@ def test_web_telemetry_requires_opt_in_and_drops_free_text():
     assert "sanitize_details(details)" in telemetry
     assert '["result", "message", "feedback", "text"]' in telemetry
     assert "MAX_REMOTE_STRING" in telemetry
+
+
+def test_cat_companion_is_visible_from_marketplace_and_equipment():
+    from pathlib import Path
+
+    main = Path("scripts/main.gd").read_text(encoding="utf-8")
+
+    assert 'label("COMPANION"' in main
+    assert "Cat Companion  •  Browse / Adopt" in main
+    assert "Cat Companion  •  Manage / Feed" in main
+    assert "Cat Market / Adopt Companion" in main
+    assert 'for category in ["skin", "head", "back", "face"]' in main
+    assert "func show_cat_market() -> void:" in main
+    assert "func show_cat_companion() -> void:" in main
