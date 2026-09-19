@@ -461,7 +461,7 @@ def test_resolve_motivation_meter_is_positive_and_defeat_safe():
     assert "Your XP, Resolve" in defeat
     assert "RESOLVE %d%%" in main
     assert "positive motivation meter never decreases on defeat" in main
-    assert '"version":17' in state
+    assert '"version":18' in state
 
 
 def test_v11_pending_xp_is_migrated_into_credited_xp():
@@ -479,7 +479,7 @@ def test_v11_pending_xp_is_migrated_into_credited_xp():
     assert 'migrated.erase("pending_xp")' in state
     assert "carry_xp" in state
     assert "migrated.resolve = 0" in state
-    assert "migrated.version = 17" in state
+    assert "migrated.version = 18" in state
     assert "11, 11.0" in state
 
 
@@ -572,7 +572,7 @@ def test_cat_companion_market_feeding_and_mood_loop_present():
     assert "const CAT_SATIETY_ROAD_COST: int = 10" in catalog
     assert "const CAT_PATTERNS" in catalog
 
-    assert '"version":17' in state
+    assert '"version":18' in state
     assert '"fish_stock":0' in state
     assert '"cat_owned":false' in state
     assert '"cat_design":{}' in state
@@ -626,7 +626,7 @@ def test_cat_satiety_is_progression_based_not_wall_clock():
     assert "cat_adventure_tick()" in state
 
 
-def test_v13_save_migrates_cat_companion_fields_through_v17():
+def test_v13_save_migrates_cat_companion_fields_through_v18():
     from pathlib import Path
 
     state = (
@@ -643,7 +643,7 @@ def test_v13_save_migrates_cat_companion_fields_through_v17():
     assert 'migrated.cat_design = {}' in state
     assert 'migrated.cat_offer = random_cat_design()' in state
     assert 'migrated.cat_satiety = 0' in state
-    assert "migrated.version = 17" in state
+    assert "migrated.version = 18" in state
 
 
 def test_waypoint_posts_are_standardized_and_location_specific():
@@ -762,7 +762,7 @@ def test_expansion_routes_enter_stage_rotation_and_preserve_safe_corridor():
     assert "place_elite_encounter(route, corridor_lanes, local_rng)" in state
 
 
-def test_v14_cat_save_migrates_to_expansion_schema_v17():
+def test_v14_cat_save_migrates_to_expansion_schema_v18():
     from pathlib import Path
 
     state = (
@@ -780,7 +780,7 @@ def test_v14_cat_save_migrates_to_expansion_schema_v17():
     assert "migrated.prismatic_pearls = 0" in state
     assert "migrated.ember_shards = 0" in state
     assert "migrated.skyfeathers = 0" in state
-    assert "migrated.version = 17" in state
+    assert "migrated.version = 18" in state
 
 
 def test_rpg_waypoint_gateway_and_roadpost_design_is_present():
