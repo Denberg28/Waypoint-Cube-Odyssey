@@ -678,7 +678,12 @@ func camp() -> void:
 	camp_cat_moves_since_rest = 0
 	camp_cat_heading_to_fire = false
 	camp_cat_resting_by_fire = false
-	camp_roam_rng.seed = int(state.data.seed) + int(state.data.trail) * 131 + 90210
+	camp_roam_rng.seed = (
+		int(state.data.get("seed", 1))
+		+ int(state.data.get("wins", 0)) * 131
+		+ int(state.data.get("camp_level", 0)) * 1009
+		+ 90210
+	)
 	var tent = PrismMesh.new()
 	tent.size = Vector3(2.8, 2.5, 3.0)
 	var canvas = MeshInstance3D.new()
