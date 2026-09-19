@@ -5,6 +5,8 @@ const MarketplaceService = preload("res://scripts/modules/marketplace/marketplac
 const EnemyService = preload("res://scripts/modules/enemy/enemy_service.gd")
 const RoadService = preload("res://scripts/modules/road/road_service.gd")
 const ProgressionService = preload("res://scripts/modules/progression/progression_service.gd")
+const BalanceService = preload("res://scripts/modules/balance/balance_service.gd")
+const BossService = preload("res://scripts/modules/boss/boss_service.gd")
 const STAGE_STEPS: int = 18
 const GENERATED_ROWS: int = STAGE_STEPS - 1
 const CELL_COUNT: int = GENERATED_ROWS * 3
@@ -125,7 +127,8 @@ func award_xp(amount: int) -> String:
 
 func enemy_xp_value(kind: String, elite: bool = false) -> int:
 	var profile: Dictionary = enemy_profile(kind)
-	var value: int = int(profile.get("xp", 0))
+	var rank: int = enemy_rank(kind, elite)
+	var value: int = int(profile.get("xp", 0)) + BalanceService.enemy_rank_modifier(rank, "xp")
 	if elite:
 		value += int(elite_behavior(kind).get("xp_bonus", 0))
 	return maxi(0, value)
@@ -178,6 +181,12 @@ func level_progress_text() -> String:
 		return "MAX LEVEL"
 	return "XP %d / %d" % [int(data.xp), xp_to_next()]
 
+func player_rank_name() -> String:
+	return BalanceService.player_rank_name(int(data.level))
+
+func player_rank_bonus(key: String) -> int:
+	return BalanceService.player_rank_bonus(int(data.level), key)
+
 func stat(key: String) -> int:
 	var value: int = int(class_info().get(key, 0))
 	for id in data.equipped.values():
@@ -185,10 +194,10 @@ func stat(key: String) -> int:
 	return value
 
 func max_hp() -> int:
-	return int(class_info().hp) + stat("health") + int(data.camp_level)
+	return int(class_info().hp) + stat("health") + int(data.camp_level) + player_rank_bonus("health")
 
 func attack() -> int:
-	return stat("attack") + int(data.blessing)
+	return stat("attack") + int(data.blessing) + player_rank_bonus("attack")
 
 func max_mana() -> int:
 	return 5 if str(data.class_id) == "magician" else 3
@@ -341,7 +350,7 @@ func class_info() -> Dictionary:
 	return Catalog.CLASSES[str(data.class_id)]
 
 func enemy_damage(amount: int) -> int:
-	return maxi(1, amount - stat("armor"))
+	return maxi(1, amount - stat("armor") - player_rank_bonus("armor"))
 
 func environment_name() -> String:
 	return str(Catalog.ENVIRONMENTS.get(str(data.environment), {"name":"Sunny"}).get("name", "Sunny"))
@@ -587,8 +596,9 @@ func add_relic_charge(amount: int) -> void:
 func resolve_enemy(kind: String, active: bool, elite: bool = false) -> String:
 	var profile: Dictionary = enemy_profile(kind)
 	var behavior: Dictionary = elite_behavior(kind) if elite else {}
-	var toughness: int = int(profile.toughness) + int(behavior.get("toughness_bonus", 0))
-	var damage_value: int = int(profile.damage) + int(behavior.get("damage_bonus", 0))
+	var rank: int = enemy_rank(kind, elite)
+	var toughness: int = int(profile.toughness) + int(behavior.get("toughness_bonus", 0)) + BalanceService.enemy_rank_modifier(rank, "toughness")
+	var damage_value: int = int(profile.damage) + int(behavior.get("damage_bonus", 0)) + BalanceService.enemy_rank_modifier(rank, "damage")
 	var reward: int = int(profile.reward) + int(behavior.get("reward_bonus", 0))
 	var consolation: int = int(profile.consolation) + int(behavior.get("consolation_bonus", 0))
 	var enemy_name: String = str(profile.name)
@@ -1045,58 +1055,20 @@ func bank() -> void:
 	data.coins += int(data.bag)
 	data.bag = 0
 
+func boss_profile() -> Dictionary:
+	return BossService.profile_for_route(str(data.route))
+
+func boss_name() -> String:
+	return BossService.boss_name(str(data.route))
+
+func boss_max_hp() -> int:
+	return int(boss_profile().get("hp", 12))
+
 func start_boss() -> void:
-	data.mode = "boss"
-	data.row = 0
-	data.lane = 0
-	data.turn = 0
-	data.boss_hp = 12
-	data.danger = 0
-	data.target = -1
-	data.last = "Avoid the orange lane. Land on the mint rune to strike."
+	BossService.start(self)
 
 func boss_hop(direction: int) -> String:
-	if data.mode != "boss":
-		return ""
-	data.lane = clampi(int(data.lane) + direction, -1, 1)
-	if int(data.lane) == int(data.danger):
-		var damage: int = enemy_damage(2)
-		data.hp -= damage
-		data.streak = 0
-		data.last = "Root slam! Lost %d hearts." % damage
-	elif int(data.lane) == int(data.target):
-		data.boss_hp -= attack()
-		data.streak += 1
-		add_relic_charge(8)
-		data.last = "Rune stomp! %d damage to the guardian." % attack()
-	else:
-		data.last = "Safe landing. Reach the mint rune to attack."
-	data.turn += 1
-	if data.hp <= 0:
-		defeat()
-	elif data.boss_hp <= 0:
-		data.wins += 1
-		add_relic_charge(35)
-		data.bag += 30
-		var boss_xp: String = award_xp(60)
-		var boss_resolve: String = add_resolve(28)
-		bank()
-		data.mode = "victory"
-		data.last = "The forest wakes. +30 coins, all expedition coins banked."
-		if boss_xp != "":
-			data.last += "\n" + boss_xp
-		if boss_resolve != "":
-			data.last += "\n" + boss_resolve
-		data.last += "\nFound: " + award_gear()
-	else:
-		# Always leave at least one reachable safe landing.
-		data.danger = (int(data.turn) % 3) - 1
-		var choices: Array = []
-		for lane in range(-1, 2):
-			if lane != int(data.danger) and absi(lane - int(data.lane)) <= 1:
-				choices.append(lane)
-		data.target = choices[rng.randi_range(0, choices.size() - 1)]
-	return str(data.last)
+	return BossService.resolve_hop(self, direction)
 
 func defeat() -> void:
 	data.popup = {}
