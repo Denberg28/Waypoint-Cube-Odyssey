@@ -1,12 +1,92 @@
 {
-  "schema": 1,
-  "summary": "Default neutral music profile.",
+  "schema": 2,
+  "summary": "Default neutral Audio Profile v2.",
   "contexts": {
-    "camp": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
-    "road": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
-    "boss": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
-    "fishing": {"pitch_scale": 1.0, "volume_delta_db": 0.0},
-    "campfire": {"pitch_scale": 1.0, "volume_delta_db": 0.0}
+    "camp": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    },
+    "road": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    },
+    "road_danger": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    },
+    "boss": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    },
+    "fishing": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    },
+    "campfire": {
+      "pitch_scale": 1,
+      "volume_delta_db": 0,
+      "tempo_scale": 1,
+      "root_shift": 0,
+      "melody_gain": 1,
+      "bass_gain": 1,
+      "air_gain": 1,
+      "melody_density": 1
+    }
+  },
+  "ambiences": {
+    "forest": {
+      "volume_delta_db": 0,
+      "intensity": 1
+    },
+    "rain": {
+      "volume_delta_db": 0,
+      "intensity": 1
+    },
+    "wind": {
+      "volume_delta_db": 0,
+      "intensity": 1
+    },
+    "boss": {
+      "volume_delta_db": 0,
+      "intensity": 1
+    },
+    "campfire": {
+      "volume_delta_db": 0,
+      "intensity": 1
+    }
+  },
+  "sfx": {
+    "volume_delta_db": 0
   },
   "recommendations": []
 }
