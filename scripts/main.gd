@@ -1239,7 +1239,16 @@ func show_mode() -> void:
 			action("Continue the expedition   →", func(): game.data.mode = "choice"; commit())
 			action("Return home with your banked rewards", func(): game.return_camp(); commit())
 		"boss_intro":
-			modal("05 / THE HEARTWOOD KEEPER", "The forest has one last question.", "Three lanes. One warning. Hop away from the ORANGE slam lane. Land on the MINT strike rune to damage the guardian. Every hop advances one turn; take your time.")
+			var boss_profile: Dictionary = game.boss_profile()
+			modal(
+				"05 / %s" % game.boss_name().to_upper(),
+				"%s awaits." % game.boss_name(),
+				"Three lanes. One warning. Hop away from the ORANGE %s lane. Land on the MINT strike rune to damage the guardian. This guardian has %d HP and deals up to %d raw damage before armor. Every hop advances one turn." % [
+					str(boss_profile.get("telegraph", "SLAM")),
+					game.boss_max_hp(),
+					game.boss_damage()
+				]
+			)
 			action("Face the guardian   →", func(): game.start_boss(); commit(), true)
 		"victory":
 			var unlock: String = "Your collection is growing."
@@ -2413,9 +2422,27 @@ func enemy_display_name(kind: String) -> String:
 		"ogre":
 			return "WAYSTONE OGRE"
 		"guardian":
-			return "HEARTWOOD KEEPER"
+			return game.boss_name().to_upper()
 		_:
 			return "MOSS SLIME"
+
+func fight_matchup_percent(kind: String, elite: bool = false) -> float:
+	var player_power: float = float(maxi(1, game.attack()))
+	var foe_power: float = 1.0
+	if kind == "guardian":
+		# Convert guardian durability into a compact strike-resistance value so
+		# the meter remains comparable with the player's attack stat.
+		foe_power = float(maxi(3, ceili(float(game.boss_max_hp()) / 4.0)))
+	else:
+		var combat: Dictionary = game.enemy_combat_stats(kind, elite)
+		foe_power = float(maxi(1, int(combat.get("toughness", 1))))
+	return clampf((player_power / (player_power + foe_power)) * 100.0, 12.0, 88.0)
+
+func player_fight_summary() -> String:
+	var buff_text: String = ""
+	if int(game.data.get("blessing", 0)) > 0:
+		buff_text = " (+%d BLESSING)" % int(game.data.blessing)
+	return "%s • ATK %d%s" % [game.player_rank_name(), game.attack(), buff_text]
 
 func show_loot_popup(info: Dictionary) -> void:
 	play_chime([523.25, 659.25, 783.99, 1046.50], 0.26, 0.035)
@@ -2431,30 +2458,40 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	var elite_profile: Dictionary = game.elite_behavior(kind) if elite else {}
 	var visual: Dictionary = game.enemy_visual_variant(kind, int(game.data.row), int(game.data.lane), elite) if kind != "guardian" else {}
 	var rank_name: String = str(visual.get("rank_name", "BOSS" if kind == "guardian" else "COMMON"))
+	var matchup_percent: float = fight_matchup_percent(kind, elite)
 	if kind == "guardian":
 		action_word = "BOSS ENCOUNTER"
 	if elite:
 		fight_title.text = "%s  /  %s %s" % [action_word, str(elite_profile.get("name", "Elite")).to_upper(), enemy_display_name(kind)]
+	elif kind == "guardian":
+		fight_title.text = "%s  /  %s" % [action_word, enemy_display_name(kind)]
 	else:
 		fight_title.text = "%s  /  %s  •  %s" % [action_word, rank_name, enemy_display_name(kind)]
 	fight_title.add_theme_color_override("font_color", GOLD if elite else (Color("ef9974") if enemy_was_active else MINT))
 
 	fight_status.text = "ENCOUNTER!"
-	fight_balance.value = 50
-	fight_balance_label.text = "FOE  ◀  STRUGGLE  ▶  YOU"
+	fight_balance.value = matchup_percent
+	fight_balance_label.text = "FOE  ◀  POWER %d%%  ▶  YOU" % int(round(matchup_percent))
 	fight_balance.add_theme_stylebox_override("fill", style(Color("9bddc2"), 5))
 	fight_player.color = current_character_color()
 
 	if kind == "guardian":
-		fight_enemy.color = Color("857957")
-		fight_enemy_gear.text = "BOSS  •  HEARTWOOD ARMOR  •  SLAM"
+		var boss_profile: Dictionary = game.boss_profile()
+		fight_enemy.color = Color(str(boss_profile.get("body", "857957")))
+		fight_enemy_gear.text = "YOU %s  |  BOSS • HP %d • DMG %d • %s" % [
+			player_fight_summary(),
+			game.boss_max_hp(),
+			game.boss_damage(),
+			str(boss_profile.get("telegraph", "SLAM"))
+		]
 	else:
+		var combat: Dictionary = game.enemy_combat_stats(kind, elite)
 		fight_enemy.color = Color(str(visual.get("body", "84ccbd")))
-		fight_enemy_gear.text = "%s  •  %s  •  %s  •  %s" % [
-			rank_name,
-			str(visual.get("armor_style", "armor")).replace("_", " ").to_upper(),
-			str(visual.get("helmet_style", "helmet")).replace("_", " ").to_upper(),
-			str(visual.get("weapon_style", "weapon")).replace("_", " ").to_upper()
+		fight_enemy_gear.text = "YOU %s  |  %s • TOUGH %d • DMG %d" % [
+			player_fight_summary(),
+			str(combat.get("rank_name", rank_name)),
+			int(combat.get("toughness", 1)),
+			int(combat.get("effective_damage", 1))
 		]
 	if enemy_was_active:
 		fight_enemy.color = fight_enemy.color.darkened(0.08)
@@ -2509,9 +2546,14 @@ func show_fight_animation(kind: String, enemy_was_active: bool, player_hit: bool
 	await impact.finished
 	fight_card.rotation = 0.0
 
-	var struggle_points: Array[float] = [42.0, 59.0, 47.0, 64.0 if player_wins_exchange else 36.0]
-	if enemy_was_active:
-		struggle_points = [37.0, 55.0, 43.0, 61.0 if player_wins_exchange else 31.0]
+	var initiative_shift: float = -6.0 if enemy_was_active else 4.0
+	var outcome_shift: float = 13.0 if player_wins_exchange else -13.0
+	var struggle_points: Array[float] = [
+		clampf(matchup_percent + initiative_shift - 5.0, 8.0, 92.0),
+		clampf(matchup_percent + initiative_shift + 7.0, 8.0, 92.0),
+		clampf(matchup_percent + initiative_shift - 2.0, 8.0, 92.0),
+		clampf(matchup_percent + outcome_shift, 8.0, 92.0)
+	]
 	var suspense_labels: Array[String] = ["PUSHING...", "FOE RESISTS...", "LAST EFFORT...", "BREAKING POINT..."]
 	for i in range(struggle_points.size()):
 		fight_status.text = suspense_labels[i]
