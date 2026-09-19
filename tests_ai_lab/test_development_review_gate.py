@@ -1301,3 +1301,19 @@ def test_adventure_actor_idle_keeps_lower_body_stable():
     assert "left_foot.rotation" not in block
     assert "right_foot.rotation" not in block
     assert "actor.position = idle_anchor_position" in block
+
+
+def test_crossroads_uses_clean_rpg_signpost_layout():
+    from pathlib import Path
+
+    world = Path("scripts/world.gd").read_text(encoding="utf-8")
+
+    assert "func crossroads_direction_board(" in world
+    assert 'floating_text(scenery, "CROSSROADS"' in world
+    assert '"CROSSROADS  •  CHOOSE YOUR NEXT ROAD"' not in world
+    assert '"→  %s  •  %s"' not in world
+    assert 'str(route.name).to_upper()' in world
+    assert 'Vector3(-2.05, 1.48' in world
+    assert 'Vector3(0.00, 1.05' in world
+    assert 'Vector3(2.05, 1.48' in world
+    assert "Three subtle ground markers" in world
