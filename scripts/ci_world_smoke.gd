@@ -56,16 +56,33 @@ func _run_smoke() -> void:
 	var actor_start: Vector3 = world.actor.position
 	var cat_root = world.scenery.get_node_or_null("CampCatCompanion")
 	var cat_start: Vector3 = cat_root.position if is_instance_valid(cat_root) else Vector3.ZERO
+	# The player should idle much more than the cat. Over the first 3 seconds,
+	# the cat may move while the player should still be in the long rest window.
 	for _i in range(180):
 		world._process(1.0 / 60.0)
-	if world.actor.position.distance_to(actor_start) < 0.15:
-		_fail("Lantern Camp actor did not roam from spawn", 8)
+	if world.actor.position.distance_to(actor_start) > 0.08:
+		_fail("Lantern Camp actor is too active during intended idle window", 8)
 		return
 	if is_instance_valid(cat_root) and cat_root.position.distance_to(cat_start) < 0.10:
 		_fail("Lantern Camp cat did not roam from spawn", 9)
 		return
 
-	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present camp_roam=active camera=", world.camera.position)
+	# Advance enough time for the player's occasional walk and at least one cat
+	# bonfire rest opportunity.
+	var actor_before_long: Vector3 = world.actor.position
+	var cat_saw_fire_rest: bool = false
+	for _i in range(1200):
+		world._process(1.0 / 60.0)
+		if bool(world.camp_cat_resting_by_fire):
+			cat_saw_fire_rest = true
+	if world.actor.position.distance_to(actor_before_long) < 0.10:
+		_fail("Lantern Camp actor never performed an occasional reposition", 10)
+		return
+	if is_instance_valid(cat_root) and not cat_saw_fire_rest:
+		_fail("Lantern Camp cat never entered bonfire rest state", 11)
+		return
+
+	print("CROSSROADS_SMOKE_OK scenery_children=", scene_children, " camp_marketplace=present calm_actor=verified cat_fire_rest=verified camera=", world.camera.position)
 	quit(0)
 
 func _fail(message: String, code: int) -> void:
